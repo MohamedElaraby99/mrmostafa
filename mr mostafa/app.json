@@ -1,0 +1,33 @@
+{
+  "name": "Tafra Student Management System",
+  "description": "نظام شامل لإدارة الطلاب والمدرسين والحضور والمدفوعات",
+  "repository": "https://github.com/your-username/tafra-system",
+  "logo": "https://node-js-sample.herokuapp.com/node.png",
+  "keywords": ["python", "flask", "student-management", "education", "arabic"],
+  "image": "heroku/python",
+  "stack": "heroku-22",
+  "buildpacks": [
+    {
+      "url": "heroku/python"
+    }
+  ],
+  "addons": [
+    {
+      "plan": "heroku-postgresql:mini",
+      "as": "DATABASE"
+    }
+  ],
+  "env": {
+    "SECRET_KEY": {
+      "description": "Secret key for Flask sessions",
+      "generator": "secret"
+    },
+    "FLASK_ENV": {
+      "description": "Flask environment",
+      "value": "production"
+    }
+  },
+  "scripts": {
+    "postdeploy": "python -c \"from wsgi import application; print('Application deployed successfully!')\""
+  }
+}

@@ -1,0 +1,922 @@
+{% extends "base.html" %}
+
+{% block title %}إدارة الحضور - نظام إدارة الطلاب{% endblock %}
+
+{% block extra_css %}
+<style>
+    .modern-card {
+        border: none;
+        border-radius: 20px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease;
+        overflow: hidden;
+    }
+
+    .modern-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+    }
+
+    .gradient-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 2rem;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .gradient-header::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="white" opacity="0.1"/><circle cx="75" cy="75" r="1" fill="white" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+        opacity: 0.3;
+    }
+
+    .gradient-header h1 {
+        position: relative;
+        z-index: 2;
+        margin: 0;
+        font-weight: 700;
+        font-size: 2.5rem;
+    }
+
+    .gradient-header p {
+        position: relative;
+        z-index: 2;
+        opacity: 0.9;
+        margin-bottom: 0;
+        font-size: 1.1rem;
+    }
+
+    .attendance-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.5rem;
+        margin: 2rem 0;
+    }
+
+    .stat-card {
+        background: white;
+        padding: 2rem;
+        border-radius: 20px;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        text-align: center;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .stat-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: var(--gradient);
+    }
+
+    .stat-card.present::before {
+        background: linear-gradient(90deg, #11998e, #38ef7d);
+    }
+
+    .stat-card.absent::before {
+        background: linear-gradient(90deg, #fc4a1a, #f7b733);
+    }
+
+    .stat-card.late::before {
+        background: linear-gradient(90deg, #f7971e, #ffd200);
+    }
+
+    .stat-card.total::before {
+        background: linear-gradient(90deg, #667eea, #764ba2);
+    }
+
+    .stat-card:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+    }
+
+    .stat-icon {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1rem;
+        font-size: 1.5rem;
+        color: white;
+    }
+
+    .stat-card.present .stat-icon {
+        background: linear-gradient(135deg, #11998e, #38ef7d);
+    }
+
+    .stat-card.absent .stat-icon {
+        background: linear-gradient(135deg, #fc4a1a, #f7b733);
+    }
+
+    .stat-card.late .stat-icon {
+        background: linear-gradient(135deg, #f7971e, #ffd200);
+    }
+
+    .stat-card.total .stat-icon {
+        background: linear-gradient(135deg, #667eea, #764ba2);
+    }
+
+    .stat-number {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: #2d3748;
+        margin-bottom: 0.5rem;
+    }
+
+    .stat-label {
+        color: #718096;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        font-size: 0.875rem;
+    }
+
+    .student-card {
+        background: white;
+        border-radius: 15px;
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+        transition: all 0.3s ease;
+        border-left: 4px solid transparent;
+    }
+
+    .student-card:hover {
+        transform: translateX(5px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+    }
+
+    .student-card.present {
+        border-left-color: #38ef7d;
+        background: linear-gradient(135deg, rgba(56, 239, 125, 0.03) 0%, rgba(17, 153, 142, 0.03) 100%);
+    }
+
+    .student-card.absent {
+        border-left-color: #fc4a1a;
+        background: linear-gradient(135deg, rgba(252, 74, 26, 0.03) 0%, rgba(247, 183, 51, 0.03) 100%);
+    }
+
+    .student-card.late {
+        border-left-color: #f7971e;
+        background: linear-gradient(135deg, rgba(247, 151, 30, 0.03) 0%, rgba(255, 210, 0, 0.03) 100%);
+    }
+
+    .student-avatar {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: 700;
+        font-size: 1.2rem;
+        margin-right: 1rem;
+    }
+
+    .attendance-buttons {
+        display: flex;
+        gap: 0.5rem;
+        border-radius: 12px;
+        padding: 0.25rem;
+        background: #f7fafc;
+        border: 2px solid #e2e8f0;
+    }
+
+    .attendance-btn {
+        border: none;
+        padding: 0.75rem 1.5rem;
+        border-radius: 8px;
+        font-weight: 600;
+        transition: all 0.2s ease;
+        cursor: pointer;
+        font-size: 0.875rem;
+        flex: 1;
+        text-align: center;
+    }
+
+    .attendance-btn:hover {
+        transform: translateY(-2px);
+    }
+
+    .attendance-btn.present {
+        background: #f0fff4;
+        color: #38a169;
+        border: 2px solid #c6f6d5;
+    }
+
+    .attendance-btn.present.active {
+        background: linear-gradient(135deg, #11998e, #38ef7d);
+        color: white;
+        box-shadow: 0 4px 15px rgba(56, 239, 125, 0.3);
+    }
+
+    .attendance-btn.absent {
+        background: #fffaf0;
+        color: #e53e3e;
+        border: 2px solid #fed7d7;
+    }
+
+    .attendance-btn.absent.active {
+        background: linear-gradient(135deg, #fc4a1a, #f7b733);
+        color: white;
+        box-shadow: 0 4px 15px rgba(252, 74, 26, 0.3);
+    }
+
+    .attendance-btn.late {
+        background: #fffff0;
+        color: #d69e2e;
+        border: 2px solid #faf089;
+    }
+
+    .attendance-btn.late.active {
+        background: linear-gradient(135deg, #f7971e, #ffd200);
+        color: white;
+        box-shadow: 0 4px 15px rgba(247, 151, 30, 0.3);
+    }
+
+    .modern-form-control {
+        border: 2px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 0.875rem 1rem;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+        background: white;
+    }
+
+    .modern-form-control:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        outline: none;
+        transform: translateY(-2px);
+    }
+
+    .modern-btn {
+        border: none;
+        padding: 0.875rem 2rem;
+        border-radius: 12px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        cursor: pointer;
+        font-size: 1rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+
+    .modern-btn:hover {
+        transform: translateY(-3px);
+    }
+
+    .modern-btn.primary {
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+    }
+
+    .modern-btn.primary:hover {
+        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+    }
+
+    .modern-btn.success {
+        background: linear-gradient(135deg, #11998e, #38ef7d);
+        color: white;
+        box-shadow: 0 4px 15px rgba(17, 153, 142, 0.3);
+    }
+
+    .modern-btn.success:hover {
+        box-shadow: 0 8px 25px rgba(17, 153, 142, 0.4);
+    }
+
+    .bulk-actions {
+        background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+        border-radius: 15px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        border: 2px solid #e2e8f0;
+    }
+
+    .bulk-actions h6 {
+        color: #2d3748;
+        font-weight: 700;
+        margin-bottom: 1rem;
+    }
+
+    .bulk-btn {
+        background: white;
+        border: 2px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 0.75rem 1.5rem;
+        margin: 0.25rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        font-weight: 600;
+        color: #4a5568;
+    }
+
+    .bulk-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    .bulk-btn.all-present {
+        border-color: #38ef7d;
+        color: #38a169;
+    }
+
+    .bulk-btn.all-present:hover {
+        background: #38ef7d;
+        color: white;
+    }
+
+    .bulk-btn.all-absent {
+        border-color: #fc4a1a;
+        color: #e53e3e;
+    }
+
+    .bulk-btn.all-absent:hover {
+        background: #fc4a1a;
+        color: white;
+    }
+
+    .search-box {
+        position: relative;
+        margin-bottom: 1.5rem;
+    }
+
+    .search-input {
+        width: 100%;
+        padding: 1rem 1rem 1rem 3rem;
+        border: 2px solid #e2e8f0;
+        border-radius: 15px;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+    }
+
+    .search-input:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        outline: none;
+    }
+
+    .search-icon {
+        position: absolute;
+        left: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #a0aec0;
+        font-size: 1.2rem;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 3rem;
+        color: #718096;
+    }
+
+    .empty-state i {
+        font-size: 4rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+
+    .loading-spinner {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border: 2px solid #ffffff;
+        border-radius: 50%;
+        border-top-color: transparent;
+        animation: spin 1s ease-in-out infinite;
+    }
+
+    @keyframes spin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
+
+    .fade-in-up {
+        animation: fadeInUp 0.6s ease forwards;
+    }
+
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .progress-ring {
+        width: 100px;
+        height: 100px;
+        margin: 0 auto 1rem;
+    }
+
+    .progress-ring circle {
+        transition: stroke-dasharray 0.3s ease;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Modern Header -->
+    <div class="modern-card mb-4">
+        <div class="gradient-header">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1>
+                        <i class="fas fa-user-check me-3"></i>
+                        إدارة الحضور والغياب
+                    </h1>
+                    <p>نظام متطور لتتبع حضور الطلاب مع إحصائيات لحظية</p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <div class="d-flex gap-2 justify-content-end">
+                        <button class="modern-btn success" onclick="exportAttendance()">
+                            <i class="fas fa-download"></i>
+                            تصدير Excel
+                        </button>
+                        <button class="modern-btn primary" onclick="location.reload()">
+                            <i class="fas fa-sync-alt"></i>
+                            تحديث
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Attendance Stats -->
+    <div class="attendance-stats fade-in-up">
+        <div class="stat-card total">
+            <div class="stat-icon">
+                <i class="fas fa-users"></i>
+            </div>
+            <div class="stat-number" id="totalStudents">0</div>
+            <div class="stat-label">إجمالي الطلاب</div>
+        </div>
+
+        <div class="stat-card present">
+            <div class="stat-icon">
+                <i class="fas fa-check"></i>
+            </div>
+            <div class="stat-number" id="presentCount">0</div>
+            <div class="stat-label">حاضر</div>
+        </div>
+
+        <div class="stat-card absent">
+            <div class="stat-icon">
+                <i class="fas fa-times"></i>
+            </div>
+            <div class="stat-number" id="absentCount">0</div>
+            <div class="stat-label">غائب</div>
+        </div>
+
+        <div class="stat-card late">
+            <div class="stat-icon">
+                <i class="fas fa-clock"></i>
+            </div>
+            <div class="stat-number" id="lateCount">0</div>
+            <div class="stat-label">متأخر</div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="row">
+        <!-- Attendance Form -->
+        <div class="col-lg-4">
+            <div class="modern-card">
+                <div class="card-body p-4">
+                    <h5 class="mb-4 fw-bold">
+                        <i class="fas fa-calendar-check me-2 text-primary"></i>
+                        تسجيل الحضور
+                    </h5>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">التاريخ</label>
+                        <input type="date" class="modern-form-control" id="attendanceDate" value="{{ today }}">
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold">المجموعة</label>
+                        <select class="modern-form-control" id="groupSelect">
+                            <option value="">اختر المجموعة</option>
+                            {% for group in groups %}
+                            <option value="{{ group.id }}"
+                                data-instructor="{{ group.instructor_ref.name if group.instructor_ref else '' }}">
+                                {{ group.name }}
+                                {% if group.instructor_ref %}({{ group.instructor_ref.name }}){% endif %}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <button class="modern-btn primary w-100" onclick="loadStudents()">
+                        <i class="fas fa-search"></i>
+                        <span>عرض الطلاب</span>
+                        <div class="loading-spinner" id="loadingSpinner" style="display: none;"></div>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Students List -->
+        <div class="col-lg-8">
+            <div class="modern-card" id="studentsContainer" style="display: none;">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h5 class="fw-bold mb-0">
+                            <i class="fas fa-list-ul me-2 text-primary"></i>
+                            قائمة الطلاب
+                        </h5>
+                        <span class="badge bg-primary px-3 py-2" id="groupInfo"></span>
+                    </div>
+
+                    <!-- Search Box -->
+                    <div class="search-box">
+                        <i class="fas fa-search search-icon"></i>
+                        <input type="text" class="search-input" id="studentSearch" placeholder="البحث عن طالب...">
+                    </div>
+
+                    <!-- Bulk Actions -->
+                    <div class="bulk-actions">
+                        <h6>
+                            <i class="fas fa-magic me-2"></i>
+                            إجراءات سريعة
+                        </h6>
+                        <div class="d-flex flex-wrap gap-2">
+                            <button class="bulk-btn all-present" onclick="markAllAs('حاضر')">
+                                <i class="fas fa-check-double me-1"></i>
+                                تحديد الكل حاضر
+                            </button>
+                            <button class="bulk-btn all-absent" onclick="markAllAs('غائب')">
+                                <i class="fas fa-times-circle me-1"></i>
+                                تحديد الكل غائب
+                            </button>
+                            <button class="bulk-btn" onclick="resetAll()">
+                                <i class="fas fa-undo me-1"></i>
+                                إعادة تعيين
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Students List -->
+                    <div id="studentsList"></div>
+
+                    <!-- Save Button -->
+                    <div class="text-center mt-4" id="saveButtonContainer" style="display: none;">
+                        <button class="modern-btn success" onclick="saveAttendance()">
+                            <i class="fas fa-save"></i>
+                            <span>حفظ الحضور</span>
+                            <div class="loading-spinner" id="saveSpinner" style="display: none;"></div>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- SweetAlert2 for modern alerts -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script>
+    let currentStudents = [];
+
+    // Modern Toast Notification
+    const Toast = Swal.mixin({
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 3000,
+        timerProgressBar: true,
+        didOpen: (toast) => {
+            toast.addEventListener('mouseenter', Swal.stopTimer)
+            toast.addEventListener('mouseleave', Swal.resumeTimer)
+        }
+    });
+
+    function showLoader(elementId, show = true) {
+        const spinner = document.getElementById(elementId);
+        if (spinner) {
+            spinner.style.display = show ? 'inline-block' : 'none';
+        }
+    }
+
+    function loadStudents() {
+        const groupId = document.getElementById('groupSelect').value;
+        const groupSelect = document.getElementById('groupSelect');
+        const selectedOption = groupSelect.options[groupSelect.selectedIndex];
+
+        if (!groupId) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'تنبيه',
+                text: 'يرجى اختيار المجموعة أولاً',
+                confirmButtonText: 'موافق'
+            });
+            return;
+        }
+
+        showLoader('loadingSpinner', true);
+
+        fetch(`/get_group_students/${groupId}`)
+            .then(response => response.json())
+            .then(students => {
+                showLoader('loadingSpinner', false);
+                currentStudents = students;
+
+                const container = document.getElementById('studentsContainer');
+                const studentsList = document.getElementById('studentsList');
+                const groupInfo = document.getElementById('groupInfo');
+                const saveButtonContainer = document.getElementById('saveButtonContainer');
+
+                // Update group info
+                const groupName = selectedOption.text;
+                groupInfo.textContent = `${groupName} (${students.length} طالب)`;
+
+                if (students.length === 0) {
+                    studentsList.innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-user-slash"></i>
+                            <h5>لا توجد طلاب في هذه المجموعة</h5>
+                            <p>يمكنك إضافة طلاب جدد من صفحة إدارة الطلاب</p>
+                        </div>
+                    `;
+                    saveButtonContainer.style.display = 'none';
+                    container.style.display = 'block';
+                    return;
+                }
+
+                renderStudentsList(students);
+                updateStats();
+                saveButtonContainer.style.display = 'block';
+                container.style.display = 'block';
+                container.classList.add('fade-in-up');
+
+                Toast.fire({
+                    icon: 'success',
+                    title: `تم تحميل ${students.length} طالب بنجاح`
+                });
+            })
+            .catch(error => {
+                showLoader('loadingSpinner', false);
+                console.error('Error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'خطأ',
+                    text: 'حدث خطأ في تحميل الطلاب',
+                    confirmButtonText: 'موافق'
+                });
+            });
+    }
+
+    function renderStudentsList(students) {
+        const studentsList = document.getElementById('studentsList');
+        let html = '';
+
+        students.forEach((student, index) => {
+            const avatar = student.name.charAt(0).toUpperCase();
+            html += `
+                <div class="student-card" data-student-id="${student.id}" style="animation-delay: ${index * 0.1}s">
+                    <div class="row align-items-center">
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-center">
+                                <div class="student-avatar">${avatar}</div>
+                                <div>
+                                    <h6 class="mb-1 fw-bold">${student.name}</h6>
+                                    <small class="text-muted">الطالب #${student.id}</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="attendance-buttons">
+                                <button class="attendance-btn present active" 
+                                        onclick="markAttendance(${student.id}, 'حاضر', this)"
+                                        data-status="حاضر">
+                                    <i class="fas fa-check"></i>
+                                    حاضر
+                                </button>
+                                <button class="attendance-btn absent" 
+                                        onclick="markAttendance(${student.id}, 'غائب', this)"
+                                        data-status="غائب">
+                                    <i class="fas fa-times"></i>
+                                    غائب
+                                </button>
+                                <button class="attendance-btn late" 
+                                        onclick="markAttendance(${student.id}, 'متأخر', this)"
+                                        data-status="متأخر">
+                                    <i class="fas fa-clock"></i>
+                                    متأخر
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+
+        studentsList.innerHTML = html;
+    }
+
+    function markAttendance(studentId, status, buttonElement) {
+        // Remove active class from all buttons in this student's row
+        const studentCard = buttonElement.closest('.student-card');
+        const allButtons = studentCard.querySelectorAll('.attendance-btn');
+        allButtons.forEach(btn => btn.classList.remove('active'));
+
+        // Add active class to clicked button
+        buttonElement.classList.add('active');
+
+        // Update student card background
+        studentCard.className = 'student-card ' + (status === 'حاضر' ? 'present' : status === 'غائب' ? 'absent' : 'late');
+
+        // Update stats
+        updateStats();
+
+        // Visual feedback
+        buttonElement.style.transform = 'scale(0.95)';
+        setTimeout(() => {
+            buttonElement.style.transform = '';
+        }, 150);
+    }
+
+    function markAllAs(status) {
+        const buttons = document.querySelectorAll(`[data-status="${status}"]`);
+        buttons.forEach(button => {
+            markAttendance(
+                button.closest('.student-card').dataset.studentId,
+                status,
+                button
+            );
+        });
+
+        Toast.fire({
+            icon: 'success',
+            title: `تم تحديد جميع الطلاب كـ "${status}"`
+        });
+    }
+
+    function resetAll() {
+        const presentButtons = document.querySelectorAll('[data-status="حاضر"]');
+        presentButtons.forEach(button => {
+            markAttendance(
+                button.closest('.student-card').dataset.studentId,
+                'حاضر',
+                button
+            );
+        });
+
+        Toast.fire({
+            icon: 'info',
+            title: 'تم إعادة تعيين جميع الطلاب كحاضرين'
+        });
+    }
+
+    function updateStats() {
+        const totalStudents = currentStudents.length;
+        const presentCount = document.querySelectorAll('.attendance-btn.present.active').length;
+        const absentCount = document.querySelectorAll('.attendance-btn.absent.active').length;
+        const lateCount = document.querySelectorAll('.attendance-btn.late.active').length;
+
+        document.getElementById('totalStudents').textContent = totalStudents;
+        document.getElementById('presentCount').textContent = presentCount;
+        document.getElementById('absentCount').textContent = absentCount;
+        document.getElementById('lateCount').textContent = lateCount;
+
+        // Animate the numbers
+        animateNumber('presentCount', presentCount);
+        animateNumber('absentCount', absentCount);
+        animateNumber('lateCount', lateCount);
+    }
+
+    function animateNumber(elementId, targetValue) {
+        const element = document.getElementById(elementId);
+        const current = parseInt(element.textContent) || 0;
+        const increment = targetValue > current ? 1 : -1;
+
+        if (current !== targetValue) {
+            element.textContent = current + increment;
+            setTimeout(() => animateNumber(elementId, targetValue), 50);
+        }
+    }
+
+    function saveAttendance() {
+        const date = document.getElementById('attendanceDate').value;
+        const groupId = document.getElementById('groupSelect').value;
+
+        if (!date || !groupId) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'بيانات ناقصة',
+                text: 'يرجى اختيار التاريخ والمجموعة',
+                confirmButtonText: 'موافق'
+            });
+            return;
+        }
+
+        showLoader('saveSpinner', true);
+
+        const students = [];
+        document.querySelectorAll('.student-card').forEach(studentCard => {
+            const studentId = studentCard.dataset.studentId;
+            const activeButton = studentCard.querySelector('.attendance-btn.active');
+            const status = activeButton.dataset.status;
+
+            students.push({
+                student_id: parseInt(studentId),
+                status: status
+            });
+        });
+
+        const data = {
+            date: date,
+            group_id: parseInt(groupId),
+            students: students
+        };
+
+        fetch('/mark_attendance', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)
+        })
+            .then(response => response.json())
+            .then(data => {
+                showLoader('saveSpinner', false);
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'تم بنجاح!',
+                        text: 'تم حفظ الحضور بنجاح',
+                        confirmButtonText: 'موافق',
+                        timer: 2000
+                    });
+                } else {
+                    throw new Error('Save failed');
+                }
+            })
+            .catch(error => {
+                showLoader('saveSpinner', false);
+                console.error('Error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'خطأ',
+                    text: 'حدث خطأ في حفظ الحضور',
+                    confirmButtonText: 'إعادة المحاولة'
+                });
+            });
+    }
+
+    // Search functionality
+    document.getElementById('studentSearch').addEventListener('input', function (e) {
+        const searchTerm = e.target.value.toLowerCase();
+        const studentCards = document.querySelectorAll('.student-card');
+
+        studentCards.forEach(card => {
+            const studentName = card.querySelector('h6').textContent.toLowerCase();
+            if (studentName.includes(searchTerm)) {
+                card.style.display = 'block';
+                card.style.animation = 'fadeInUp 0.3s ease';
+            } else {
+                card.style.display = 'none';
+            }
+        });
+    });
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', function () {
+        // Set today's date
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('attendanceDate').value = today;
+
+        // Initialize stats
+        updateStats();
+    });
+</script>
+{% endblock %}

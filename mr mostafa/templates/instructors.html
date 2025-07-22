@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+
+{% block title %}إدارة المدرسين - نظام إدارة الطلاب{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2>
+                <i class="fas fa-chalkboard-teacher me-2"></i>
+                إدارة المدرسين
+            </h2>
+        </div>
+        <div class="col-md-4 text-end">
+            <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addInstructorModal">
+                <i class="fas fa-plus me-2"></i>
+                إضافة مدرس جديد
+            </button>
+        </div>
+    </div>
+
+    <!-- Instructors Table -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">قائمة المدرسين</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>الاسم</th>
+                            <th>الهاتف</th>
+                            <th>التخصص</th>
+                            <th>عدد الطلاب</th>
+                            <th>عدد المجموعات</th>
+                            <th>الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for instructor in instructors %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td>{{ instructor.name }}</td>
+                            <td>{{ instructor.phone or '-' }}</td>
+                            <td>{{ instructor.specialization or '-' }}</td>
+                            <td>
+                                <span class="badge bg-primary">{{ instructor.students|length }}</span>
+                            </td>
+                            <td>
+                                <span class="badge bg-info">{{ instructor.groups|length }}</span>
+                            </td>
+                            <td>
+                                <button class="btn btn-sm btn-warning me-1"
+                                    onclick="editInstructor({{ instructor.id }}, '{{ instructor.name }}', '{{ instructor.phone }}', '{{ instructor.specialization }}')">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-sm btn-danger"
+                                    onclick="deleteInstructor({{ instructor.id }}, '{{ instructor.name }}', {{ instructor.students|length }}, {{ instructor.groups|length }})">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="6" class="text-center text-muted py-4">
+                                <i class="fas fa-chalkboard-teacher fa-3x mb-3"></i>
+                                <p>لا توجد مدرسين مسجلين بعد</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Instructor Modal -->
+<div class="modal fade" id="addInstructorModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-user-plus me-2"></i>
+                    إضافة مدرس جديد
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('add_instructor') }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">اسم المدرس *</label>
+                        <input type="text" class="form-control" id="name" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="phone" class="form-label">رقم الهاتف</label>
+                        <input type="tel" class="form-control" id="phone" name="phone">
+                    </div>
+                    <div class="mb-3">
+                        <label for="specialization" class="form-label">التخصص</label>
+                        <input type="text" class="form-control" id="specialization" name="specialization"
+                            placeholder="مثال: اللغة الإنجليزية، الرياضيات، البرمجة">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-save me-2"></i>
+                        حفظ
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Instructor Modal -->
+<div class="modal fade" id="editInstructorModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">تعديل بيانات المدرس</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="editInstructorForm" method="POST">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">الاسم</label>
+                        <input type="text" class="form-control" name="name" id="editInstructorName" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">رقم الهاتف</label>
+                        <input type="tel" class="form-control" name="phone" id="editInstructorPhone">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">التخصص</label>
+                        <input type="text" class="form-control" name="specialization" id="editInstructorSpecialization">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-primary">حفظ التغييرات</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    function editInstructor(id, name, phone, specialization) {
+        document.getElementById('editInstructorForm').action = `/edit_instructor/${id}`;
+        document.getElementById('editInstructorName').value = name;
+        document.getElementById('editInstructorPhone').value = phone;
+        document.getElementById('editInstructorSpecialization').value = specialization;
+
+        new bootstrap.Modal(document.getElementById('editInstructorModal')).show();
+    }
+
+    function deleteInstructor(id, name, studentsCount, groupsCount) {
+        if (studentsCount > 0 || groupsCount > 0) {
+            alert(`لا يمكن حذف المدرس "${name}" لأنه مرتبط بـ ${studentsCount} طالب و ${groupsCount} مجموعة.\nيجب نقل الطلاب والمجموعات إلى مدرس آخر أولاً.`);
+            return;
+        }
+
+        if (confirm(`هل أنت متأكد من حذف المدرس "${name}"؟`)) {
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = `/delete_instructor/${id}`;
+            document.body.appendChild(form);
+            form.submit();
+        }
+    }
+</script>
+{% endblock %}

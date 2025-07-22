@@ -1,0 +1,2614 @@
+{% extends "base.html" %}
+
+{% block title %}إدارة الطلاب - نظام إدارة الطلاب{% endblock %}
+
+{% block content %}
+<div class="fade-in enhanced-typography">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2>
+                <i class="fas fa-user-graduate me-2"></i>
+                إدارة الطلاب
+            </h2>
+        </div>
+        <div class="col-md-4 text-end">
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addStudentModal">
+                <i class="fas fa-plus me-2"></i>
+                إضافة طالب جديد
+            </button>
+        </div>
+    </div>
+
+    <!-- Filters Section -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h6 class="mb-0">
+                <i class="fas fa-filter me-2"></i>
+                فلاتر البحث
+                {% if selected_instructor or selected_group %}
+                <span class="badge bg-warning ms-2">فلاتر نشطة</span>
+                {% endif %}
+            </h6>
+        </div>
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('students') }}" id="filterForm">
+                <div class="row filter-row">
+                    <div class="col-md-2 mb-3">
+                        <label for="search_text" class="form-label">
+                            <i class="fas fa-search me-1"></i>
+                            البحث في الأسماء
+                        </label>
+                        <input type="text" class="form-control" id="search_text"
+                            placeholder="اكتب اسم الطالب أو رقم الهاتف...">
+                    </div>
+                    <div class="col-md-2 mb-3">
+                        <label for="group_filter" class="form-label">
+                            <i class="fas fa-users me-1"></i>
+                            المجموعة
+                        </label>
+                        <select class="form-select {{ 'border-warning' if selected_group else '' }}" id="group_filter"
+                            name="group_id" onchange="submitFilter()">
+                            <option value="">جميع المجموعات</option>
+                            {% for group in groups %}
+                            <option value="{{ group.id }}" {{ 'selected' if selected_group==group.id|string else '' }}>
+                                {{ group.name }} {% if group.level %}({{ group.level }}){% endif %}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2 mb-3">
+                        <label for="age_filter" class="form-label">
+                            <i class="fas fa-birthday-cake me-1"></i>
+                            العمر
+                        </label>
+                        <select class="form-select {{ 'border-warning' if selected_age else '' }}" id="age_filter"
+                            name="age_range" onchange="submitFilter()">
+                            <option value="">جميع الأعمار</option>
+                            {% for age in ages %}
+                            <option value="{{ age }}">{{ age }} سنة</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2 mb-3">
+                        <label for="location_filter" class="form-label">
+                            <i class="fas fa-map-marker-alt me-1"></i>
+                            المنطقة
+                        </label>
+                        <select class="form-select {{ 'border-warning' if selected_location else '' }}"
+                            id="location_filter" name="location" onchange="submitFilter()">
+                            <option value="">جميع المناطق</option>
+                            {% for location in locations %}
+                            {% if location %}
+                            <option value="{{ location }}" {{ 'selected' if selected_location==location else '' }}>
+                                {{ location }}
+                            </option>
+                            {% endif %}
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2 mb-3">
+                        <label for="grade_level_filter" class="form-label">
+                            <i class="fas fa-graduation-cap me-1"></i>
+                            المرحلة الدراسية
+                        </label>
+                        <select class="form-select {{ 'border-warning' if selected_grade_level else '' }}"
+                            id="grade_level_filter" name="grade_level" onchange="submitFilter()">
+                            <option value="">جميع المراحل</option>
+                            {% for grade_level in grade_levels %}
+                            {% if grade_level %}
+                            <option value="{{ grade_level }}" {{ 'selected' if selected_grade_level==grade_level else '' }}>
+                                {{ grade_level }}
+                            </option>
+                            {% endif %}
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2 mb-3 d-flex align-items-end">
+                        <div class="d-flex flex-column w-100">
+                            <div class="d-flex mb-2">
+                                <button type="button" class="btn btn-outline-secondary me-2" onclick="clearFilters()">
+                                    <i class="fas fa-times me-1"></i>
+                                    مسح الفلاتر
+                                </button>
+                                <button type="button" class="btn btn-outline-primary" onclick="exportFiltered()">
+                                    <i class="fas fa-download me-1"></i>
+                                    تصدير
+                                </button>
+                            </div>
+                            <div class="text-center">
+                                <span class="badge bg-info fs-6">
+                                    <i class="fas fa-list-ol me-1"></i>
+                                    عدد النتائج: {{ students|length }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+
+            <!-- Active Filters Display -->
+            {% if selected_group or selected_age or selected_location or selected_grade_level %}
+            <div class="row mt-3">
+                <div class="col-12">
+                    <div class="alert alert-info py-2 mb-0">
+                        <strong>الفلاتر النشطة:</strong>
+                        {% if selected_group %}
+                        {% for group in groups %}
+                        {% if group.id|string == selected_group %}
+                        <span class="badge bg-success me-1">المجموعة: {{ group.name }}</span>
+                        {% endif %}
+                        {% endfor %}
+                        {% endif %}
+                        {% if selected_age %}
+                        <span class="badge bg-info me-1">العمر: {{ selected_age }}</span>
+                        {% endif %}
+                        {% if selected_location %}
+                        <span class="badge bg-warning me-1">المنطقة: {{ selected_location }}</span>
+                        {% endif %}
+                        {% if selected_grade_level %}
+                        <span class="badge bg-primary me-1">المرحلة الدراسية: {{ selected_grade_level }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Students Table -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">قائمة الطلاب</h5>
+            <div class="d-flex align-items-center gap-2">
+                <!-- Column Toggle Dropdown -->
+                <div class="dropdown">
+                    <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" id="columnToggle"
+                        data-bs-toggle="dropdown">
+                        <i class="fas fa-columns me-1"></i>
+                        الأعمدة
+                    </button>
+                    <ul class="dropdown-menu" aria-labelledby="columnToggle">
+                        <li>
+                            <h6 class="dropdown-header">إظهار/إخفاء الأعمدة</h6>
+                        </li>
+                        <li>
+                            <label class="dropdown-item">
+                                <input type="checkbox" class="form-check-input me-2" id="toggle-phone" checked>
+                                الهاتف
+                            </label>
+                        </li>
+                        <li>
+                            <label class="dropdown-item">
+                                <input type="checkbox" class="form-check-input me-2" id="toggle-age" checked>
+                                العمر
+                            </label>
+                        </li>
+                        <li>
+                            <label class="dropdown-item">
+                                <input type="checkbox" class="form-check-input me-2" id="toggle-location" checked>
+                                المنطقة
+                            </label>
+                        </li>
+                        <li>
+                            <label class="dropdown-item">
+                                <input type="checkbox" class="form-check-input me-2" id="toggle-grade-level" checked>
+                                المرحلة الدراسية
+                            </label>
+                        </li>
+                        <li>
+                            <label class="dropdown-item">
+                                <input type="checkbox" class="form-check-input me-2" id="toggle-price" checked>
+                                سعر الكورس
+                            </label>
+                        </li>
+                        <li>
+                            <label class="dropdown-item">
+                                <input type="checkbox" class="form-check-input me-2" id="toggle-discount" checked>
+                                الخصم
+                            </label>
+                        </li>
+                        <li>
+                            <label class="dropdown-item">
+                                <input type="checkbox" class="form-check-input me-2" id="toggle-final-price" checked>
+                                السعر بعد الخصم
+                            </label>
+                        </li>
+                        <li>
+                            <label class="dropdown-item">
+                                <input type="checkbox" class="form-check-input me-2" id="toggle-paid" checked>
+                                المبلغ المدفوع
+                            </label>
+                        </li>
+                        <li>
+                            <label class="dropdown-item">
+                                <input type="checkbox" class="form-check-input me-2" id="toggle-remaining" checked>
+                                المتبقي
+                            </label>
+                        </li>
+                        <li>
+                            <label class="dropdown-item">
+                                <input type="checkbox" class="form-check-input me-2" id="toggle-date" checked>
+                                تاريخ التسجيل
+                            </label>
+                        </li>
+                    </ul>
+                </div>
+
+                <div id="bulk-actions" class="d-none">
+                    <span class="badge bg-primary me-2" id="selected-count">0 محدد</span>
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-sm btn-warning" onclick="showBulkEditGroupModal()">
+                            <i class="fas fa-edit me-1"></i>
+                            تعديل المجموعة
+                        </button>
+                        <button type="button" class="btn btn-sm btn-danger" onclick="confirmBulkDelete()">
+                            <i class="fas fa-trash me-1"></i>
+                            حذف المحدد
+                        </button>
+                        <button type="button" class="btn btn-sm btn-secondary" onclick="clearSelection()">
+                            <i class="fas fa-times me-1"></i>
+                            إلغاء التحديد
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <!-- شريط التمرير العلوي مخفي -->
+            <div class="table-scroll-top" id="topScrollBar" style="display: none !important;">
+                <div class="scroll-content"></div>
+            </div>
+
+            <!-- Table Container with Enhanced Scrolling -->
+            <div class="table-container" id="tableContainer">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0" id="studentsTable">
+                        <thead class="sticky-header">
+                            <tr>
+                                <th class="always-visible">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="select-all">
+                                        <label class="form-check-label" for="select-all">
+                                            الكل
+                                        </label>
+                                    </div>
+                                </th>
+                                <th class="always-visible">#</th>
+                                <th class="always-visible">الاسم</th>
+                                <th class="col-phone">الهاتف</th>
+                                <th class="col-age">العمر</th>
+                                <th class="col-location">المنطقة</th>
+                                <th class="col-grade-level">المرحلة الدراسية</th>
+                                <th class="always-visible">المجموعة</th>
+                                <th class="col-price">سعر الكورس</th>
+                                <th class="col-discount">الخصم</th>
+                                <th class="col-final-price">السعر بعد الخصم</th>
+                                <th class="col-paid">المبلغ المدفوع</th>
+                                <th class="col-remaining">المتبقي</th>
+                                <th class="col-date">تاريخ التسجيل</th>
+                                <th class="always-visible">الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for student in students %}
+                            <tr data-student-id="{{ student.id }}">
+                                <td class="always-visible">
+                                    <div class="form-check">
+                                        <input class="form-check-input student-checkbox" type="checkbox"
+                                            value="{{ student.id }}" id="student-{{ student.id }}">
+                                    </div>
+                                </td>
+                                <td class="always-visible">{{ loop.index }}</td>
+                                <td class="always-visible">{{ student.name }}</td>
+                                <td class="col-phone">
+                                    {% if student.phone %}
+                                    <div class="d-flex align-items-center">
+                                        <span class="me-2">{{ student.phone }}</span>
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <a href="tel:{{ student.phone }}" class="btn btn-outline-success btn-sm"
+                                                title="اتصال">
+                                                <i class="fas fa-phone"></i>
+                                            </a>
+                                            <a href="#" onclick="openWhatsApp('{{ student.phone }}')"
+                                                class="btn btn-outline-success btn-sm" title="واتساب">
+                                                <i class="fab fa-whatsapp"></i>
+                                            </a>
+                                        </div>
+                                    </div>
+                                    {% else %}
+                                    <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td class="col-age">{{ student.age }} سنة</td>
+                                <td class="col-location">{{ student.location or '-' }}</td>
+                                <td class="col-grade-level">
+                                    {% if student.grade_level %}
+                                    <span class="badge bg-info rounded-pill">{{ student.grade_level }}</span>
+                                    {% else %}
+                                    <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td class="always-visible">
+                                    {% if student.groups %}
+                                    {% for group in student.groups %}
+                                    <div class="mb-1">
+                                        {% if group.status == 'completed' %}
+                                        <span class="badge bg-success me-1">
+                                            <i class="fas fa-check-circle me-1"></i>
+                                            {{ group.name }}
+                                        </span>
+                                        {% if group.completion_date %}
+                                        <small class="text-muted">(مكتمل: {{ group.completion_date.strftime('%Y-%m-%d') }})</small>
+                                        {% endif %}
+                                        {% else %}
+                                        <span class="badge bg-primary me-1">
+                                            <i class="fas fa-play-circle me-1"></i>
+                                            {{ group.name }}
+                                        </span>
+                                        {% endif %}
+                                        {% if group.instructor_ref %}
+                                        <small class="text-muted d-block">({{ group.instructor_ref.name }})</small>
+                                        {% endif %}
+                                    </div>
+                                    {% endfor %}
+                                    {% else %}
+                                    <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td class="col-price">{{ student.total_course_price }} ج.م</td>
+                                <td class="col-discount">
+                                    {% if student.discount > 0 %}
+                                    <span class="badge bg-warning">{{ student.discount }} ج.م</span>
+                                    {% else %}
+                                    <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td class="col-final-price">
+                                    <strong class="text-success">{{ student.total_course_price_after_discount }}
+                                        ج.م</strong>
+                                    {% if student.discount > 0 %}
+                                    <br><small class="text-muted">بعد خصم {{ student.discount }} ج.م</small>
+                                    {% endif %}
+                                </td>
+                                <td class="col-paid">{{ student.total_paid }} ج.م</td>
+                                <td class="col-remaining">
+                                    {% set remaining = student.remaining_balance %}
+                                    <span class="badge bg-{{ 'success' if remaining <= 0 else 'warning' }}">
+                                        {{ "%.2f"|format(remaining) }} ج.م
+                                    </span>
+                                </td>
+                                <td class="col-date">
+                                    <div class="text-muted">
+                                        <i class="fas fa-calendar-plus me-1"></i>
+                                        {{ format_arabic_date(student.registration_date) }}
+                                    </div>
+                                </td>
+                                <td class="always-visible">
+                                    <button class="btn btn-sm btn-warning me-1" data-student-id="{{ student.id }}"
+                                        data-student-name="{{ student.name }}"
+                                        data-student-phone="{{ student.phone or '' }}"
+                                        data-student-age="{{ student.age }}"
+                                        data-student-location="{{ student.location or '' }}"
+                                        data-student-grade-level="{{ student.grade_level or '' }}"
+                                        data-student-groups="[{% for group in student.groups %}{{ group.id }}{% if not loop.last %},{% endif %}{% endfor %}]"
+                                        data-student-date="{{ student.registration_date.strftime('%Y-%m-%d') }}"
+                                        data-student-discount="{{ student.discount }}"
+                                        onclick="editStudentFromData(this)">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-danger" data-student-id="{{ student.id }}"
+                                        data-student-name="{{ student.name }}" onclick="deleteStudent(this)">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="15" class="text-center text-muted py-4">
+                                    <i class="fas fa-user-graduate fa-3x mb-3"></i>
+                                    {% if selected_group or selected_age or selected_location %}
+                                    <p>لا توجد طلاب مطابقون للفلاتر المحددة</p>
+                                    <button class="btn btn-outline-primary btn-sm" onclick="clearFilters()">
+                                        <i class="fas fa-times me-1"></i>
+                                        مسح الفلاتر وعرض جميع الطلاب
+                                    </button>
+                                    {% else %}
+                                    <p>لا توجد طلاب مسجلين بعد</p>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Student Modal -->
+<div class="modal fade" id="addStudentModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-user-plus me-2"></i>
+                    إضافة طالب جديد
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('add_student') }}">
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="name" class="form-label">اسم الطالب *</label>
+                            <input type="text" class="form-control" id="name" name="name" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="phone" class="form-label">رقم الهاتف</label>
+                            <input type="tel" class="form-control" id="phone" name="phone">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="age" class="form-label">العمر *</label>
+                            <input type="number" class="form-control" id="age" name="age" min="5" max="100" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="location" class="form-label">البلد/المنطقة</label>
+                            <input type="text" class="form-control" id="location" name="location"
+                                placeholder="أدخل المنطقة أو البلد">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="grade_level" class="form-label">المرحلة الدراسية</label>
+                            <select class="form-select" id="grade_level" name="grade_level">
+                                <option value="">اختر المرحلة الدراسية (اختياري)</option>
+                                <option value="رياض الأطفال - KG1">رياض الأطفال - KG1</option>
+                                <option value="رياض الأطفال - KG2">رياض الأطفال - KG2</option>
+                                <option value="الصف الأول الابتدائي">الصف الأول الابتدائي</option>
+                                <option value="الصف الثاني الابتدائي">الصف الثاني الابتدائي</option>
+                                <option value="الصف الثالث الابتدائي">الصف الثالث الابتدائي</option>
+                                <option value="الصف الرابع الابتدائي">الصف الرابع الابتدائي</option>
+                                <option value="الصف الخامس الابتدائي">الصف الخامس الابتدائي</option>
+                                <option value="الصف السادس الابتدائي">الصف السادس الابتدائي</option>
+                                <option value="الصف الأول الإعدادي">الصف الأول الإعدادي</option>
+                                <option value="الصف الثاني الإعدادي">الصف الثاني الإعدادي</option>
+                                <option value="الصف الثالث الإعدادي">الصف الثالث الإعدادي</option>
+                                <option value="الصف الأول الثانوي">الصف الأول الثانوي</option>
+                                <option value="الصف الثاني الثانوي">الصف الثاني الثانوي</option>
+                                <option value="الصف الثالث الثانوي">الصف الثالث الثانوي</option>
+                                <option value="جامعي">جامعي</option>
+                                <option value="أخرى">أخرى</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <!-- Empty column for spacing or future use -->
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-8 mb-3">
+                            <label for="group_ids" class="form-label">المجموعات (اختياري)</label>
+                            <div class="border rounded p-3" style="max-height: 250px; overflow-y: auto;">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" value="" id="no_group">
+                                    <label class="form-check-label text-muted" for="no_group">
+                                        <i class="fas fa-ban me-1"></i>
+                                        بدون مجموعة
+                                    </label>
+                                </div>
+                                <hr class="my-2">
+                                {% for group in groups %}
+                                <div class="form-check group-option">
+                                    <input class="form-check-input group-checkbox" type="checkbox" name="group_ids"
+                                        value="{{ group.id }}" id="group_{{ group.id }}" data-price="{{ group.price }}">
+                                    <label class="form-check-label" for="group_{{ group.id }}">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <strong>{{ group.name }}</strong>
+                                                <br>
+                                                <small class="text-muted">
+                                                    <i class="fas fa-layer-group me-1"></i>
+                                                    {{ group.level or 'بدون مستوى' }}
+                                                </small>
+                                            </div>
+                                            <div class="text-end">
+                                                <small class="badge bg-info">
+                                                    <i class="fas fa-chalkboard-teacher me-1"></i>
+                                                    {{ group.instructor_ref.name if group.instructor_ref else 'بدون
+                                                    معلم' }}
+                                                </small>
+                                                <br>
+                                                <small class="badge bg-success mt-1">
+                                                    <i class="fas fa-money-bill me-1"></i>
+                                                    {{ group.price }} ج.م
+                                                </small>
+                                            </div>
+                                        </div>
+                                    </label>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            <small class="form-text text-muted">
+                                <i class="fas fa-info-circle me-1"></i>
+                                اختر المجموعات - السعر سيظهر تلقائياً
+                            </small>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">ملخص الأسعار</label>
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h4 class="text-primary mb-0" id="total_price_display">0.00 ج.م</h4>
+                                    <small class="text-muted">إجمالي سعر المجموعات</small>
+                                    <div class="mt-2">
+                                        <small class="text-info" id="selected_groups_count">لم يتم اختيار
+                                            مجموعات</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <small class="form-text text-muted">
+                                <i class="fas fa-calculator me-1"></i>
+                                يتم الحساب تلقائياً عند اختيار المجموعات
+                            </small>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="registration_date" class="form-label">تاريخ التسجيل *</label>
+                            <div class="input-group">
+                                <input type="date" class="form-control" id="registration_date" name="registration_date"
+                                    required>
+                                <input type="hidden" id="registration_date_formatted"
+                                    name="registration_date_formatted">
+                                <button type="button" class="btn btn-outline-secondary"
+                                    onclick="setTodayDate('registration_date')">
+                                    <i class="fas fa-calendar-day me-1"></i>
+                                    اليوم
+                                </button>
+                            </div>
+                            <small class="form-text text-muted">
+                                <i class="fas fa-calendar-alt me-1"></i>
+                                اختر التاريخ من الكاليندر أو انقر على "اليوم"
+                            </small>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="discount" class="form-label">
+                                <i class="fas fa-percent me-1"></i>
+                                قيمة الخصم (جنيه)
+                            </label>
+                            <div class="input-group">
+                                <input type="number" class="form-control" id="discount" name="discount" min="0"
+                                    step="0.01" value="0" onchange="updateTotalWithDiscount()">
+                                <span class="input-group-text">ج.م</span>
+                            </div>
+                            <small class="form-text text-muted">
+                                <i class="fas fa-info-circle me-1"></i>
+                                أدخل قيمة الخصم بالجنيه المصري
+                            </small>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <div class="card bg-info bg-opacity-10 border-info">
+                                <div class="card-body text-center">
+                                    <div class="row">
+                                        <div class="col-md-4">
+                                            <h6 class="text-primary mb-0">السعر الأصلي</h6>
+                                            <h5 class="text-primary" id="original_price_display">0.00 ج.م</h5>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <h6 class="text-warning mb-0">الخصم</h6>
+                                            <h5 class="text-warning" id="discount_display">0.00 ج.م</h5>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <h6 class="text-success mb-0">المطلوب دفعه</h6>
+                                            <h5 class="text-success" id="final_price_display">0.00 ج.م</h5>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-2"></i>
+                        حفظ
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Student Modal -->
+<div class="modal fade" id="editStudentModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">تعديل بيانات الطالب</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="editStudentForm" method="POST">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">الاسم</label>
+                        <input type="text" class="form-control" name="name" id="editName" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">رقم الهاتف</label>
+                        <input type="tel" class="form-control" name="phone" id="editPhone">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">العمر</label>
+                        <input type="number" class="form-control" name="age" id="editAge" min="1" max="100" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">البلد/المنطقة</label>
+                        <input type="text" class="form-control" name="location" id="editLocation"
+                            placeholder="أدخل المنطقة أو البلد">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">المرحلة الدراسية</label>
+                        <select class="form-select" name="grade_level" id="editGradeLevel">
+                            <option value="">اختر المرحلة الدراسية (اختياري)</option>
+                            <option value="رياض الأطفال - KG1">رياض الأطفال - KG1</option>
+                            <option value="رياض الأطفال - KG2">رياض الأطفال - KG2</option>
+                            <option value="الصف الأول الابتدائي">الصف الأول الابتدائي</option>
+                            <option value="الصف الثاني الابتدائي">الصف الثاني الابتدائي</option>
+                            <option value="الصف الثالث الابتدائي">الصف الثالث الابتدائي</option>
+                            <option value="الصف الرابع الابتدائي">الصف الرابع الابتدائي</option>
+                            <option value="الصف الخامس الابتدائي">الصف الخامس الابتدائي</option>
+                            <option value="الصف السادس الابتدائي">الصف السادس الابتدائي</option>
+                            <option value="الصف الأول الإعدادي">الصف الأول الإعدادي</option>
+                            <option value="الصف الثاني الإعدادي">الصف الثاني الإعدادي</option>
+                            <option value="الصف الثالث الإعدادي">الصف الثالث الإعدادي</option>
+                            <option value="الصف الأول الثانوي">الصف الأول الثانوي</option>
+                            <option value="الصف الثاني الثانوي">الصف الثاني الثانوي</option>
+                            <option value="الصف الثالث الثانوي">الصف الثالث الثانوي</option>
+                            <option value="جامعي">جامعي</option>
+                            <option value="أخرى">أخرى</option>
+                        </select>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-8 mb-3">
+                            <label class="form-label">المجموعات (اختياري)</label>
+                            <div class="border rounded p-3" style="max-height: 250px; overflow-y: auto;">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" value="" id="edit_no_group">
+                                    <label class="form-check-label text-muted" for="edit_no_group">
+                                        <i class="fas fa-ban me-1"></i>
+                                        بدون مجموعة
+                                    </label>
+                                </div>
+                                <hr class="my-2">
+                                {% for group in groups %}
+                                <div class="form-check group-option">
+                                    <input class="form-check-input edit-group-checkbox" type="checkbox" name="group_ids"
+                                        value="{{ group.id }}" id="edit_group_{{ group.id }}"
+                                        data-price="{{ group.price }}">
+                                    <label class="form-check-label" for="edit_group_{{ group.id }}">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <strong>{{ group.name }}</strong>
+                                                <br>
+                                                <small class="text-muted">
+                                                    <i class="fas fa-layer-group me-1"></i>
+                                                    {{ group.level or 'بدون مستوى' }}
+                                                </small>
+                                            </div>
+                                            <div class="text-end">
+                                                <small class="badge bg-info">
+                                                    <i class="fas fa-chalkboard-teacher me-1"></i>
+                                                    {{ group.instructor_ref.name if group.instructor_ref else 'بدون
+                                                    معلم' }}
+                                                </small>
+                                                <br>
+                                                <small class="badge bg-success mt-1">
+                                                    <i class="fas fa-money-bill me-1"></i>
+                                                    {{ group.price }} ج.م
+                                                </small>
+                                            </div>
+                                        </div>
+                                    </label>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            <small class="form-text text-muted">
+                                <i class="fas fa-info-circle me-1"></i>
+                                السعر الإجمالي = مجموع أسعار المجموعات المختارة
+                            </small>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">السعر الإجمالي</label>
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h4 class="text-primary mb-0" id="edit_total_price_display">0 ج.م</h4>
+                                    <small class="text-muted">إجمالي سعر المجموعات</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">تاريخ التسجيل</label>
+                            <div class="input-group">
+                                <input type="date" class="form-control" name="registration_date"
+                                    id="editRegistrationDate" required>
+                                <button type="button" class="btn btn-outline-secondary"
+                                    onclick="setTodayDate('editRegistrationDate')">
+                                    <i class="fas fa-calendar-day me-1"></i>
+                                    اليوم
+                                </button>
+                            </div>
+                            <small class="form-text text-muted">
+                                <i class="fas fa-calendar-alt me-1"></i>
+                                اختر التاريخ من الكاليندر أو انقر على "اليوم"
+                            </small>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="editDiscount" class="form-label">
+                                <i class="fas fa-percent me-1"></i>
+                                قيمة الخصم (جنيه)
+                            </label>
+                            <div class="input-group">
+                                <input type="number" class="form-control" id="editDiscount" name="discount" min="0"
+                                    step="0.01" value="0" onchange="updateEditTotalWithDiscount()">
+                                <span class="input-group-text">ج.م</span>
+                            </div>
+                            <small class="form-text text-muted">
+                                <i class="fas fa-info-circle me-1"></i>
+                                أدخل قيمة الخصم بالجنيه المصري
+                            </small>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <div class="card bg-info bg-opacity-10 border-info">
+                                <div class="card-body text-center">
+                                    <div class="row">
+                                        <div class="col-md-4">
+                                            <h6 class="text-primary mb-0">السعر الأصلي</h6>
+                                            <h5 class="text-primary" id="edit_original_price_display">0.00 ج.م</h5>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <h6 class="text-warning mb-0">الخصم</h6>
+                                            <h5 class="text-warning" id="edit_discount_display">0.00 ج.م</h5>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <h6 class="text-success mb-0">المطلوب دفعه</h6>
+                                            <h5 class="text-success" id="edit_final_price_display">0.00 ج.م</h5>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-primary">حفظ التغييرات</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Bulk Edit Group Modal -->
+<div class="modal fade" id="bulkEditGroupModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-users me-2"></i>
+                    تعديل مجموعة الطلاب المحددين
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="bulkEditGroupForm" method="POST" action="/bulk_edit_group">
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        سيتم تطبيق التغييرات على <span id="bulk-selected-count">0</span> طالب
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">اختر العملية:</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="operation" id="add_to_group" value="add"
+                                checked>
+                            <label class="form-check-label" for="add_to_group">
+                                <i class="fas fa-plus me-1"></i>
+                                إضافة إلى مجموعة
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="operation" id="remove_from_group"
+                                value="remove">
+                            <label class="form-check-label" for="remove_from_group">
+                                <i class="fas fa-minus me-1"></i>
+                                إزالة من مجموعة
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="operation" id="replace_groups"
+                                value="replace">
+                            <label class="form-check-label" for="replace_groups">
+                                <i class="fas fa-exchange-alt me-1"></i>
+                                استبدال المجموعات (إزالة الحالية وإضافة جديدة)
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="bulk_group_id" class="form-label">المجموعة:</label>
+                        <select class="form-select" name="group_id" id="bulk_group_id" required>
+                            <option value="">اختر المجموعة</option>
+                            {% for group in groups %}
+                            <option value="{{ group.id }}">
+                                {{ group.name }} {% if group.level %}({{ group.level }}){% endif %}
+                                - {{ group.instructor_ref.name if group.instructor_ref else 'بدون معلم' }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <input type="hidden" name="student_ids" id="bulk_student_ids">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-2"></i>
+                        تطبيق التغييرات
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Bulk Delete Confirmation Modal -->
+<div class="modal fade" id="bulkDeleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    تأكيد حذف الطلاب
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-danger">
+                    <i class="fas fa-warning me-2"></i>
+                    هل أنت متأكد من حذف <span id="delete-selected-count">0</span> طالب؟
+                </div>
+                <p class="text-muted">
+                    <i class="fas fa-info-circle me-1"></i>
+                    هذا الإجراء لا يمكن التراجع عنه. سيتم حذف جميع البيانات المتعلقة بالطلاب المحددين.
+                </p>
+                <div id="students-to-delete-list" class="border rounded p-2 bg-light">
+                    <!-- قائمة الطلاب المحددين للحذف -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                <button type="button" class="btn btn-danger" onclick="executeBulkDelete()">
+                    <i class="fas fa-trash me-2"></i>
+                    تأكيد الحذف
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function editStudentFromData(button) {
+        const id = button.getAttribute('data-student-id');
+        const name = button.getAttribute('data-student-name');
+        const phone = button.getAttribute('data-student-phone');
+        const age = button.getAttribute('data-student-age');
+        const location = button.getAttribute('data-student-location');
+        const gradeLevel = button.getAttribute('data-student-grade-level');
+        const groupIds = JSON.parse(button.getAttribute('data-student-groups'));
+        const registrationDate = button.getAttribute('data-student-date');
+        const discount = button.getAttribute('data-student-discount');
+
+        editStudent(id, name, phone, age, location, gradeLevel, groupIds, registrationDate, discount);
+    }
+
+    function editStudent(id, name, phone, age, location, gradeLevel, groupIds, registrationDate, discount = 0) {
+        document.getElementById('editStudentForm').action = `/edit_student/${id}`;
+        document.getElementById('editName').value = name;
+        document.getElementById('editPhone').value = phone;
+        document.getElementById('editAge').value = age;
+        document.getElementById('editLocation').value = location;
+        document.getElementById('editGradeLevel').value = gradeLevel || '';
+        document.getElementById('editDiscount').value = discount;
+
+        // Set date value directly (HTML5 date input expects YYYY-MM-DD format)
+        document.getElementById('editRegistrationDate').value = registrationDate;
+
+        // Clear all group checkboxes first
+        const groupCheckboxes = document.querySelectorAll('input[name="group_ids"]');
+        groupCheckboxes.forEach(checkbox => {
+            checkbox.checked = false;
+        });
+
+        // Check the groups that the student is currently in
+        if (Array.isArray(groupIds) && groupIds.length > 0) {
+            groupIds.forEach(groupId => {
+                const checkbox = document.getElementById(`edit_group_${groupId}`);
+                if (checkbox) {
+                    checkbox.checked = true;
+                }
+            });
+        }
+
+        // Calculate and display total price for selected groups
+        calculateEditTotalPrice();
+
+        new bootstrap.Modal(document.getElementById('editStudentModal')).show();
+    }
+
+    function setTodayDate(inputId) {
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        const formattedDate = `${year}-${month}-${day}`;
+
+        document.getElementById(inputId).value = formattedDate;
+    }
+
+
+
+    // deleteStudent function is now in common.js
+
+    // Add JavaScript to handle "No Group" checkbox behavior
+    document.addEventListener('DOMContentLoaded', function () {
+        // Handle "No Group" checkbox in add modal
+        const noGroupAdd = document.getElementById('no_group');
+        const groupCheckboxesAdd = document.querySelectorAll('#addStudentModal input[name="group_ids"]');
+
+        if (noGroupAdd) {
+            noGroupAdd.addEventListener('change', function () {
+                if (this.checked) {
+                    groupCheckboxesAdd.forEach(cb => cb.checked = false);
+                }
+            });
+        }
+
+        groupCheckboxesAdd.forEach(checkbox => {
+            checkbox.addEventListener('change', function () {
+                if (this.checked && noGroupAdd) {
+                    noGroupAdd.checked = false;
+                }
+            });
+        });
+
+        // Handle "No Group" checkbox in edit modal
+        const noGroupEdit = document.getElementById('edit_no_group');
+        const groupCheckboxesEdit = document.querySelectorAll('#editStudentModal input[name="group_ids"]');
+
+        if (noGroupEdit) {
+            noGroupEdit.addEventListener('change', function () {
+                if (this.checked) {
+                    groupCheckboxesEdit.forEach(cb => cb.checked = false);
+                }
+            });
+        }
+
+        groupCheckboxesEdit.forEach(checkbox => {
+            checkbox.addEventListener('change', function () {
+                if (this.checked && noGroupEdit) {
+                    noGroupEdit.checked = false;
+                }
+            });
+        });
+    });
+
+    // Filter functions
+    function submitFilter() {
+        const form = document.getElementById('filterForm');
+        if (form) {
+            form.submit();
+        }
+    }
+
+    function clearFilters() {
+        const groupFilter = document.getElementById('group_filter');
+        const ageFilter = document.getElementById('age_filter');
+        const locationFilter = document.getElementById('location_filter');
+
+        if (groupFilter) groupFilter.value = '';
+        if (ageFilter) ageFilter.value = '';
+        if (locationFilter) locationFilter.value = '';
+
+        const form = document.getElementById('filterForm');
+        if (form) {
+            form.submit();
+        }
+    }
+
+    function exportFiltered() {
+        // Simple CSV export of filtered students
+        const students = [];
+        const table = document.querySelector('table tbody');
+        const rows = table.querySelectorAll('tr:not([style*="display: none"])'); // Only visible rows
+
+        // Add header
+        students.push(['#', 'الاسم', 'الهاتف', 'العمر', 'المنطقة', 'المرحلة الدراسية', 'المجموعات', 'سعر الكورس', 'المبلغ المدفوع', 'المتبقي', 'تاريخ التسجيل']);
+
+        rows.forEach((row, index) => {
+            if (row.cells.length > 1) { // Skip empty state row
+                const cells = Array.from(row.cells).slice(0, -1); // Exclude actions column
+                const rowData = cells.map(cell => cell.textContent.trim());
+                students.push(rowData);
+            }
+        });
+
+        if (students.length > 1) {
+            const csvContent = students.map(row => row.join(',')).join('\n');
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', 'students_filtered.csv');
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            showSuccess('تم التصدير بنجاح', 'تم تحميل ملف البيانات بنجاح');
+        } else {
+            showError('لا توجد بيانات', 'لا توجد بيانات للتصدير');
+        }
+    }
+
+
+
+    // Function to open WhatsApp with formatted phone number
+    function openWhatsApp(phoneNumber) {
+        // Remove all non-digit characters except + at the beginning
+        let cleanPhone = phoneNumber.replace(/[^\d+]/g, '');
+
+        // If phone doesn't start with +, assume it's an Egyptian number and add +20
+        if (!cleanPhone.startsWith('+')) {
+            // Remove leading zero if present for Egyptian numbers
+            if (cleanPhone.startsWith('0')) {
+                cleanPhone = cleanPhone.substring(1);
+            }
+            cleanPhone = '+20' + cleanPhone;
+        }
+
+        // Open WhatsApp
+        const whatsappUrl = `https://wa.me/${cleanPhone}`;
+        window.open(whatsappUrl, '_blank');
+    }
+
+    // Function to calculate total price for add form
+    function calculateTotalPrice() {
+        let totalPrice = 0;
+        const checkboxes = document.querySelectorAll('.group-checkbox:checked');
+        const countElement = document.getElementById('selected_groups_count');
+
+        console.log('Calculating total price...', checkboxes.length, 'groups selected');
+
+        checkboxes.forEach(checkbox => {
+            const price = parseFloat(checkbox.getAttribute('data-price')) || 0;
+            console.log('Group price:', price);
+            totalPrice += price;
+        });
+
+        console.log('Total price:', totalPrice);
+        const displayElement = document.getElementById('total_price_display');
+        if (displayElement) {
+            displayElement.textContent = totalPrice.toFixed(2) + ' ج.م';
+        }
+
+        // Update selected groups count
+        if (countElement) {
+            if (checkboxes.length === 0) {
+                countElement.textContent = 'لم يتم اختيار مجموعات';
+                countElement.className = 'text-muted';
+            } else if (checkboxes.length === 1) {
+                countElement.textContent = 'مجموعة واحدة مختارة';
+                countElement.className = 'text-success';
+            } else {
+                countElement.textContent = `${checkboxes.length} مجموعات مختارة`;
+                countElement.className = 'text-success';
+            }
+        }
+
+        // Update price breakdown with discount
+        updateTotalWithDiscount();
+    }
+
+    // Function to update price display with discount
+    function updateTotalWithDiscount() {
+        let totalPrice = 0;
+        const checkboxes = document.querySelectorAll('.group-checkbox:checked');
+
+        checkboxes.forEach(checkbox => {
+            const price = parseFloat(checkbox.getAttribute('data-price')) || 0;
+            totalPrice += price;
+        });
+
+        const discount = parseFloat(document.getElementById('discount').value) || 0;
+        const finalPrice = Math.max(0, totalPrice - discount);
+
+        // Update display elements
+        document.getElementById('original_price_display').textContent = totalPrice.toFixed(2) + ' ج.م';
+        document.getElementById('discount_display').textContent = discount.toFixed(2) + ' ج.م';
+        document.getElementById('final_price_display').textContent = finalPrice.toFixed(2) + ' ج.م';
+    }
+
+    // Function to calculate total price for edit form
+    function calculateEditTotalPrice() {
+        let totalPrice = 0;
+        const checkboxes = document.querySelectorAll('.edit-group-checkbox:checked');
+
+        checkboxes.forEach(checkbox => {
+            const price = parseFloat(checkbox.getAttribute('data-price')) || 0;
+            totalPrice += price;
+        });
+
+        const displayElement = document.getElementById('edit_total_price_display');
+        if (displayElement) {
+            displayElement.textContent = totalPrice.toFixed(2) + ' ج.م';
+        }
+
+        // Update price breakdown with discount for edit form
+        updateEditTotalWithDiscount();
+    }
+
+    // Function to update edit price display with discount
+    function updateEditTotalWithDiscount() {
+        let totalPrice = 0;
+        const checkboxes = document.querySelectorAll('.edit-group-checkbox:checked');
+
+        checkboxes.forEach(checkbox => {
+            const price = parseFloat(checkbox.getAttribute('data-price')) || 0;
+            totalPrice += price;
+        });
+
+        const discount = parseFloat(document.getElementById('editDiscount').value) || 0;
+        const finalPrice = Math.max(0, totalPrice - discount);
+
+        // Update display elements for edit form
+        document.getElementById('edit_original_price_display').textContent = totalPrice.toFixed(2) + ' ج.م';
+        document.getElementById('edit_discount_display').textContent = discount.toFixed(2) + ' ج.م';
+        document.getElementById('edit_final_price_display').textContent = finalPrice.toFixed(2) + ' ج.م';
+    }
+
+    // Bulk operations functions
+    let selectedStudents = [];
+
+    function updateBulkActions() {
+        const bulkActions = document.getElementById('bulk-actions');
+        const selectedCount = document.getElementById('selected-count');
+
+        if (selectedStudents.length > 0) {
+            bulkActions.classList.remove('d-none');
+            selectedCount.textContent = `${selectedStudents.length} محدد`;
+        } else {
+            bulkActions.classList.add('d-none');
+        }
+    }
+
+    function toggleStudentSelection(studentId, isChecked) {
+        if (isChecked) {
+            if (!selectedStudents.includes(studentId)) {
+                selectedStudents.push(studentId);
+            }
+        } else {
+            selectedStudents = selectedStudents.filter(id => id !== studentId);
+        }
+
+        // Add/remove visual highlighting
+        const row = document.querySelector(`tr[data-student-id="${studentId}"]`);
+        if (row) {
+            if (isChecked) {
+                row.classList.add('selected');
+            } else {
+                row.classList.remove('selected');
+            }
+        }
+
+        updateBulkActions();
+        updateSelectAllCheckbox();
+    }
+
+    function updateSelectAllCheckbox() {
+        const selectAllCheckbox = document.getElementById('select-all');
+        const studentCheckboxes = document.querySelectorAll('.student-checkbox');
+        const checkedBoxes = document.querySelectorAll('.student-checkbox:checked');
+
+        if (checkedBoxes.length === 0) {
+            selectAllCheckbox.indeterminate = false;
+            selectAllCheckbox.checked = false;
+        } else if (checkedBoxes.length === studentCheckboxes.length) {
+            selectAllCheckbox.indeterminate = false;
+            selectAllCheckbox.checked = true;
+        } else {
+            selectAllCheckbox.indeterminate = true;
+        }
+    }
+
+    function clearSelection() {
+        selectedStudents = [];
+        document.querySelectorAll('.student-checkbox').forEach(cb => cb.checked = false);
+        document.querySelectorAll('tr.selected').forEach(row => row.classList.remove('selected'));
+        document.getElementById('select-all').checked = false;
+        document.getElementById('select-all').indeterminate = false;
+        updateBulkActions();
+    }
+
+    function showBulkEditGroupModal() {
+        document.getElementById('bulk-selected-count').textContent = selectedStudents.length;
+        document.getElementById('bulk_student_ids').value = selectedStudents.join(',');
+        new bootstrap.Modal(document.getElementById('bulkEditGroupModal')).show();
+    }
+
+    function confirmBulkDelete() {
+        const studentNames = [];
+        selectedStudents.forEach(studentId => {
+            const row = document.querySelector(`tr[data-student-id="${studentId}"]`);
+            if (row) {
+                const nameCell = row.querySelector('td:nth-child(3)'); // الاسم في العمود الثالث
+                if (nameCell) {
+                    studentNames.push(nameCell.textContent.trim());
+                }
+            }
+        });
+
+        document.getElementById('delete-selected-count').textContent = selectedStudents.length;
+
+        const listContainer = document.getElementById('students-to-delete-list');
+        listContainer.innerHTML = studentNames.map(name =>
+            `<div class="text-danger mb-1"><i class="fas fa-user me-1"></i>${name}</div>`
+        ).join('');
+
+        new bootstrap.Modal(document.getElementById('bulkDeleteModal')).show();
+    }
+
+    function executeBulkDelete() {
+        if (selectedStudents.length === 0) return;
+
+        // إرسال طلب الحذف
+        fetch('/bulk_delete_students', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                student_ids: selectedStudents
+            })
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // إغلاق النافذة المنبثقة
+                    bootstrap.Modal.getInstance(document.getElementById('bulkDeleteModal')).hide();
+
+                    // إظهار رسالة النجاح
+                    showSuccess('تم الحذف بنجاح', `تم حذف ${selectedStudents.length} طالب بنجاح`);
+
+                    // إعادة تحميل الصفحة
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1500);
+                } else {
+                    showError('خطأ في الحذف', data.message || 'حدث خطأ أثناء محاولة الحذف');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showError('خطأ في الحذف', 'حدث خطأ في الشبكة');
+            });
+    }
+
+    // Enhanced table scrolling and column management
+    function initializeEnhancedTable() {
+        const topScrollBar = document.getElementById('topScrollBar');
+        const tableContainer = document.getElementById('tableContainer');
+        const scrollContent = topScrollBar.querySelector('.scroll-content');
+        const table = document.getElementById('studentsTable');
+
+        // Set up top scroll bar width to match table width
+        function updateScrollContent() {
+            if (table && scrollContent) {
+                scrollContent.style.width = table.scrollWidth + 'px';
+            }
+        }
+
+        // Synchronize scrolling between top bar and table
+        function syncScroll(source, target) {
+            if (source && target) {
+                target.scrollLeft = source.scrollLeft;
+            }
+        }
+
+        // Initialize scroll synchronization
+        if (topScrollBar && tableContainer) {
+            updateScrollContent();
+
+            topScrollBar.addEventListener('scroll', function () {
+                syncScroll(this, tableContainer);
+            });
+
+            tableContainer.addEventListener('scroll', function () {
+                syncScroll(this, topScrollBar);
+            });
+        }
+
+        // Column toggle functionality
+        const columnToggles = {
+            'toggle-phone': '.col-phone',
+            'toggle-age': '.col-age',
+            'toggle-location': '.col-location',
+            'toggle-grade-level': '.col-grade-level',
+            'toggle-price': '.col-price',
+            'toggle-discount': '.col-discount',
+            'toggle-final-price': '.col-final-price',
+            'toggle-paid': '.col-paid',
+            'toggle-remaining': '.col-remaining',
+            'toggle-date': '.col-date'
+        };
+
+        // Set up column toggles
+        Object.keys(columnToggles).forEach(toggleId => {
+            const toggle = document.getElementById(toggleId);
+            if (toggle) {
+                toggle.addEventListener('change', function () {
+                    const columns = document.querySelectorAll(columnToggles[toggleId]);
+                    columns.forEach(col => {
+                        if (this.checked) {
+                            col.classList.remove('hidden');
+                        } else {
+                            col.classList.add('hidden');
+                        }
+                    });
+
+                    // Update scroll content width after column visibility change
+                    setTimeout(updateScrollContent, 100);
+                });
+            }
+        });
+
+        // Update scroll content on window resize
+        window.addEventListener('resize', function () {
+            setTimeout(updateScrollContent, 100);
+        });
+
+        // Initial update
+        setTimeout(updateScrollContent, 500);
+    }
+
+    // Add event listeners for group selection changes
+    document.addEventListener('DOMContentLoaded', function () {
+        console.log('DOM loaded, setting up event listeners...');
+
+        // Initialize enhanced table features
+        initializeEnhancedTable();
+
+        // Add form listeners
+        const groupCheckboxes = document.querySelectorAll('.group-checkbox');
+        console.log('Found', groupCheckboxes.length, 'group checkboxes for add form');
+
+        groupCheckboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', function () {
+                console.log('Group checkbox changed:', this.value, this.checked);
+                calculateTotalPrice();
+            });
+        });
+
+        // Edit form listeners
+        const editGroupCheckboxes = document.querySelectorAll('.edit-group-checkbox');
+        console.log('Found', editGroupCheckboxes.length, 'group checkboxes for edit form');
+
+        editGroupCheckboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', function () {
+                console.log('Edit group checkbox changed:', this.value, this.checked);
+                calculateEditTotalPrice();
+            });
+        });
+
+        // Handle "No Group" checkbox in add modal
+        const noGroupAdd = document.getElementById('no_group');
+        const groupCheckboxesAdd = document.querySelectorAll('#addStudentModal input[name="group_ids"]');
+
+        if (noGroupAdd) {
+            noGroupAdd.addEventListener('change', function () {
+                if (this.checked) {
+                    groupCheckboxesAdd.forEach(cb => {
+                        cb.checked = false;
+                    });
+                    calculateTotalPrice();
+                }
+            });
+        }
+
+        groupCheckboxesAdd.forEach(checkbox => {
+            checkbox.addEventListener('change', function () {
+                if (this.checked && noGroupAdd) {
+                    noGroupAdd.checked = false;
+                }
+                calculateTotalPrice();
+            });
+        });
+
+        // Handle "No Group" checkbox in edit modal
+        const noGroupEdit = document.getElementById('edit_no_group');
+        const groupCheckboxesEdit = document.querySelectorAll('#editStudentModal input[name="group_ids"]');
+
+        if (noGroupEdit) {
+            noGroupEdit.addEventListener('change', function () {
+                if (this.checked) {
+                    groupCheckboxesEdit.forEach(cb => {
+                        cb.checked = false;
+                    });
+                    calculateEditTotalPrice();
+                }
+            });
+        }
+
+        groupCheckboxesEdit.forEach(checkbox => {
+            checkbox.addEventListener('change', function () {
+                if (this.checked && noGroupEdit) {
+                    noGroupEdit.checked = false;
+                }
+                calculateEditTotalPrice();
+            });
+        });
+
+        // Reset price display when modals are opened
+        document.getElementById('addStudentModal').addEventListener('show.bs.modal', function () {
+            console.log('Add student modal opened, resetting price');
+            document.getElementById('total_price_display').textContent = '0.00 ج.م';
+        });
+
+        document.getElementById('editStudentModal').addEventListener('show.bs.modal', function () {
+            console.log('Edit student modal opened');
+            calculateEditTotalPrice();
+        });
+
+        // Add event listeners for bulk selection
+        const selectAllCheckbox = document.getElementById('select-all');
+        if (selectAllCheckbox) {
+            selectAllCheckbox.addEventListener('change', function () {
+                const studentCheckboxes = document.querySelectorAll('.student-checkbox');
+                const isChecked = this.checked;
+
+                studentCheckboxes.forEach(checkbox => {
+                    checkbox.checked = isChecked;
+                    const studentId = parseInt(checkbox.value);
+                    toggleStudentSelection(studentId, isChecked);
+                });
+            });
+        }
+
+        // Add event listeners for individual student checkboxes
+        document.querySelectorAll('.student-checkbox').forEach(checkbox => {
+            checkbox.addEventListener('change', function () {
+                const studentId = parseInt(this.value);
+                toggleStudentSelection(studentId, this.checked);
+            });
+        });
+
+        // Handle bulk edit group form submission
+        document.getElementById('bulkEditGroupForm').addEventListener('submit', function (e) {
+            e.preventDefault();
+
+            const formData = new FormData(this);
+
+            fetch('/bulk_edit_group', {
+                method: 'POST',
+                body: formData
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        bootstrap.Modal.getInstance(document.getElementById('bulkEditGroupModal')).hide();
+                        showSuccess('تم التحديث بنجاح', data.message);
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 1500);
+                    } else {
+                        showError('خطأ في التحديث', data.message || 'حدث خطأ أثناء التحديث');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showError('خطأ في التحديث', 'حدث خطأ في الشبكة');
+                });
+        });
+
+        // Initialize enhanced table features
+        initializeEnhancedTableScroll();
+
+        // Add event listeners for filter form
+        const groupFilter = document.getElementById('group_filter');
+        const ageFilter = document.getElementById('age_filter');
+        const locationFilter = document.getElementById('location_filter');
+
+        if (groupFilter) {
+            groupFilter.addEventListener('change', submitFilter);
+        }
+        if (ageFilter) {
+            ageFilter.addEventListener('change', submitFilter);
+        }
+        if (locationFilter) {
+            locationFilter.addEventListener('change', submitFilter);
+        }
+
+        // تأكد من ربط دالة البحث بحقل النص
+        const searchInput = document.getElementById('search_text');
+        if (searchInput) {
+            // إزالة أي event listeners قديمة وإضافة جديدة
+            searchInput.addEventListener('keyup', quickSearch);
+            searchInput.addEventListener('input', quickSearch);
+            searchInput.addEventListener('paste', function () {
+                // تأخير قصير للسماح بمعالجة اللصق
+                setTimeout(quickSearch, 10);
+            });
+        }
+
+        console.log('All enhanced features initialized successfully');
+    });
+
+    // Enhanced table scrolling and column management
+    function initializeEnhancedTable() {
+        console.log('Starting enhanced table initialization...');
+
+        const topScrollBar = document.getElementById('topScrollBar');
+        const tableContainer = document.getElementById('tableContainer');
+        const scrollContent = topScrollBar ? topScrollBar.querySelector('.scroll-content') : null;
+        const table = document.getElementById('studentsTable');
+
+        console.log('Enhanced table elements found:', {
+            topScrollBar: !!topScrollBar,
+            tableContainer: !!tableContainer,
+            scrollContent: !!scrollContent,
+            table: !!table
+        });
+
+        if (!topScrollBar || !tableContainer || !scrollContent || !table) {
+            console.error('Missing required elements for enhanced table');
+            return;
+        }
+
+        // Set up top scroll bar width to match table width
+        function updateScrollContent() {
+            if (table && scrollContent && topScrollBar) {
+                const tableWidth = table.scrollWidth;
+                const containerWidth = tableContainer.clientWidth;
+
+                console.log('Updating scroll content:', {
+                    tableWidth,
+                    containerWidth,
+                    needsScroll: tableWidth > containerWidth
+                });
+
+                scrollContent.style.width = tableWidth + 'px';
+
+                // Show/hide top scroll bar based on whether horizontal scrolling is needed
+                if (tableWidth > containerWidth) {
+                    topScrollBar.style.display = 'block';
+                } else {
+                    topScrollBar.style.display = 'none';
+                }
+            }
+        }
+
+        // Synchronize scrolling between top bar and table
+        function syncScroll(source, target, preventLoop = false) {
+            if (source && target && !preventLoop) {
+                target.scrollLeft = source.scrollLeft;
+            }
+        }
+
+        // Initialize scroll synchronization
+        if (topScrollBar && tableContainer) {
+            let isTopScrolling = false;
+            let isTableScrolling = false;
+
+            topScrollBar.addEventListener('scroll', function () {
+                if (!isTableScrolling) {
+                    isTopScrolling = true;
+                    tableContainer.scrollLeft = this.scrollLeft;
+                    setTimeout(() => { isTopScrolling = false; }, 50);
+                }
+            });
+
+            tableContainer.addEventListener('scroll', function () {
+                if (!isTopScrolling) {
+                    isTableScrolling = true;
+                    topScrollBar.scrollLeft = this.scrollLeft;
+                    setTimeout(() => { isTableScrolling = false; }, 50);
+                }
+            });
+
+            // Initial setup
+            updateScrollContent();
+        }
+
+        // Column toggle functionality
+        const columnToggles = {
+            'toggle-phone': '.col-phone',
+            'toggle-age': '.col-age',
+            'toggle-location': '.col-location',
+            'toggle-grade-level': '.col-grade-level',
+            'toggle-price': '.col-price',
+            'toggle-discount': '.col-discount',
+            'toggle-final-price': '.col-final-price',
+            'toggle-paid': '.col-paid',
+            'toggle-remaining': '.col-remaining',
+            'toggle-date': '.col-date'
+        };
+
+        // Set up column toggles
+        Object.keys(columnToggles).forEach(toggleId => {
+            const toggle = document.getElementById(toggleId);
+            if (toggle) {
+                toggle.addEventListener('change', function () {
+                    const columns = document.querySelectorAll(columnToggles[toggleId]);
+                    columns.forEach(col => {
+                        if (this.checked) {
+                            col.classList.remove('hidden');
+                        } else {
+                            col.classList.add('hidden');
+                        }
+                    });
+
+                    // Update scroll content width after column visibility change
+                    setTimeout(updateScrollContent, 100);
+                });
+            }
+        });
+
+        // Update scroll content on window resize
+        window.addEventListener('resize', function () {
+            setTimeout(updateScrollContent, 100);
+        });
+
+        // Initial update
+        setTimeout(updateScrollContent, 500);
+    }
+</script>
+{% endblock %}
+
+{% block extra_css %}
+<!-- Import Google Fonts for better Arabic typography -->
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<!-- Enhanced JavaScript for Students Page -->
+<script>
+    // Enhanced Students Table JavaScript Functions - تحسينات جدول الطلاب
+
+    // Filter Functions - دوال الفلترة
+    function submitFilter() {
+        console.log('Submitting filter...');
+        const form = document.getElementById('filterForm');
+        if (form) {
+            form.submit();
+        } else {
+            console.error('Filter form not found');
+        }
+    }
+
+    function clearFilters() {
+        console.log('Clearing filters...');
+        const groupFilter = document.getElementById('group_filter');
+        const ageFilter = document.getElementById('age_filter');
+        const locationFilter = document.getElementById('location_filter');
+
+        if (groupFilter) groupFilter.value = '';
+        if (ageFilter) ageFilter.value = '';
+        if (locationFilter) locationFilter.value = '';
+
+        const form = document.getElementById('filterForm');
+        if (form) {
+            form.submit();
+        }
+    }
+
+    // Quick Search Function - دالة البحث السريع المحسنة
+    function quickSearch() {
+        const searchText = document.getElementById('search_text').value.toLowerCase().trim();
+        const table = document.querySelector('#studentsTable tbody');
+        const searchInput = document.getElementById('search_text');
+
+        if (!table) {
+            console.error('Table not found!');
+            return;
+        }
+
+        // إضافة مؤشر بصري للبحث
+        if (searchInput) {
+            searchInput.style.borderColor = '#ffc107';
+            searchInput.style.boxShadow = '0 0 0 0.2rem rgba(255, 193, 7, 0.25)';
+        }
+
+        const rows = table.querySelectorAll('tr');
+        let visibleCount = 0;
+
+        // إزالة أي رسائل بحث فارغة سابقة
+        const existingEmptyRows = table.querySelectorAll('tr.search-empty-state');
+        existingEmptyRows.forEach(row => row.remove());
+
+        rows.forEach((row, index) => {
+            // تخطي الصفوف الفارغة أو التي تحتوي على colspan
+            if (row.cells.length > 1 && !row.querySelector('td[colspan]') && !row.classList.contains('search-empty-state')) {
+                const studentName = row.cells[2] ? row.cells[2].textContent.toLowerCase().trim() : '';
+                const studentPhone = row.cells[3] ? row.cells[3].textContent.toLowerCase().trim() : '';
+
+                // البحث في الاسم والهاتف معاً
+                const matchesName = studentName.includes(searchText);
+                const matchesPhone = studentPhone.includes(searchText);
+
+                if (searchText === '' || matchesName || matchesPhone) {
+                    row.style.display = '';
+                    visibleCount++;
+                } else {
+                    row.style.display = 'none';
+                }
+            }
+        });
+
+        // تحديث شارة العدد
+        const badge = document.querySelector('.badge.bg-info');
+        if (badge) {
+            badge.innerHTML = `<i class="fas fa-list-ol me-1"></i>عدد النتائج: ${visibleCount}`;
+        }
+
+        // إظهار رسالة البحث الفارغ إذا لم توجد نتائج
+        showSearchEmptyState(visibleCount, searchText);
+
+        // إزالة المؤشر البصري للبحث
+        if (searchInput) {
+            setTimeout(() => {
+                searchInput.style.borderColor = '';
+                searchInput.style.boxShadow = '';
+            }, 300);
+        }
+    }
+
+    function showSearchEmptyState(visibleCount, searchText) {
+        const table = document.querySelector('table tbody');
+        let emptyRow = table.querySelector('tr.search-empty-state');
+
+        // Remove existing empty state if any
+        if (emptyRow) {
+            emptyRow.remove();
+        }
+
+        if (visibleCount === 0 && searchText.length > 0) {
+            const emptyStateRow = document.createElement('tr');
+            emptyStateRow.className = 'search-empty-state';
+            emptyStateRow.innerHTML = `
+                <td colspan="14" class="text-center text-muted py-4">
+                    <i class="fas fa-search fa-3x mb-3 text-info"></i>
+                    <h5>لا توجد نتائج للبحث</h5>
+                    <p>لا توجد نتائج للبحث عن: "<strong>${searchText}</strong>"</p>
+                    <button class="btn btn-outline-primary btn-sm" onclick="clearSearch()">
+                        <i class="fas fa-times me-1"></i>
+                        مسح البحث
+                    </button>
+                </td>
+            `;
+            table.appendChild(emptyStateRow);
+        }
+    }
+
+    function clearSearch() {
+        const searchInput = document.getElementById('search_text');
+        if (searchInput) {
+            searchInput.value = '';
+            // استدعاء دالة البحث لإعادة إظهار جميع النتائج
+            quickSearch();
+        }
+    }
+
+    // Export Function - دالة التصدير
+    function exportFiltered() {
+        const students = [];
+        const table = document.querySelector('table tbody');
+        const rows = table.querySelectorAll('tr:not([style*="display: none"])');
+
+        students.push(['#', 'الاسم', 'الهاتف', 'العمر', 'المنطقة', 'المرحلة الدراسية', 'المجموعات', 'سعر الكورس', 'المبلغ المدفوع', 'المتبقي', 'تاريخ التسجيل']);
+
+        rows.forEach((row, index) => {
+            if (row.cells.length > 1) {
+                const cells = Array.from(row.cells).slice(1, -1);
+                const rowData = cells.map(cell => cell.textContent.trim());
+                students.push(rowData);
+            }
+        });
+
+        if (students.length > 1) {
+            const csvContent = students.map(row => row.join(',')).join('\n');
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', 'students_filtered.csv');
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            if (typeof showSuccess === 'function') {
+                showSuccess('تم التصدير بنجاح', 'تم تحميل ملف البيانات بنجاح');
+            }
+        } else {
+            if (typeof showError === 'function') {
+                showError('لا توجد بيانات', 'لا توجد بيانات للتصدير');
+            }
+        }
+    }
+
+    // WhatsApp Function - دالة واتساب
+    function openWhatsApp(phoneNumber) {
+        let cleanPhone = phoneNumber.replace(/[^\d+]/g, '');
+        if (!cleanPhone.startsWith('+')) {
+            if (cleanPhone.startsWith('0')) {
+                cleanPhone = cleanPhone.substring(1);
+            }
+            cleanPhone = '+20' + cleanPhone;
+        }
+        const whatsappUrl = `https://wa.me/${cleanPhone}`;
+        window.open(whatsappUrl, '_blank');
+    }
+
+    // Enhanced Table Scroll Function - دالة الـ scroll المحسنة
+    function initializeEnhancedTableScroll() {
+        console.log('Initializing enhanced table scroll...');
+
+        const topScrollBar = document.getElementById('topScrollBar');
+        const tableContainer = document.getElementById('tableContainer');
+        const scrollContent = topScrollBar ? topScrollBar.querySelector('.scroll-content') : null;
+        const table = document.getElementById('studentsTable');
+
+        if (!topScrollBar || !tableContainer || !scrollContent || !table) {
+            console.log('Missing scroll elements, skipping scroll setup');
+            return;
+        }
+
+        function updateScrollContent() {
+            // تم تعطيل شريط التمرير العلوي
+            if (topScrollBar) {
+                topScrollBar.style.display = 'none';
+            }
+        }
+
+        let isTopScrolling = false;
+        let isTableScrolling = false;
+
+        topScrollBar.addEventListener('scroll', function () {
+            if (!isTableScrolling) {
+                isTopScrolling = true;
+                tableContainer.scrollLeft = this.scrollLeft;
+                setTimeout(() => { isTopScrolling = false; }, 50);
+            }
+        });
+
+        tableContainer.addEventListener('scroll', function () {
+            if (!isTopScrolling) {
+                isTableScrolling = true;
+                topScrollBar.scrollLeft = this.scrollLeft;
+                setTimeout(() => { isTableScrolling = false; }, 50);
+            }
+        });
+
+        // Column toggles
+        const columnToggles = {
+            'toggle-phone': '.col-phone',
+            'toggle-age': '.col-age',
+            'toggle-location': '.col-location',
+            'toggle-grade-level': '.col-grade-level',
+            'toggle-price': '.col-price',
+            'toggle-discount': '.col-discount',
+            'toggle-final-price': '.col-final-price',
+            'toggle-paid': '.col-paid',
+            'toggle-remaining': '.col-remaining',
+            'toggle-date': '.col-date'
+        };
+
+        Object.keys(columnToggles).forEach(toggleId => {
+            const toggle = document.getElementById(toggleId);
+            if (toggle) {
+                toggle.addEventListener('change', function () {
+                    const columns = document.querySelectorAll(columnToggles[toggleId]);
+                    columns.forEach(col => {
+                        if (this.checked) {
+                            col.classList.remove('hidden');
+                        } else {
+                            col.classList.add('hidden');
+                        }
+                    });
+                    setTimeout(updateScrollContent, 100);
+                });
+            }
+        });
+
+        window.addEventListener('resize', () => setTimeout(updateScrollContent, 100));
+
+        setTimeout(() => {
+            updateScrollContent();
+            console.log('Enhanced table scroll initialized successfully');
+        }, 500);
+    }
+</script>
+
+<style>
+    /* Global Typography Enhancement */
+    .enhanced-typography {
+        font-family: 'Cairo', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        font-weight: 500;
+    }
+
+    .enhanced-typography h2,
+    .enhanced-typography h5,
+    .enhanced-typography h6 {
+        font-family: 'Cairo', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        font-weight: 700;
+    }
+
+    .enhanced-typography .btn {
+        font-family: 'Cairo', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        font-weight: 600;
+        font-size: 0.95rem;
+    }
+
+    .enhanced-typography .form-label {
+        font-family: 'Cairo', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        font-weight: 600;
+        font-size: 0.95rem;
+    }
+
+    /* Enhanced Table with Better Typography and Responsive Design */
+    .table-container {
+        position: relative;
+        max-height: 85vh;
+        /* زيادة ارتفاع الجدول */
+        overflow-y: auto;
+        overflow-x: hidden;
+        /* إزالة التمرير الأفقي على الكمبيوتر */
+        border: 1px solid #dee2e6;
+        border-radius: 0.375rem;
+        width: 100%;
+    }
+
+    .sticky-header {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+
+    .sticky-header th {
+        border: none;
+        padding: 12px 8px;
+        /* تقليل الحشو لإفساح المجال */
+        font-weight: 700;
+        font-size: 0.85rem;
+        /* تصغير خط العناوين */
+        text-align: center;
+        white-space: nowrap;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        font-family: 'Cairo', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    /* Top Scroll Bar - مخفي تماماً */
+    .table-scroll-top {
+        display: none !important;
+        /* مخفي تماماً في جميع الأوقات */
+        height: 0;
+        overflow: hidden;
+        margin: 0;
+        padding: 0;
+    }
+
+    .scroll-content {
+        height: 15px;
+        background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+        border-radius: 2px;
+        margin: 2px;
+        opacity: 0.3;
+        transition: opacity 0.3s ease;
+    }
+
+    .table-scroll-top:hover .scroll-content {
+        opacity: 0.6;
+    }
+
+    /* Column Toggle Functionality */
+    .col-phone.hidden,
+    .col-age.hidden,
+    .col-location.hidden,
+    .col-price.hidden,
+    .col-discount.hidden,
+    .col-final-price.hidden,
+    .col-paid.hidden,
+    .col-remaining.hidden,
+    .col-date.hidden {
+        display: none !important;
+    }
+
+    /* Always visible columns */
+    .always-visible {
+        background-color: rgba(255, 255, 255, 0.1);
+        min-width: fit-content;
+    }
+
+    /* Enhanced table styling with compact design */
+    #studentsTable {
+        margin-bottom: 0;
+        font-size: 0.8rem;
+        /* تصغير خط المحتوى لإظهار المزيد من البيانات */
+        font-family: 'Cairo', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        width: 100%;
+        table-layout: fixed;
+        /* ثابت لضبط العرض بشكل أفضل */
+    }
+
+    #studentsTable td {
+        padding: 8px 6px;
+        /* تقليل الحشو لإفساح المجال */
+        vertical-align: middle;
+        white-space: normal;
+        /* السماح بالالتفاف */
+        word-wrap: break-word;
+        /* كسر الكلمات الطويلة */
+        border-color: #e9ecef;
+        font-weight: 500;
+        line-height: 1.3;
+        /* تقليل المسافة بين الأسطر */
+        overflow: hidden;
+        /* إخفاء المحتوى الزائد */
+        text-overflow: ellipsis;
+        /* إضافة نقاط للنص الطويل */
+    }
+
+    #studentsTable tbody tr:hover {
+        background-color: rgba(102, 126, 234, 0.08);
+        /* إزالة التحويل للحفاظ على التخطيط المضغوط */
+        transition: background-color 0.2s ease;
+    }
+
+    /* Responsive table improvements */
+    .table-responsive {
+        border-radius: 0;
+        border: none;
+    }
+
+    /* Column widths - محسنة لعرض أفضل */
+    .always-visible:nth-child(1) {
+        /* Checkbox */
+        width: 5%;
+        max-width: 50px;
+    }
+
+    .always-visible:nth-child(2) {
+        /* الرقم */
+        width: 4%;
+        max-width: 40px;
+    }
+
+    .always-visible:nth-child(3) {
+        /* الاسم */
+        width: 15%;
+        min-width: 120px;
+    }
+
+    .col-phone {
+        width: 12%;
+        min-width: 100px;
+    }
+
+    .col-age {
+        width: 6%;
+        min-width: 60px;
+    }
+
+    .col-location {
+        width: 10%;
+        min-width: 80px;
+    }
+
+    .always-visible:nth-child(7) {
+        /* المجموعة */
+        width: 12%;
+        min-width: 100px;
+    }
+
+    .col-price {
+        width: 8%;
+        min-width: 70px;
+    }
+
+    .col-discount {
+        width: 7%;
+        min-width: 60px;
+    }
+
+    .col-final-price {
+        width: 9%;
+        min-width: 80px;
+    }
+
+    .col-paid {
+        width: 8%;
+        min-width: 70px;
+    }
+
+    .col-remaining {
+        width: 7%;
+        min-width: 60px;
+    }
+
+    .col-date {
+        width: 10%;
+        min-width: 90px;
+    }
+
+    .always-visible:last-child {
+        /* الإجراءات */
+        width: 7%;
+        min-width: 70px;
+    }
+
+    /* Dropdown menu styling */
+    .dropdown-menu {
+        max-height: 300px;
+        overflow-y: auto;
+        padding: 0.5rem 0;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+    }
+
+    .dropdown-item {
+        padding: 0.5rem 1rem;
+        cursor: pointer;
+        transition: background-color 0.2s ease;
+    }
+
+    .dropdown-item:hover {
+        background-color: #f8f9fa;
+    }
+
+    .dropdown-item label {
+        cursor: pointer;
+        margin-bottom: 0;
+        display: flex;
+        align-items: center;
+    }
+
+    .dropdown-header {
+        color: #6c757d;
+        font-size: 0.875rem;
+        font-weight: 600;
+        padding: 0.5rem 1rem;
+        margin-bottom: 0.5rem;
+        border-bottom: 1px solid #e9ecef;
+    }
+
+    /* Scroll synchronization indicator */
+    .table-scroll-top::-webkit-scrollbar {
+        height: 8px;
+    }
+
+    .table-scroll-top::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 4px;
+    }
+
+    .table-scroll-top::-webkit-scrollbar-thumb {
+        background: #667eea;
+        border-radius: 4px;
+    }
+
+    .table-scroll-top::-webkit-scrollbar-thumb:hover {
+        background: #5a6fd8;
+    }
+
+    /* Better mobile responsiveness */
+    @media (max-width: 768px) {
+        .table-container {
+            max-height: 70vh;
+            /* زيادة الارتفاع على الموبايل */
+            overflow-x: auto;
+            /* تمكين التمرير الأفقي على الموبايل */
+        }
+
+        .table-scroll-top {
+            display: none !important;
+            /* إخفاء شريط التمرير حتى على الموبايل */
+        }
+
+        .sticky-header th {
+            padding: 8px 4px;
+            /* تقليل الحشو أكثر على الموبايل */
+            font-size: 0.75rem;
+            /* خط أصغر للعناوين على الموبايل */
+        }
+
+        #studentsTable td {
+            padding: 6px 4px;
+            /* تقليل الحشو أكثر على الموبايل */
+            font-size: 0.7rem;
+            /* خط أصغر للمحتوى على الموبايل */
+        }
+
+        /* تصغير الأزرار والشارات على الموبايل */
+        #studentsTable .btn {
+            padding: 2px 6px;
+            font-size: 0.7rem;
+        }
+
+        #studentsTable .badge {
+            font-size: 0.6rem;
+            padding: 2px 6px;
+        }
+
+        .col-phone {
+            min-width: 150px;
+        }
+
+        .col-final-price {
+            min-width: 130px;
+        }
+
+        .col-date {
+            min-width: 120px;
+        }
+
+        /* Keep column dropdown open on mobile */
+        .dropdown-menu {
+            position: static !important;
+            display: block !important;
+            transform: none !important;
+            border: none;
+            box-shadow: none;
+            background: transparent;
+            padding: 0;
+            margin: 0;
+        }
+
+        .dropdown {
+            position: relative;
+        }
+
+        .dropdown-toggle::after {
+            display: none;
+            /* Hide dropdown arrow on mobile */
+        }
+
+        /* Make column toggle always visible on mobile */
+        #columnToggle[aria-expanded="false"]+.dropdown-menu {
+            display: block !important;
+        }
+    }
+
+    /* Enhanced Group Selection Styles */
+    .group-option {
+        margin-bottom: 8px;
+        padding: 8px;
+        border-radius: 6px;
+        transition: background-color 0.2s ease;
+    }
+
+    .group-option:hover {
+        background-color: #f8f9fa;
+    }
+
+    .group-option input[type="checkbox"]:checked+label {
+        background-color: #e8f4f8;
+        border-left: 3px solid #17a2b8;
+        padding-left: 12px;
+        border-radius: 4px;
+    }
+
+    .group-option label {
+        margin-bottom: 0;
+        cursor: pointer;
+        width: 100%;
+        padding: 4px 8px;
+        border-radius: 4px;
+        transition: all 0.2s ease;
+    }
+
+    .group-option .badge {
+        font-size: 0.75rem;
+        padding: 4px 8px;
+    }
+
+    /* Make sure group options have enough space */
+    .group-option .d-flex {
+        min-height: 40px;
+        align-items: center;
+    }
+
+    /* Style for instructor badges */
+    .group-option .badge.bg-info {
+        background-color: #17a2b8 !important;
+        color: white;
+    }
+
+    /* Enhanced checkbox styling */
+    .group-option .form-check-input {
+        margin-top: 0.25rem;
+    }
+
+    /* Add some spacing for better readability */
+    .group-option strong {
+        font-size: 0.95rem;
+        color: #333;
+    }
+
+    .group-option small.text-muted {
+        font-size: 0.8rem;
+    }
+
+    /* Bulk operations styling */
+    #bulk-actions {
+        transition: all 0.3s ease;
+    }
+
+    #bulk-actions .btn-group .btn {
+        font-size: 0.85rem;
+        padding: 0.375rem 0.75rem;
+    }
+
+    /* Checkbox styling */
+    .student-checkbox {
+        transform: scale(1.1);
+    }
+
+    .student-checkbox:checked {
+        background-color: #0d6efd;
+        border-color: #0d6efd;
+    }
+
+    /* Row highlighting when selected */
+    tr.selected {
+        background-color: rgba(13, 110, 253, 0.1) !important;
+    }
+
+    /* Modal improvements */
+    .modal-header.bg-danger {
+        border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .alert-danger .fas.fa-warning {
+        animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+
+        0%,
+        100% {
+            opacity: 1;
+        }
+
+        50% {
+            opacity: 0.6;
+        }
+    }
+
+    /* Operation radio buttons styling */
+    .form-check-input[type="radio"]:checked {
+        background-color: #0d6efd;
+        border-color: #0d6efd;
+    }
+
+    .form-check-label {
+        cursor: pointer;
+        padding: 0.25rem 0;
+    }
+
+    .form-check-label:hover {
+        color: #0d6efd;
+    }
+
+    /* Students list in delete modal */
+    #students-to-delete-list {
+        max-height: 200px;
+        overflow-y: auto;
+    }
+
+    #students-to-delete-list .text-danger {
+        border-left: 3px solid #dc3545;
+        padding-left: 0.5rem;
+        background-color: rgba(220, 53, 69, 0.1);
+        margin-bottom: 0.25rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.25rem;
+    }
+
+    /* Date input styling */
+    input[type="date"] {
+        font-family: inherit;
+        text-align: center;
+    }
+
+    input[type="date"]:focus {
+        border-color: #0d6efd;
+        box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+    }
+
+    input[type="date"]::-webkit-calendar-picker-indicator {
+        cursor: pointer;
+        filter: invert(0.5);
+    }
+
+    input[type="date"]::-webkit-calendar-picker-indicator:hover {
+        filter: invert(0.3);
+    }
+
+    /* Filter styling improvements */
+    .form-select.border-warning {
+        border-color: #ffc107 !important;
+        box-shadow: 0 0 0 0.2rem rgba(255, 193, 7, 0.25);
+    }
+
+    .alert-info .badge {
+        margin: 0.1rem;
+        font-size: 0.75rem;
+        padding: 0.35rem 0.65rem;
+    }
+
+    .filter-label {
+        font-weight: 600;
+        color: #495057;
+        font-size: 0.9rem;
+    }
+
+    /* Responsive adjustments for filters */
+    @media (max-width: 768px) {
+        .filter-row .col-md-2 {
+            flex: 0 0 50%;
+            max-width: 50%;
+            margin-bottom: 1rem !important;
+        }
+
+        .filter-row .col-md-4 {
+            flex: 0 0 100%;
+            max-width: 100%;
+        }
+    }
+
+    /* Filter icons */
+    .form-label i {
+        color: #6c757d;
+        width: 14px;
+    }
+
+    /* Active filter styling */
+    .alert-info {
+        background-color: #e7f3ff;
+        border-color: #b8daff;
+        color: #0c5460;
+    }
+
+    .badge.bg-success {
+        background-color: #198754 !important;
+    }
+
+    .badge.bg-info {
+        background-color: #0dcaf0 !important;
+    }
+
+    .badge.bg-warning {
+        background-color: #ffc107 !important;
+        color: #000;
+    }
+
+    /* Search Enhancement */
+    #search_text {
+        font-family: 'Cairo', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        font-size: 1rem;
+        border-radius: 8px;
+        border: 2px solid #e9ecef;
+        transition: all 0.3s ease;
+    }
+
+    #search_text:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        transform: scale(1.02);
+    }
+
+    /* Enhanced Cards */
+    .card {
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        border: none;
+        overflow: hidden;
+    }
+
+    .card-header {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        border-bottom: 2px solid #dee2e6;
+        font-weight: 600;
+    }
+
+    /* Button enhancements */
+    .btn {
+        border-radius: 8px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+
+    .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    /* Badge improvements */
+    .badge {
+        font-size: 0.8rem;
+        padding: 6px 10px;
+        border-radius: 6px;
+        font-weight: 600;
+    }
+
+    /* Loading states and animations */
+    .fade-in {
+        animation: fadeInUp 0.6s ease-out;
+    }
+
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* Better mobile dropdown behavior */
+    @media (max-width: 768px) {
+        .dropdown-menu {
+            background: rgba(248, 249, 250, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 1rem;
+            margin-top: 0.5rem;
+        }
+
+        .dropdown-item {
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+            background: white;
+            border: 1px solid #e9ecef;
+        }
+
+        .dropdown-item:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        .dropdown-item label {
+            color: inherit;
+        }
+
+        /* Enhanced mobile table */
+        #studentsTable {
+            font-size: 1rem;
+        }
+
+        .table-container {
+            border-radius: 12px;
+        }
+    }
+</style>
+{% endblock %}

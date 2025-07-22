@@ -1,0 +1,1631 @@
+{% extends "base.html" %}
+
+{% block title %}الصفحة الرئيسية - نظام إدارة الطلاب{% endblock %}
+
+{% block content %}
+<div class="modern-page">
+    <!-- Hero Section -->
+    <div class="hero-section">
+        <div class="hero-content">
+            <div class="row align-items-center">
+                <div class="col-lg-8">
+                    <div class="hero-text">
+                        <h1 class="hero-title">
+                            <span class="gradient-text">نظام إدارة الطلاب</span>
+                            <span class="title-emoji">🎓</span>
+                        </h1>
+                        <p class="hero-subtitle">منصة متقدمة وذكية لإدارة المؤسسات التعليمية بكفاءة عالية</p>
+                        <div class="hero-buttons">
+                            <a href="{{ url_for('students') }}" class="btn btn-hero btn-primary">
+                                <i class="fas fa-user-plus me-2"></i>
+                                إدارة الطلاب
+                            </a>
+                            <a href="{{ url_for('groups') }}" class="btn btn-hero btn-outline">
+                                <i class="fas fa-users me-2"></i>
+                                إدارة المجموعات
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-4">
+                    <div class="hero-date-card">
+                        <div class="date-icon">
+                            <i class="fas fa-calendar-alt"></i>
+                        </div>
+                        <h3 class="current-day">{{ today_arabic }}</h3>
+                        <p class="current-date">{{ format_arabic_date(today_date) }}</p>
+                        <div class="date-decoration"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="hero-background">
+            <div class="floating-shape shape-1"></div>
+            <div class="floating-shape shape-2"></div>
+            <div class="floating-shape shape-3"></div>
+        </div>
+    </div>
+
+    <!-- Statistics Section -->
+    <div class="stats-section">
+        <div class="container-fluid">
+            <div class="row g-4">
+                <div class="col-lg-4 col-md-6">
+                    <div class="modern-stat-card stat-students">
+                        <div class="stat-icon">
+                            <i class="fas fa-user-graduate"></i>
+                        </div>
+                        <div class="stat-content">
+                            <div class="stat-number" data-count="{{ total_students }}">0</div>
+                            <div class="stat-label">إجمالي الطلاب</div>
+                            <div class="stat-change">
+                                <i class="fas fa-arrow-up"></i>
+                                <span>+12% من الشهر الماضي</span>
+                            </div>
+                        </div>
+                        <div class="stat-decoration"></div>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6">
+                    <div class="modern-stat-card stat-instructors">
+                        <div class="stat-icon">
+                            <i class="fas fa-chalkboard-teacher"></i>
+                        </div>
+                        <div class="stat-content">
+                            <div class="stat-number" data-count="{{ total_instructors }}">0</div>
+                            <div class="stat-label">المدرسين النشطين</div>
+                            <div class="stat-change">
+                                <i class="fas fa-check-circle"></i>
+                                <span>جميعهم نشطين</span>
+                            </div>
+                        </div>
+                        <div class="stat-decoration"></div>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6">
+                    <div class="modern-stat-card stat-groups">
+                        <div class="stat-icon">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="stat-content">
+                            <div class="stat-number" data-count="{{ total_groups }}">0</div>
+                            <div class="stat-label">المجموعات الدراسية</div>
+                            <div class="stat-change">
+                                <i class="fas fa-plus-circle"></i>
+                                <span>3 مجموعات جديدة</span>
+                            </div>
+                        </div>
+                        <div class="stat-decoration"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Weekly Schedule Section -->
+    <div class="schedule-section">
+        <div class="section-header">
+            <h2 class="section-title">
+                <i class="fas fa-calendar-week me-3"></i>
+                جدول الأسبوع الدراسي
+            </h2>
+            <div class="section-subtitle">
+                <span class="today-indicator">
+                    <i class="fas fa-circle text-primary me-1"></i>
+                    اليوم: {{ today_arabic }}
+                </span>
+            </div>
+        </div>
+
+        <div class="schedule-grid">
+            {% for day in ['السبت', 'الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة'] %}
+            <div class="schedule-day-card {% if day == today_arabic %}today-active{% endif %}">
+                <div class="day-header">
+                    <h3 class="day-name">{{ day }}</h3>
+                    {% if day == today_arabic %}
+                    <div class="today-badge">اليوم</div>
+                    {% endif %}
+                </div>
+
+                <div class="lessons-container">
+                    {% if weekly_schedule[day] %}
+                    {% for lesson in weekly_schedule[day] %}
+                    <div class="lesson-card" data-max-students="{{ lesson.max_students }}">
+                        <div class="lesson-time">
+                            <i class="fas fa-clock"></i>
+                            {% set start_12 = convert_24_to_12_hour(lesson.start_time) %}
+                            {% set end_12 = convert_24_to_12_hour(lesson.end_time) %}
+                            <span>{{ start_12.hour }}:{{ start_12.minute }} {{ start_12.period }} - {{ end_12.hour }}:{{
+                                end_12.minute }} {{ end_12.period }}</span>
+                        </div>
+                        <div class="lesson-group">{{ lesson.group_name }}</div>
+                        <div class="lesson-instructor">
+                            <i class="fas fa-user-tie"></i>
+                            {{ lesson.instructor_name }}
+                        </div>
+                        <div class="lesson-meta">
+                            <span class="level-tag">{{ lesson.level or 'عام' }}</span>
+                            <span class="students-count">
+                                <i class="fas fa-users"></i>
+                                {{ lesson.student_count }}/{{ lesson.max_students }}
+                            </span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    {% else %}
+                    <div class="no-lessons">
+                        <i class="fas fa-coffee"></i>
+                        <p>لا توجد دروس</p>
+                        <span>يوم راحة</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Quick Actions Section -->
+    <div class="actions-section">
+        <div class="section-header">
+            <h2 class="section-title">
+                <i class="fas fa-bolt me-3"></i>
+                الإجراءات السريعة
+            </h2>
+        </div>
+
+        <div class="actions-grid">
+            <a href="{{ url_for('students') }}" class="action-card action-students">
+                <div class="action-icon">
+                    <i class="fas fa-user-plus"></i>
+                </div>
+                <h3>إدارة الطلاب</h3>
+                <p>إضافة وتعديل وفلترة بيانات الطلاب</p>
+                <div class="action-arrow">
+                    <i class="fas fa-arrow-left"></i>
+                </div>
+            </a>
+
+            <a href="{{ url_for('instructors') }}" class="action-card action-instructors">
+                <div class="action-icon">
+                    <i class="fas fa-chalkboard-teacher"></i>
+                </div>
+                <h3>إدارة المدرسين</h3>
+                <p>تسجيل ومتابعة المدرسين والتخصصات</p>
+                <div class="action-arrow">
+                    <i class="fas fa-arrow-left"></i>
+                </div>
+            </a>
+
+            <a href="{{ url_for('attendance') }}" class="action-card action-attendance">
+                <div class="action-icon">
+                    <i class="fas fa-clipboard-check"></i>
+                </div>
+                <h3>تسجيل الحضور</h3>
+                <p>متابعة حضور وغياب الطلاب يومياً</p>
+                <div class="action-arrow">
+                    <i class="fas fa-arrow-left"></i>
+                </div>
+            </a>
+
+            <a href="{{ url_for('payments') }}" class="action-card action-payments">
+                <div class="action-icon">
+                    <i class="fas fa-money-bill-wave"></i>
+                </div>
+                <h3>إدارة المدفوعات</h3>
+                <p>تسجيل ومتابعة المدفوعات والمصروفات</p>
+                <div class="action-arrow">
+                    <i class="fas fa-arrow-left"></i>
+                </div>
+            </a>
+
+            <a href="{{ url_for('reports') }}" class="action-card action-reports">
+                <div class="action-icon">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <h3>التقارير والإحصائيات</h3>
+                <p>عرض تقارير شاملة وإحصائيات مفصلة</p>
+                <div class="action-arrow">
+                    <i class="fas fa-arrow-left"></i>
+                </div>
+            </a>
+
+            <a href="{{ url_for('groups') }}" class="action-card action-groups">
+                <div class="action-icon">
+                    <i class="fas fa-users"></i>
+                </div>
+                <h3>إدارة المجموعات</h3>
+                <p>تنظيم المجموعات والجداول الدراسية</p>
+                <div class="action-arrow">
+                    <i class="fas fa-arrow-left"></i>
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <!-- Instructor Notes Notification (Admin Only) -->
+    {% if session.user_role == 'admin' and get_new_instructor_notes_count() > 0 %}
+    <div class="notification-section">
+        <div class="notification-card instructor-notes-alert">
+            <div class="notification-icon">
+                <i class="fas fa-bell"></i>
+            </div>
+            <div class="notification-content">
+                <h3>ملاحظات جديدة من المدرسين!</h3>
+                <p>لديك {{ get_new_instructor_notes_count() }} ملاحظة جديدة تحتاج للمراجعة</p>
+                <a href="{{ url_for('tasks') }}#instructor-notes" class="btn btn-notification">
+                    <i class="fas fa-eye me-2"></i>
+                    عرض الملاحظات
+                </a>
+            </div>
+            <div class="notification-badge">{{ get_new_instructor_notes_count() }}</div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        --success-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        --warning-gradient: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+        --info-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+        --dark-gradient: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+        --glass-bg: rgba(255, 255, 255, 0.1);
+        --glass-border: rgba(255, 255, 255, 0.2);
+        --shadow-light: 0 8px 32px rgba(0, 0, 0, 0.1);
+        --shadow-medium: 0 12px 40px rgba(0, 0, 0, 0.15);
+        --shadow-heavy: 0 20px 60px rgba(0, 0, 0, 0.2);
+    }
+
+    .modern-page {
+        overflow-x: hidden;
+    }
+
+    /* Hero Section */
+    .hero-section {
+        position: relative;
+        background: var(--primary-gradient);
+        min-height: 60vh;
+        display: flex;
+        align-items: center;
+        padding: 80px 0;
+        margin: -30px -15px 0 -15px;
+        overflow: hidden;
+    }
+
+    .hero-content {
+        position: relative;
+        z-index: 10;
+        padding: 0 30px;
+    }
+
+    .hero-title {
+        font-size: 3.5rem;
+        font-weight: 800;
+        margin-bottom: 20px;
+        line-height: 1.2;
+    }
+
+    .gradient-text {
+        background: linear-gradient(45deg, #fff, #f8f9fa);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    .title-emoji {
+        font-size: 3rem;
+        margin-right: 15px;
+        animation: bounce 2s infinite;
+    }
+
+    .hero-subtitle {
+        font-size: 1.3rem;
+        color: rgba(255, 255, 255, 0.9);
+        margin-bottom: 30px;
+        line-height: 1.6;
+    }
+
+    .hero-buttons {
+        display: flex;
+        gap: 20px;
+        flex-wrap: wrap;
+    }
+
+    .btn-hero {
+        padding: 15px 30px;
+        font-size: 1.1rem;
+        font-weight: 600;
+        border-radius: 50px;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        border: none;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .btn-hero.btn-primary {
+        background: rgba(255, 255, 255, 0.2);
+        color: white;
+        backdrop-filter: blur(10px);
+        border: 2px solid rgba(255, 255, 255, 0.3);
+    }
+
+    .btn-hero.btn-outline {
+        background: transparent;
+        color: white;
+        border: 2px solid rgba(255, 255, 255, 0.5);
+    }
+
+    .btn-hero:hover {
+        transform: translateY(-3px);
+        box-shadow: var(--shadow-medium);
+        color: white;
+    }
+
+    .hero-date-card {
+        background: var(--glass-bg);
+        backdrop-filter: blur(20px);
+        border: 1px solid var(--glass-border);
+        border-radius: 20px;
+        padding: 30px;
+        text-align: center;
+        color: white;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .date-icon {
+        font-size: 3rem;
+        margin-bottom: 15px;
+        color: rgba(255, 255, 255, 0.8);
+    }
+
+    .current-day {
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 10px;
+    }
+
+    .current-date {
+        font-size: 1.1rem;
+        opacity: 0.9;
+    }
+
+    .hero-background {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        pointer-events: none;
+    }
+
+    .floating-shape {
+        position: absolute;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 50%;
+        animation: float 6s ease-in-out infinite;
+    }
+
+    .shape-1 {
+        width: 200px;
+        height: 200px;
+        top: 10%;
+        right: 10%;
+        animation-delay: 0s;
+    }
+
+    .shape-2 {
+        width: 150px;
+        height: 150px;
+        bottom: 20%;
+        left: 5%;
+        animation-delay: 2s;
+    }
+
+    .shape-3 {
+        width: 100px;
+        height: 100px;
+        top: 60%;
+        right: 30%;
+        animation-delay: 4s;
+    }
+
+    /* Statistics Section */
+    .stats-section {
+        padding: 80px 0;
+        background: linear-gradient(180deg, #f8f9fa 0%, #ffffff 100%);
+        margin: 0 -15px;
+    }
+
+    .modern-stat-card {
+        background: white;
+        border-radius: 20px;
+        padding: 30px;
+        box-shadow: var(--shadow-light);
+        border: 1px solid rgba(0, 0, 0, 0.05);
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+        height: 200px;
+        display: flex;
+        align-items: center;
+    }
+
+    .modern-stat-card:hover {
+        transform: translateY(-10px);
+        box-shadow: var(--shadow-heavy);
+    }
+
+    .stat-icon {
+        font-size: 3rem;
+        padding: 20px;
+        border-radius: 15px;
+        margin-left: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 80px;
+    }
+
+    .stat-students .stat-icon {
+        background: var(--primary-gradient);
+        color: white;
+    }
+
+    .stat-instructors .stat-icon {
+        background: var(--secondary-gradient);
+        color: white;
+    }
+
+    .stat-groups .stat-icon {
+        background: var(--success-gradient);
+        color: white;
+    }
+
+    .stat-content {
+        flex: 1;
+    }
+
+    .stat-number {
+        font-size: 3rem;
+        font-weight: 800;
+        margin-bottom: 5px;
+        background: var(--dark-gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    .stat-label {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 10px;
+    }
+
+    .stat-change {
+        font-size: 0.9rem;
+        color: #28a745;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .stat-decoration {
+        position: absolute;
+        top: -50px;
+        left: -50px;
+        width: 100px;
+        height: 100px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 50%;
+        opacity: 0.3;
+    }
+
+    /* Schedule Section */
+    .schedule-section {
+        padding: 80px 30px;
+        background: white;
+    }
+
+    .section-header {
+        text-align: center;
+        margin-bottom: 50px;
+    }
+
+    .section-title {
+        font-size: 2.5rem;
+        font-weight: 700;
+        background: var(--primary-gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin-bottom: 10px;
+    }
+
+    .section-subtitle {
+        font-size: 1.1rem;
+        color: #666;
+    }
+
+    .today-indicator {
+        background: rgba(0, 123, 255, 0.1);
+        padding: 8px 15px;
+        border-radius: 20px;
+        color: #007bff;
+        font-weight: 600;
+    }
+
+    .schedule-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 20px;
+        max-width: 1400px;
+        margin: 0 auto;
+    }
+
+    .schedule-day-card {
+        background: white;
+        border-radius: 15px;
+        box-shadow: var(--shadow-light);
+        overflow: hidden;
+        transition: all 0.3s ease;
+        border: 2px solid transparent;
+    }
+
+    .schedule-day-card:hover {
+        transform: translateY(-5px);
+        box-shadow: var(--shadow-medium);
+    }
+
+    .today-active {
+        border: 5px solid #6366f1 !important;
+        background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 25%, #e0e7ff 25%, #ffffff 100%) !important;
+        box-shadow: 0 15px 50px rgba(99, 102, 241, 0.6), inset 0 0 30px rgba(99, 102, 241, 0.2) !important;
+        transform: scale(1.08) !important;
+        position: relative;
+        overflow: hidden;
+        animation: today-glow 3s infinite;
+        z-index: 10;
+    }
+
+    .today-active::before {
+        content: 'حصص اليوم';
+        position: absolute;
+        top: -15px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: linear-gradient(90deg, #6366f1, #8b5cf6, #6366f1);
+        color: white;
+        padding: 8px 20px;
+        border-radius: 0 0 15px 15px;
+        font-size: 0.85rem;
+        font-weight: 700;
+        box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+        animation: badge-pulse 2s infinite;
+        z-index: 20;
+    }
+
+    .today-active::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        width: 8px;
+        background: linear-gradient(180deg, #6366f1 0%, #8b5cf6 50%, #6366f1 100%);
+        animation: side-glow 2s infinite;
+    }
+
+    .day-header {
+        padding: 20px;
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        position: relative;
+    }
+
+    .today-active .day-header {
+        background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #6366f1 100%);
+        color: white;
+        box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.2), 0 0 20px rgba(99, 102, 241, 0.6);
+        position: relative;
+    }
+
+    .today-active .day-header::before {
+        content: '📅 ';
+        font-size: 1.3rem;
+        margin-left: 10px;
+        animation: bounce-icon 1.5s infinite;
+    }
+
+    .today-badge {
+        background: linear-gradient(45deg, #a855f7, #c084fc);
+        color: white;
+        padding: 10px 18px;
+        border-radius: 25px;
+        font-size: 0.9rem;
+        font-weight: 800;
+        border: 2px solid #a855f7;
+        animation: pulse-badge 2s infinite;
+        box-shadow: 0 0 15px rgba(168, 85, 247, 0.6);
+        text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+    }
+
+    .day-name {
+        font-size: 1.3rem;
+        font-weight: 700;
+        margin: 0;
+    }
+
+    .today-badge {
+        background: rgba(255, 255, 255, 0.2);
+        padding: 5px 12px;
+        border-radius: 15px;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+
+    .lessons-container {
+        padding: 20px;
+        min-height: 200px;
+    }
+
+    .lesson-card {
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 15px;
+        margin-bottom: 15px;
+        border-left: 4px solid #007bff;
+        transition: all 0.2s ease;
+    }
+
+    .lesson-card:hover {
+        background: #e3f2fd;
+        transform: translateX(-5px);
+    }
+
+    .today-active .lesson-card {
+        background: linear-gradient(135deg, #f3f4ff 0%, #ede9fe 50%, #ffffff 100%);
+        border-left: 6px solid #6366f1;
+        border-right: 2px solid #8b5cf6;
+        box-shadow: 0 6px 20px rgba(99, 102, 241, 0.3), inset 0 0 10px rgba(99, 102, 241, 0.12);
+        border-radius: 12px;
+        position: relative;
+        animation: lesson-highlight 4s infinite;
+    }
+
+    .today-active .lesson-card::before {
+        content: '⭐';
+        position: absolute;
+        top: 5px;
+        right: 10px;
+        font-size: 1.1rem;
+        animation: star-twinkle 1.5s infinite;
+    }
+
+    .today-active .lesson-card:hover {
+        background: linear-gradient(135deg, #ede9fe 0%, #ddd6fe 50%, #c4b5fd 100%);
+        transform: translateX(-8px) translateY(-3px);
+        box-shadow: 0 10px 30px rgba(99, 102, 241, 0.45);
+        border-left-width: 8px;
+    }
+
+    .lesson-time {
+        color: #007bff;
+        font-weight: 600;
+        font-size: 0.9rem;
+        margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .today-active .lesson-time {
+        color: #4338ca;
+        font-weight: 800;
+        background: linear-gradient(90deg, #6366f1, #8b5cf6, #6366f1);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        font-size: 1rem;
+        padding: 5px 10px;
+        border-radius: 8px;
+        background-color: rgba(99, 102, 241, 0.1);
+        border: 1px solid rgba(99, 102, 241, 0.3);
+    }
+
+    .today-active .lesson-time i {
+        color: #4338ca;
+        animation: tick-pulse 2s infinite;
+        margin-left: 5px;
+        background: linear-gradient(45deg, #6366f1, #8b5cf6);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    .lesson-group {
+        font-weight: 700;
+        color: #333;
+        margin-bottom: 5px;
+    }
+
+    .lesson-instructor {
+        font-size: 0.9rem;
+        color: #666;
+        margin-bottom: 10px;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .lesson-meta {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .level-tag {
+        background: var(--warning-gradient);
+        color: white;
+        padding: 3px 10px;
+        border-radius: 12px;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+
+    .students-count {
+        font-size: 0.8rem;
+        color: #666;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .no-lessons {
+        text-align: center;
+        padding: 60px 20px;
+        color: #999;
+    }
+
+    .no-lessons i {
+        font-size: 3rem;
+        margin-bottom: 15px;
+        color: #ddd;
+    }
+
+    .no-lessons p {
+        font-weight: 600;
+        margin-bottom: 5px;
+    }
+
+    .no-lessons span {
+        font-size: 0.9rem;
+        opacity: 0.7;
+    }
+
+    /* Actions Section */
+    .actions-section {
+        padding: 80px 30px;
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        margin: 0 -15px;
+    }
+
+    .actions-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+        gap: 25px;
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    .action-card {
+        background: white;
+        border-radius: 15px;
+        padding: 30px;
+        text-decoration: none;
+        color: inherit;
+        box-shadow: var(--shadow-light);
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        border: 2px solid transparent;
+    }
+
+    .action-card:hover {
+        transform: translateY(-8px);
+        box-shadow: var(--shadow-heavy);
+        text-decoration: none;
+        color: inherit;
+    }
+
+    .action-students:hover {
+        border-color: #667eea;
+    }
+
+    .action-instructors:hover {
+        border-color: #f093fb;
+    }
+
+    .action-attendance:hover {
+        border-color: #4facfe;
+    }
+
+    .action-payments:hover {
+        border-color: #43e97b;
+    }
+
+    .action-reports:hover {
+        border-color: #fa709a;
+    }
+
+    .action-groups:hover {
+        border-color: #764ba2;
+    }
+
+    .action-icon {
+        font-size: 2.5rem;
+        padding: 20px;
+        border-radius: 15px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 80px;
+    }
+
+    .action-students .action-icon {
+        background: var(--primary-gradient);
+        color: white;
+    }
+
+    .action-instructors .action-icon {
+        background: var(--secondary-gradient);
+        color: white;
+    }
+
+    .action-attendance .action-icon {
+        background: var(--success-gradient);
+        color: white;
+    }
+
+    .action-payments .action-icon {
+        background: var(--warning-gradient);
+        color: white;
+    }
+
+    .action-reports .action-icon {
+        background: var(--info-gradient);
+        color: white;
+    }
+
+    .action-groups .action-icon {
+        background: var(--dark-gradient);
+        color: white;
+    }
+
+    .action-card h3 {
+        font-size: 1.3rem;
+        font-weight: 700;
+        margin-bottom: 10px;
+        color: #333;
+    }
+
+    .action-card p {
+        color: #666;
+        margin-bottom: 0;
+        line-height: 1.5;
+    }
+
+    .action-arrow {
+        font-size: 1.2rem;
+        color: #ccc;
+        margin-right: auto;
+        transition: all 0.3s ease;
+    }
+
+    .action-card:hover .action-arrow {
+        color: #333;
+        transform: translateX(-5px);
+    }
+
+    /* Animations */
+    @keyframes bounce {
+
+        0%,
+        20%,
+        50%,
+        80%,
+        100% {
+            transform: translateY(0);
+        }
+
+        40% {
+            transform: translateY(-10px);
+        }
+
+        60% {
+            transform: translateY(-5px);
+        }
+    }
+
+    @keyframes float {
+
+        0%,
+        100% {
+            transform: translateY(0px) rotate(0deg);
+        }
+
+        50% {
+            transform: translateY(-20px) rotate(180deg);
+        }
+    }
+
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .modern-page>* {
+        animation: fadeInUp 0.8s ease-out;
+    }
+
+    .modern-page>*:nth-child(2) {
+        animation-delay: 0.2s;
+    }
+
+    .modern-page>*:nth-child(3) {
+        animation-delay: 0.4s;
+    }
+
+    .modern-page>*:nth-child(4) {
+        animation-delay: 0.6s;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .hero-title {
+            font-size: 2.5rem;
+        }
+
+        .hero-subtitle {
+            font-size: 1.1rem;
+        }
+
+        .hero-buttons {
+            justify-content: center;
+        }
+
+        .btn-hero {
+            padding: 12px 24px;
+            font-size: 1rem;
+        }
+
+        .section-title {
+            font-size: 2rem;
+        }
+
+        .stats-section {
+            padding: 50px 0;
+        }
+
+        .schedule-section,
+        .actions-section {
+            padding: 50px 15px;
+        }
+
+        .modern-stat-card {
+            height: auto;
+            flex-direction: column;
+            text-align: center;
+        }
+
+        .stat-icon {
+            margin: 0 0 15px 0;
+        }
+
+        .action-card {
+            flex-direction: column;
+            text-align: center;
+        }
+
+        .action-arrow {
+            margin: 10px 0 0 0;
+        }
+
+        .actions-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .schedule-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    /* Custom scrollbar for lessons container */
+    .lessons-container::-webkit-scrollbar {
+        width: 4px;
+    }
+
+    .lessons-container::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 10px;
+    }
+
+    .lessons-container::-webkit-scrollbar-thumb {
+        background: #ccc;
+        border-radius: 10px;
+    }
+
+    .lessons-container::-webkit-scrollbar-thumb:hover {
+        background: #999;
+    }
+
+    /* Notification Section */
+    .notification-section {
+        padding: 30px 15px;
+        margin: 30px 0;
+    }
+
+    .notification-card {
+        background: linear-gradient(135deg, #ff6b6b 0%, #ffa500 100%);
+        border-radius: 20px;
+        padding: 25px;
+        color: white;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 10px 30px rgba(255, 107, 107, 0.3);
+        animation: pulse-notification 2s infinite;
+        display: flex;
+        align-items: center;
+        gap: 20px;
+    }
+
+    .notification-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+        animation: shimmer-notification 3s infinite;
+    }
+
+    .notification-icon {
+        font-size: 3rem;
+        color: rgba(255, 255, 255, 0.9);
+        animation: bell-ring 2s infinite;
+    }
+
+    .notification-content {
+        flex: 1;
+    }
+
+    .notification-content h3 {
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin-bottom: 10px;
+        color: white;
+    }
+
+    .notification-content p {
+        font-size: 1.1rem;
+        margin-bottom: 15px;
+        opacity: 0.9;
+    }
+
+    .btn-notification {
+        background: rgba(255, 255, 255, 0.2);
+        color: white;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        padding: 10px 20px;
+        border-radius: 25px;
+        text-decoration: none;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        backdrop-filter: blur(10px);
+    }
+
+    .btn-notification:hover {
+        background: rgba(255, 255, 255, 0.3);
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    }
+
+    .notification-badge {
+        background: rgba(255, 255, 255, 0.9);
+        color: #ff6b6b;
+        font-size: 1.2rem;
+        font-weight: 700;
+        padding: 10px 15px;
+        border-radius: 50%;
+        min-width: 50px;
+        height: 50px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        animation: bounce-badge 1s infinite;
+    }
+
+    @keyframes pulse-notification {
+
+        0%,
+        100% {
+            box-shadow: 0 10px 30px rgba(255, 107, 107, 0.3);
+        }
+
+        50% {
+            box-shadow: 0 15px 40px rgba(255, 107, 107, 0.5);
+        }
+    }
+
+    @keyframes shimmer-notification {
+        0% {
+            left: -100%;
+        }
+
+        100% {
+            left: 100%;
+        }
+    }
+
+    @keyframes bell-ring {
+
+        0%,
+        100% {
+            transform: rotate(0deg);
+        }
+
+        10%,
+        30%,
+        50%,
+        70%,
+        90% {
+            transform: rotate(-10deg);
+        }
+
+        20%,
+        40%,
+        60%,
+        80% {
+            transform: rotate(10deg);
+        }
+    }
+
+    @keyframes bounce-badge {
+
+        0%,
+        100% {
+            transform: scale(1);
+        }
+
+        50% {
+            transform: scale(1.1);
+        }
+    }
+
+    @keyframes shimmer-today {
+        0% {
+            background-position: -200% center;
+        }
+
+        100% {
+            background-position: 200% center;
+        }
+    }
+
+    @keyframes twinkle {
+
+        0%,
+        100% {
+            opacity: 1;
+            transform: scale(1) rotate(0deg);
+        }
+
+        25% {
+            opacity: 0.7;
+            transform: scale(1.1) rotate(90deg);
+        }
+
+        50% {
+            opacity: 1;
+            transform: scale(0.9) rotate(180deg);
+        }
+
+        75% {
+            opacity: 0.8;
+            transform: scale(1.05) rotate(270deg);
+        }
+    }
+
+    @keyframes pulse-badge {
+
+        0%,
+        100% {
+            transform: scale(1);
+            box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.4);
+        }
+
+        50% {
+            transform: scale(1.05);
+            box-shadow: 0 0 0 10px rgba(255, 255, 255, 0);
+        }
+    }
+
+    @keyframes tick-pulse {
+
+        0%,
+        100% {
+            transform: scale(1);
+        }
+
+        50% {
+            transform: scale(1.2);
+        }
+    }
+
+    @keyframes today-glow {
+
+        0%,
+        100% {
+            box-shadow: 0 12px 40px rgba(99, 102, 241, 0.5), inset 0 0 30px rgba(99, 102, 241, 0.15);
+        }
+
+        50% {
+            box-shadow: 0 16px 50px rgba(99, 102, 241, 0.7), inset 0 0 40px rgba(99, 102, 241, 0.25);
+        }
+    }
+
+    @keyframes badge-pulse {
+
+        0%,
+        100% {
+            transform: scale(1) rotate(0deg);
+            background: linear-gradient(90deg, #6366f1, #8b5cf6, #6366f1);
+        }
+
+        50% {
+            transform: scale(1.1) rotate(2deg);
+            background: linear-gradient(90deg, #8b5cf6, #6366f1, #8b5cf6);
+        }
+    }
+
+    @keyframes side-glow {
+
+        0%,
+        100% {
+            background: linear-gradient(180deg, #6366f1 0%, #8b5cf6 50%, #6366f1 100%);
+            box-shadow: 2px 0 10px rgba(99, 102, 241, 0.6);
+        }
+
+        50% {
+            background: linear-gradient(180deg, #8b5cf6 0%, #6366f1 50%, #8b5cf6 100%);
+            box-shadow: 4px 0 15px rgba(139, 92, 246, 0.8);
+        }
+    }
+
+    @keyframes bounce-icon {
+
+        0%,
+        100% {
+            transform: translateY(0);
+        }
+
+        50% {
+            transform: translateY(-5px);
+        }
+    }
+
+    @keyframes lesson-highlight {
+
+        0%,
+        100% {
+            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.3), inset 0 0 10px rgba(99, 102, 241, 0.12);
+        }
+
+        50% {
+            box-shadow: 0 8px 25px rgba(99, 102, 241, 0.4), inset 0 0 15px rgba(99, 102, 241, 0.18);
+        }
+    }
+
+    @keyframes star-twinkle {
+
+        0%,
+        100% {
+            transform: scale(1) rotate(0deg);
+            opacity: 1;
+        }
+
+        25% {
+            transform: scale(1.2) rotate(90deg);
+            opacity: 0.7;
+        }
+
+        50% {
+            transform: scale(0.8) rotate(180deg);
+            opacity: 1;
+        }
+
+        75% {
+            transform: scale(1.1) rotate(270deg);
+            opacity: 0.8;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .notification-card {
+            flex-direction: column;
+            text-align: center;
+            gap: 15px;
+        }
+
+        .notification-icon {
+            font-size: 2.5rem;
+        }
+
+        .notification-content h3 {
+            font-size: 1.3rem;
+        }
+
+        .notification-content p {
+            font-size: 1rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Animate numbers in statistics cards
+        function animateNumbers() {
+            const statNumbers = document.querySelectorAll('.stat-number[data-count]');
+
+            statNumbers.forEach(stat => {
+                const target = parseInt(stat.getAttribute('data-count'));
+                const duration = 2000; // 2 seconds
+                const increment = target / (duration / 16); // 60 FPS
+                let current = 0;
+
+                const timer = setInterval(() => {
+                    current += increment;
+                    if (current >= target) {
+                        stat.textContent = target;
+                        clearInterval(timer);
+                    } else {
+                        stat.textContent = Math.floor(current);
+                    }
+                }, 16);
+            });
+        }
+
+        // Trigger number animation when stats section is visible
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    animateNumbers();
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, {
+            threshold: 0.5
+        });
+
+        const statsSection = document.querySelector('.stats-section');
+        if (statsSection) {
+            observer.observe(statsSection);
+        }
+
+        // Add parallax effect to floating shapes
+        function updateParallax() {
+            const scrolled = window.pageYOffset;
+            const shapes = document.querySelectorAll('.floating-shape');
+
+            shapes.forEach((shape, index) => {
+                const speed = 0.2 + (index * 0.1);
+                const yPos = scrolled * speed;
+                shape.style.transform = `translateY(${yPos}px) rotate(${scrolled * 0.1}deg)`;
+            });
+        }
+
+        window.addEventListener('scroll', updateParallax);
+
+        // Add hover effects to cards
+        const cards = document.querySelectorAll('.modern-stat-card, .action-card, .schedule-day-card');
+
+        cards.forEach(card => {
+            card.addEventListener('mouseenter', function () {
+                this.style.transform = this.style.transform.replace(/scale\([^)]*\)/, '') + ' scale(1.02)';
+            });
+
+            card.addEventListener('mouseleave', function () {
+                this.style.transform = this.style.transform.replace(/scale\([^)]*\)/, '');
+            });
+        });
+
+        // Add smooth scrolling to action cards
+        const actionCards = document.querySelectorAll('.action-card');
+        actionCards.forEach(card => {
+            card.addEventListener('click', function (e) {
+                // Add ripple effect
+                const ripple = document.createElement('span');
+                ripple.classList.add('ripple-effect');
+
+                const rect = this.getBoundingClientRect();
+                const size = Math.max(rect.width, rect.height);
+                const x = e.clientX - rect.left - size / 2;
+                const y = e.clientY - rect.top - size / 2;
+
+                ripple.style.width = ripple.style.height = size + 'px';
+                ripple.style.left = x + 'px';
+                ripple.style.top = y + 'px';
+
+                this.appendChild(ripple);
+
+                setTimeout(() => {
+                    ripple.remove();
+                }, 600);
+            });
+        });
+
+        // Enhanced time display with real-time updates
+        function updateTime() {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString('ar-SA', {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+
+            const timeIndicator = document.querySelector('.today-indicator');
+            if (timeIndicator) {
+                const originalText = timeIndicator.textContent;
+                if (!originalText.includes('الساعة')) {
+                    timeIndicator.innerHTML = `
+                    <i class="fas fa-circle text-primary me-1"></i>
+                    ${originalText} • الساعة ${timeString}
+                `;
+                }
+            }
+        }
+
+        updateTime();
+        setInterval(updateTime, 60000); // Update every minute
+
+        // Add typing effect to hero title
+        const heroTitle = document.querySelector('.gradient-text');
+        if (heroTitle) {
+            const text = heroTitle.textContent;
+            heroTitle.textContent = '';
+
+            let i = 0;
+            const typeWriter = () => {
+                if (i < text.length) {
+                    heroTitle.textContent += text.charAt(i);
+                    i++;
+                    setTimeout(typeWriter, 100);
+                }
+            };
+
+            setTimeout(typeWriter, 500);
+        }
+
+        // Add progress bars to lesson cards for student capacity
+        const lessonCards = document.querySelectorAll('.lesson-card');
+        lessonCards.forEach(card => {
+            const studentCount = card.querySelector('.students-count');
+            const maxStudents = parseInt(card.dataset.maxStudents) || 15; // Get from data attribute or default to 15
+
+            if (studentCount) {
+                // Extract just the first number from "X/Y" format
+                const studentText = studentCount.textContent.trim();
+                const count = parseInt(studentText.split('/')[0]) || 0;
+                const percentage = Math.min((count / maxStudents) * 100, 100);
+
+                const progressBar = document.createElement('div');
+                progressBar.className = 'lesson-progress';
+                progressBar.innerHTML = `
+                <div class="progress-bar-container">
+                    <div class="progress-bar-fill" style="width: ${percentage}%"></div>
+                </div>
+            `;
+
+                card.appendChild(progressBar);
+            }
+        });
+    });
+
+    // Add CSS for ripple effect and progress bars
+    const additionalStyles = `
+    .ripple-effect {
+        position: absolute;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.3);
+        pointer-events: none;
+        animation: ripple 0.6s ease-out;
+    }
+
+    @keyframes ripple {
+        to {
+            transform: scale(2);
+            opacity: 0;
+        }
+    }
+
+    .lesson-progress {
+        margin-top: 10px;
+    }
+
+    .progress-bar-container {
+        background: rgba(0, 123, 255, 0.1);
+        border-radius: 10px;
+        height: 4px;
+        overflow: hidden;
+    }
+
+    .progress-bar-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%);
+        border-radius: 10px;
+        transition: width 1s ease-out;
+    }
+
+    .action-card {
+        position: relative;
+        overflow: hidden;
+    }
+
+    /* Enhanced scrollbar styles */
+    ::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 10px;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 10px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+        background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+    }
+
+    /* Loading animation for statistics */
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.7; }
+    }
+
+    .stat-number[data-count="0"] {
+        animation: pulse 1s infinite;
+    }
+`;
+
+    // Inject additional styles
+    const styleSheet = document.createElement('style');
+    styleSheet.textContent = additionalStyles;
+    document.head.appendChild(styleSheet);
+</script>
+{% endblock %}

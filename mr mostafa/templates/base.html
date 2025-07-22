@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}نظام إدارة الطلاب - طفرة{% endblock %}</title>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='robot-favicon.png') }}">
+    <link rel="shortcut icon" type="image/png" href="{{ url_for('static', filename='robot-favicon.png') }}">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='robot-favicon.png') }}">
+
+    <!-- Bootstrap CSS with RTL support -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- Google Fonts Arabic -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <!-- SweetAlert2 for modern alerts -->
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+    <style>
+        /* Fixed Navbar Styling */
+        body {
+            padding-top: 76px;
+            /* Space for fixed navbar */
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        main {
+            flex: 1;
+            /* Take remaining space */
+        }
+
+        .navbar.fixed-top {
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+
+        /* Navbar Logo Styling */
+        .navbar-logo {
+            height: 40px;
+            width: 40px;
+            object-fit: contain;
+            filter: brightness(1.1) contrast(1.1);
+            transition: all 0.3s ease;
+        }
+
+        .navbar-brand:hover .navbar-logo {
+            transform: scale(1.1);
+            filter: brightness(1.2) contrast(1.2) drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+        }
+
+        .navbar-icon-fallback {
+            font-size: 1.5rem;
+            color: #fff;
+            transition: all 0.3s ease;
+        }
+
+        .navbar-brand:hover .navbar-icon-fallback {
+            transform: scale(1.1);
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Active Navigation Link Styling */
+        .navbar-nav .nav-link.active {
+            background-color: rgba(255, 255, 255, 0.2) !important;
+            border-radius: 5px;
+            font-weight: 600;
+            color: #fff !important;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .navbar-nav .nav-link.active::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80%;
+            height: 2px;
+            background-color: #ffc107;
+            border-radius: 1px;
+        }
+
+        .navbar-nav .nav-link:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+            transition: all 0.3s ease;
+        }
+
+        .navbar-nav .nav-link.active:hover {
+            background-color: rgba(255, 255, 255, 0.3) !important;
+        }
+
+        .pulse-animation {
+            animation: pulse 1.5s infinite;
+        }
+
+        .pulse-red {
+            animation: pulse-red 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+
+            100% {
+                opacity: 1;
+            }
+        }
+
+        @keyframes pulse-red {
+            0% {
+                color: #ffc107;
+            }
+
+            50% {
+                color: #dc3545;
+            }
+
+            100% {
+                color: #ffc107;
+            }
+        }
+
+        /* Modern Flash Messages */
+        .modern-alert {
+            border: none;
+            border-radius: 20px;
+            padding: 1.5rem 2rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+            position: relative;
+            overflow: hidden;
+            animation: slideInDown 0.6s ease;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .modern-alert::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 5px;
+            background: var(--alert-accent);
+            border-radius: 20px 20px 0 0;
+        }
+
+        .modern-alert::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+            animation: shimmer 3s infinite;
+            pointer-events: none;
+        }
+
+        .modern-alert.alert-success {
+            background: linear-gradient(135deg, rgba(17, 153, 142, 0.15) 0%, rgba(56, 239, 125, 0.15) 100%);
+            color: #0f5132;
+            border-left: 6px solid #198754;
+            --alert-accent: linear-gradient(90deg, #11998e, #38ef7d);
+            box-shadow: 0 8px 30px rgba(17, 153, 142, 0.2);
+        }
+
+        .modern-alert.alert-success i {
+            color: #198754;
+            font-size: 1.2rem;
+            animation: bounce 2s infinite;
+        }
+
+        .modern-alert.alert-danger {
+            background: linear-gradient(135deg, rgba(252, 74, 26, 0.15) 0%, rgba(247, 183, 51, 0.15) 100%);
+            color: #842029;
+            border-left: 6px solid #dc3545;
+            --alert-accent: linear-gradient(90deg, #fc4a1a, #f7b733);
+            box-shadow: 0 8px 30px rgba(252, 74, 26, 0.2);
+        }
+
+        .modern-alert.alert-danger i {
+            color: #dc3545;
+            font-size: 1.2rem;
+            animation: shake 0.5s ease-in-out infinite alternate;
+        }
+
+        .modern-alert.alert-warning {
+            background: linear-gradient(135deg, rgba(247, 151, 30, 0.15) 0%, rgba(255, 210, 0, 0.15) 100%);
+            color: #664d03;
+            border-left: 6px solid #ffc107;
+            --alert-accent: linear-gradient(90deg, #f7971e, #ffd200);
+            box-shadow: 0 8px 30px rgba(247, 151, 30, 0.2);
+        }
+
+        .modern-alert.alert-warning i {
+            color: #ffc107;
+            font-size: 1.2rem;
+            animation: pulse 2s infinite;
+        }
+
+        .modern-alert.alert-info {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.15) 100%);
+            color: #055160;
+            border-left: 6px solid #0dcaf0;
+            --alert-accent: linear-gradient(90deg, #667eea, #764ba2);
+            box-shadow: 0 8px 30px rgba(102, 126, 234, 0.2);
+        }
+
+        .modern-alert.alert-info i {
+            color: #0dcaf0;
+            font-size: 1.2rem;
+            animation: fadeInOut 2s infinite;
+        }
+
+        .modern-alert .btn-close {
+            position: absolute;
+            top: 1.2rem;
+            left: 1.2rem;
+            background: none;
+            border: none;
+            opacity: 0.6;
+            transition: all 0.3s ease;
+            font-size: 1.1rem;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modern-alert .btn-close:hover {
+            opacity: 1;
+            transform: scale(1.2);
+            background: rgba(0, 0, 0, 0.1);
+        }
+
+        .modern-alert strong {
+            font-weight: 600;
+            font-size: 1.05rem;
+        }
+
+        /* Alert Animations */
+        @keyframes slideInDown {
+            from {
+                opacity: 0;
+                transform: translate3d(0, -100%, 0);
+            }
+
+            to {
+                opacity: 1;
+                transform: translate3d(0, 0, 0);
+            }
+        }
+
+        @keyframes shimmer {
+            0% {
+                transform: translateX(-100%) translateY(-100%) rotate(45deg);
+            }
+
+            100% {
+                transform: translateX(100%) translateY(100%) rotate(45deg);
+            }
+        }
+
+        @keyframes bounce {
+
+            0%,
+            20%,
+            50%,
+            80%,
+            100% {
+                transform: translateY(0);
+            }
+
+            40% {
+                transform: translateY(-5px);
+            }
+
+            60% {
+                transform: translateY(-3px);
+            }
+        }
+
+        @keyframes shake {
+            0% {
+                transform: translateX(0);
+            }
+
+            100% {
+                transform: translateX(-2px);
+            }
+        }
+
+        @keyframes fadeInOut {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        /* Mobile alert adjustments */
+        @media (max-width: 576px) {
+            .modern-alert {
+                padding: 1.2rem 1.5rem;
+                margin-bottom: 1rem;
+                border-radius: 15px;
+            }
+
+            .modern-alert strong {
+                font-size: 1rem;
+            }
+
+            .modern-alert i {
+                font-size: 1.1rem !important;
+            }
+        }
+
+        /* Mobile navbar improvements */
+        @media (max-width: 991.98px) {
+            body {
+                padding-top: 90px;
+                /* Extra space for mobile */
+            }
+
+            main {
+                padding-top: 15px;
+                /* Additional spacing on mobile */
+            }
+
+            .navbar-collapse {
+                background-color: rgba(13, 110, 253, 0.95);
+                border-radius: 10px;
+                margin-top: 10px;
+                padding: 15px;
+                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+                backdrop-filter: blur(10px);
+                -webkit-backdrop-filter: blur(10px);
+                position: relative;
+                z-index: 1000;
+            }
+
+            .navbar-nav .nav-link {
+                padding: 10px 15px;
+                margin: 2px 0;
+                border-radius: 8px;
+                transition: all 0.3s ease;
+            }
+
+            .navbar-nav .nav-link:hover,
+            .navbar-nav .nav-link.active {
+                background-color: rgba(255, 255, 255, 0.2) !important;
+            }
+
+            .navbar-nav .nav-link.active::after {
+                display: none;
+                /* Hide the bottom line on mobile */
+            }
+
+            /* Mobile dropdown improvements */
+            .dropdown-menu {
+                position: static !important;
+                float: none !important;
+                width: 100% !important;
+                margin-top: 5px !important;
+                border: none !important;
+                border-radius: 10px !important;
+                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2) !important;
+                background-color: rgba(255, 255, 255, 0.95) !important;
+                backdrop-filter: blur(10px) !important;
+                -webkit-backdrop-filter: blur(10px) !important;
+                transform: none !important;
+                display: block !important;
+                opacity: 1 !important;
+                visibility: visible !important;
+                z-index: 1050 !important;
+            }
+
+            .dropdown-menu.show {
+                display: block !important;
+                animation: slideInMobile 0.3s ease-out;
+            }
+
+            .dropdown-item {
+                padding: 12px 20px !important;
+                margin: 2px 0 !important;
+                border-radius: 8px !important;
+                transition: all 0.3s ease !important;
+                font-size: 0.95rem !important;
+                color: #333 !important;
+                border: none !important;
+                background: transparent !important;
+            }
+
+            .dropdown-item:hover,
+            .dropdown-item:focus {
+                background-color: rgba(13, 110, 253, 0.1) !important;
+                color: #0d6efd !important;
+                transform: translateX(5px) !important;
+            }
+
+            .dropdown-item.text-danger:hover,
+            .dropdown-item.text-danger:focus {
+                background-color: rgba(220, 53, 69, 0.1) !important;
+                color: #dc3545 !important;
+            }
+
+            .dropdown-header {
+                padding: 10px 20px !important;
+                margin-bottom: 5px !important;
+                font-weight: 600 !important;
+                font-size: 0.9rem !important;
+                color: #666 !important;
+                border-bottom: 1px solid rgba(0, 0, 0, 0.1) !important;
+            }
+
+            .dropdown-item-text {
+                padding: 8px 20px !important;
+                font-size: 0.85rem !important;
+                color: #666 !important;
+                background: rgba(108, 117, 125, 0.1) !important;
+                border-radius: 8px !important;
+                margin: 2px 0 !important;
+                border: 1px solid rgba(108, 117, 125, 0.2) !important;
+            }
+
+            .dropdown-divider {
+                margin: 8px 0 !important;
+                border-color: rgba(0, 0, 0, 0.1) !important;
+            }
+
+            /* Force dropdown to stay open on mobile touch */
+            .nav-item.dropdown .dropdown-toggle::after {
+                display: none !important;
+            }
+
+            .nav-item.dropdown {
+                position: relative !important;
+            }
+
+            /* Mobile overlay when navbar is open */
+            body.navbar-open::before {
+                content: '';
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background-color: rgba(0, 0, 0, 0.3);
+                z-index: 999;
+                backdrop-filter: blur(2px);
+                -webkit-backdrop-filter: blur(2px);
+            }
+
+            /* Footer adjustments for mobile */
+            footer {
+                margin-top: 30px;
+                padding: 20px 0 !important;
+            }
+
+            footer p {
+                font-size: 0.8rem;
+                line-height: 1.4;
+            }
+        }
+
+        /* Animation for mobile dropdown */
+        @keyframes slideInMobile {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Footer styling */
+        footer {
+            margin-top: auto;
+            /* Push footer to bottom */
+            background: linear-gradient(135deg, #343a40 0%, #212529 100%);
+            border-top: 3px solid #0d6efd;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        footer p {
+            margin: 0;
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        /* Footer links styling */
+        footer a {
+            transition: all 0.3s ease;
+        }
+
+        footer a:hover {
+            color: #ffc107 !important;
+            text-shadow: 0 0 5px rgba(255, 193, 7, 0.3);
+        }
+
+        /* Fikra Software Badge Styling */
+        .fikra-powered {
+            margin-top: 10px;
+        }
+
+        .fikra-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 8px 20px;
+            border-radius: 25px;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+            transition: all 0.3s ease;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .fikra-badge:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+            background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+        }
+
+        .powered-text {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .fikra-link {
+            text-decoration: none !important;
+            color: inherit;
+        }
+
+        .fikra-logo {
+            color: #ffffff;
+            font-weight: 700;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            letter-spacing: 0.5px;
+        }
+
+        .fikra-logo i {
+            color: #ffc107;
+            font-size: 1rem;
+            animation: pulse-glow 2s infinite;
+        }
+
+        @keyframes pulse-glow {
+
+            0%,
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+
+            50% {
+                opacity: 0.8;
+                transform: scale(1.1);
+            }
+        }
+
+        /* Mobile adjustments for Fikra badge */
+        @media (max-width: 576px) {
+            .fikra-badge {
+                padding: 6px 16px;
+                font-size: 0.8rem;
+            }
+
+            .powered-text {
+                font-size: 0.75rem;
+            }
+
+            .fikra-logo {
+                font-size: 0.8rem;
+            }
+        }
+    </style>
+
+    {% block extra_css %}{% endblock %}
+</head>
+
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary fixed-top">
+        <div class="container">
+            <a class="navbar-brand d-flex align-items-center" href="{{ url_for('index') }}">
+                <img src="{{ url_for('static', filename='logo.png') }}" alt="شعار النظام" class="navbar-logo me-2"
+                     onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-block';">
+                <i class="fas fa-graduation-cap me-2 navbar-icon-fallback" style="display: none;"></i>
+                نظام الإدارة
+            </a>
+
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link {{ 'active' if request.endpoint == 'index' or request.endpoint == 'instructor_dashboard' else '' }}"
+                            href="{{ url_for('index') }}">
+                            <i class="fas fa-home me-1"></i>الرئيسية
+                        </a>
+                    </li>
+                    {% if session.user_role == 'instructor' %}
+                    <li class="nav-item">
+                        <a class="nav-link {{ 'active' if request.endpoint == 'instructor_attendance' else '' }}"
+                            href="{{ url_for('instructor_attendance') }}">
+                            <i class="fas fa-check-square me-2"></i>
+                            أخذ الحضور
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {{ 'active' if request.endpoint == 'instructor_notes' else '' }}"
+                            href="{{ url_for('instructor_notes') }}">
+                            <i class="fas fa-sticky-note me-2"></i>
+                            الملاحظات
+                        </a>
+                    </li>
+                    {% else %}
+                    <li class="nav-item">
+                        <a class="nav-link {{ 'active' if request.endpoint == 'students' else '' }}"
+                            href="{{ url_for('students') }}">
+                            <i class="fas fa-user-graduate me-1"></i>الطلاب
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {{ 'active' if request.endpoint == 'instructors' else '' }}"
+                            href="{{ url_for('instructors') }}">
+                            <i class="fas fa-chalkboard-teacher me-1"></i>المدرسون
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {{ 'active' if request.endpoint == 'groups' else '' }}"
+                            href="{{ url_for('groups') }}">
+                            <i class="fas fa-users me-1"></i>المجموعات
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {{ 'active' if request.endpoint == 'attendance' else '' }}"
+                            href="{{ url_for('attendance') }}">
+                            <i class="fas fa-check-square me-2"></i>
+                            الحضور
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {{ 'active' if request.endpoint == 'payments' else '' }}"
+                            href="{{ url_for('payments') }}">
+                            <i class="fas fa-money-bill-wave me-2"></i>
+                            المدفوعات والمصروفات
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {{ 'active' if request.endpoint == 'grades' else '' }}"
+                            href="{{ url_for('grades') }}">
+                            <i class="fas fa-chart-bar me-1"></i>رصد الدرجات
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {{ 'active' if request.endpoint == 'reports' else '' }}"
+                            href="{{ url_for('reports') }}">
+                            <i class="fas fa-chart-line me-1"></i>التقارير
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {{ 'active' if request.endpoint == 'tasks' else '' }}"
+                            href="{{ url_for('tasks') }}">
+                            <i class="fas fa-tasks me-1"></i>المهام والملاحظات
+                            {% if session.user_role == 'admin' and get_new_instructor_notes_count() > 0 %}
+                            <span class="badge bg-danger ms-1">{{ get_new_instructor_notes_count() }}</span>
+                            {% endif %}
+                        </a>
+                    </li>
+                    {% if session.user_role == 'admin' %}
+                    <li class="nav-item">
+                        <a class="nav-link {{ 'active' if request.endpoint == 'users' else '' }}"
+                            href="{{ url_for('users') }}">
+                            <i class="fas fa-users-cog me-1"></i>المستخدمون
+                        </a>
+                    </li>
+                    {% endif %}
+                    {% endif %}
+                </ul>
+
+                <!-- User Menu -->
+                <ul class="navbar-nav">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button"
+                            data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-user-circle me-1"></i>
+                            {{ session.user_name or 'مستخدم' }}
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="userDropdown">
+                            <li>
+                                <h6 class="dropdown-header">مرحباً {{ session.user_name }}</h6>
+                            </li>
+                            <li>
+                                <hr class="dropdown-divider">
+                            </li>
+                            <li>
+                                <span class="dropdown-item-text">
+                                    <i class="fas fa-shield-alt me-2"></i>
+                                    الصلاحية: {{ 'مدير' if session.user_role == 'admin' else 'مدرس' if session.user_role
+                                    == 'instructor' else 'غير محدد' }}
+                                </span>
+                            </li>
+                            <li>
+                                <hr class="dropdown-divider">
+                            </li>
+                            <li>
+                                <a class="dropdown-item text-danger" href="{{ url_for('logout') }}">
+                                    <i class="fas fa-sign-out-alt me-2"></i>
+                                    تسجيل خروج
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Modern Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="container mt-3">
+        {% for category, message in messages %}
+        <div
+            class="modern-alert alert-{{ 'success' if category == 'success' else 'danger' if category == 'error' else category }} alert-dismissible fade show">
+            {% if category == 'success' %}
+            <i class="fas fa-check-circle me-2"></i>
+            {% elif category == 'error' %}
+            <i class="fas fa-exclamation-circle me-2"></i>
+            {% elif category == 'warning' %}
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            {% else %}
+            <i class="fas fa-info-circle me-2"></i>
+            {% endif %}
+            <strong>{{ message }}</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="إغلاق"></button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+
+    <!-- Main Content -->
+    <main class="container my-3 flex-grow-1">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-light py-4 mt-5">
+        <div class="container text-center">
+            <div class="row align-items-center">
+                <div class="col-md-6 text-md-start">
+                    <p>
+                        <i class="fas fa-graduation-cap me-2 text-primary"></i>
+                        <strong>نظام الإدارة</strong>
+                    </p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <p>&copy; 2025 جميع الحقوق محفوظة</p>
+                </div>
+            </div>
+            <hr class="my-3 border-secondary">
+            <div class="row">
+                <div class="col-12">
+                    <div class="fikra-powered text-center">
+                        <div class="fikra-badge">
+                            <span class="powered-text">Powered by</span>
+                            <svg width="60" height="60" viewBox="0 0 226 314" fill="white"
+                                xmlns="http://www.w3.org/2000/svg">
+                                <g clip-path="url(#clip0_2311_2)">
+                                    <path
+                                        d="M222.67 242.4C222.12 242.34 217.25 235.37 215.69 233.82C202.05 220.28 177.14 219.92 159.86 225.41C149.37 228.74 140.73 233.2 136.92 244.19C147.26 244.32 158.57 241.07 168.89 241.88C170.36 242 176.59 243.02 176.49 244.82C176.47 245.16 172.12 245.53 169.99 246.96C160.84 253.09 160.13 266.77 156.21 276.38C147.17 298.52 136.12 302.03 113.78 302.57C111.49 302.63 96.8599 302.97 96.2899 302.3C95.4699 301.33 105.6 282.56 106.87 279.27C110.3 270.4 113.17 259.84 114.94 250.53C112.4 253.15 108.03 251.89 105.92 254.92C100.98 280.78 88.8799 319.26 55.4199 313.23C59.6299 308.26 64.4799 304.38 68.5899 299.24C73.7799 292.74 77.8799 284.83 81.2199 277.26L86.1799 261.54C83.6099 263.47 74.7199 266.14 73.2599 268.07C71.3199 270.63 70.6899 280.54 68.3299 284.18C63.4899 291.67 57.0699 289.94 49.8599 291.84C41.5899 294.01 32.5299 298.36 24.0199 299.07C18.3099 299.55 10.4399 297.61 4.65991 296.77C6.55991 295.07 8.87991 295.84 11.1599 294.52C18.3399 290.36 22.3599 275.68 24.8699 267.7C25.9099 264.39 26.1099 259.75 27.2999 256.28C36.5199 233.8 62.3199 241.46 81.3999 240.56C79.2899 249.02 75.2199 257.36 74.8199 266.12C77.7099 263.09 85.0099 261.91 87.0099 258.76C88.2399 252.27 90.6799 244.71 90.7499 238.21C90.7699 236.8 88.8999 235.79 91.1799 235.06C93.6999 234.26 103.82 234.26 107.17 234.22C108.61 234.2 112.61 232.4 111.05 235.63C108.82 240.26 108.06 247.06 107.23 252.17C109.07 250.29 114.82 250.96 116.07 249.41C116.73 248.59 116.56 246.56 117.24 245.34C121.22 238.21 125.47 233.69 132.33 229.06C125.11 228.24 117.27 230.38 109.99 231.07C87.1799 233.24 48.0499 236.21 29.2499 221.53C19.1099 213.61 13.8199 203.83 10.0299 191.77C9.60991 190.42 8.14991 187.26 9.35991 186.28C29.9799 222.47 73.5699 216.94 108.63 213.22C141.34 209.75 186.72 195.54 212.78 222.49C215.14 224.93 224.08 235.67 225.05 238.07C225.77 239.86 223.68 242.51 222.68 242.4H222.67ZM119.18 295.24C128.23 297.31 131.67 286.59 134.35 279.8C136.47 274.43 137.36 267.96 139.28 262.82C141.43 257.06 144.77 251.66 147.54 246.21C144.73 245.69 138.4 246.1 136.73 248.29C131.14 263.96 127.48 280.74 119.17 295.25L119.18 295.24ZM33.5999 291.63C36.5599 292.91 47.6599 288.15 48.8899 286.28C49.8699 281.26 61.2099 247.4 59.9399 245.71C59.1699 244.68 56.6699 246.16 55.6599 246.83C40.7299 256.79 48.3699 280.95 33.5999 291.62V291.63Z"
+                                        fill="#ffffff" />
+                                    <path
+                                        d="M7.81982 252.68C13.8098 250.4 10.4198 237.81 11.9098 235.99C12.7098 235.01 25.4498 233.78 26.1498 234.3C28.1998 235.81 26.7898 247.54 24.3498 249.97C21.3798 252.93 11.8498 253.85 7.81982 252.68Z"
+                                        fill="#ffffff" />
+                                    <path
+                                        d="M19.3199 255.58C13.3299 257.86 16.7199 270.45 15.2299 272.27C14.4299 273.25 1.68989 274.48 0.989891 273.96C-1.06011 272.45 0.349891 260.72 2.78989 258.29C5.75989 255.33 15.2899 254.41 19.3199 255.58Z"
+                                        fill="#ffffff" />
+                                    <path
+                                        d="M183.28 258.91L186.13 252.14C187.14 249.94 185.52 240.72 186.74 239.78C187.34 239.32 201.32 238.25 201.77 238.85C202.12 239.31 201.84 249.22 201.41 250.49C198.56 259 189.51 256.08 183.28 258.91Z"
+                                        fill="#ffffff" />
+                                    <path
+                                        d="M18.0701 94.52C18.0701 42.32 60.3901 0 112.59 0C164.79 0 207.11 42.32 207.11 94.52C207.11 124.4 193.24 151.04 171.59 168.37C188.53 152.57 199.13 130.05 199.13 105.06C199.13 57.26 160.38 18.52 112.59 18.52C64.8001 18.52 26.0501 57.26 26.0501 105.06C26.0501 130.05 36.6501 152.57 53.5901 168.37C31.9401 151.05 18.0701 124.41 18.0701 94.52Z"
+                                        fill="#ffffff" />
+                                    <path
+                                        d="M84.82 211.68V202.96C84.82 201.56 85.96 200.43 87.35 200.43H92.97V191.42L64.43 162.93C62.32 160.83 61.14 157.98 61.14 155V144.77L59.97 144.42C53.08 142.36 48.63 135.8 49.37 128.44C50.06 121.6 55.57 115.98 62.39 115.12C71.53 113.98 79.34 121.11 79.34 130.03C79.34 136.72 75.05 142.5 68.67 144.42L67.5 144.77V153.76C67.5 155.84 68.33 157.84 69.8 159.31L99.33 188.78V200.43H109.4V138.71C109.4 136.59 108.56 134.57 107.06 133.07L92.29 118.32V60.96L91.12 60.61C84.23 58.55 79.78 51.98 80.52 44.62C81.21 37.78 86.73 32.16 93.55 31.31C102.69 30.18 110.49 37.3 110.49 46.22C110.49 52.91 106.2 58.69 99.82 60.61L98.65 60.96V115.68L113.32 130.32C114.89 131.88 115.77 134 115.77 136.22V167.74L126.51 157.02V102.3L125.34 101.95C118.45 99.88 114.01 93.32 114.75 85.96C115.44 79.12 120.96 73.5 127.78 72.66C136.91 71.53 144.72 78.65 144.72 87.57C144.72 94.27 140.43 100.05 134.05 101.96L132.88 102.31V159.67L115.77 176.75V200.45H125.84V188.8L157.67 157.03V144.79L156.5 144.44C149.61 142.38 145.17 135.81 145.91 128.45C146.6 121.61 152.12 115.99 158.94 115.14C168.08 114 175.88 121.13 175.88 130.05C175.88 136.74 171.59 142.53 165.2 144.44L164.03 144.79V159.67L132.2 191.44V200.45H137.14C138.91 200.45 140.35 201.89 140.35 203.66V206.71C121.42 209.21 102.32 211.17 84.8 211.7L84.82 211.68ZM67.02 120.46C59.48 118.46 52.75 125.18 54.76 132.72C55.64 136.03 58.32 138.71 61.63 139.59C69.17 141.59 75.89 134.87 73.89 127.33C73.01 124.02 70.33 121.34 67.02 120.46ZM132.42 77.99C124.87 75.98 118.14 82.71 120.15 90.26C121.03 93.57 123.71 96.25 127.02 97.12C134.56 99.12 141.28 92.4 139.28 84.86C138.4 81.55 135.73 78.87 132.42 77.99Z"
+                                        fill="#ffffff" />
+                                </g>
+                                <defs>
+                                    <clipPath id="clip0_2311_2">
+                                        <rect width="225.18" height="313.86" fill="white" />
+                                    </clipPath>
+                                </defs>
+                            </svg>
+
+                            <a href="https://fikra.solutions/" target="_blank" class="fikra-link">
+                                <span class="fikra-logo">
+
+                                    Fikra Software
+                                </span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- SweetAlert2 for modern alerts -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- Common functions -->
+    <script src="{{ url_for('static', filename='js/common.js') }}"></script>
+
+    <!-- Custom Mobile Dropdown Enhancement -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Mobile dropdown enhancement
+            if (window.innerWidth <= 991.98) {
+                const dropdownToggle = document.getElementById('userDropdown');
+                const dropdownMenu = dropdownToggle.nextElementSibling;
+
+                if (dropdownToggle && dropdownMenu) {
+                    let isDropdownOpen = false;
+
+                    // Handle dropdown toggle click
+                    dropdownToggle.addEventListener('click', function (e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+
+                        if (isDropdownOpen) {
+                            dropdownMenu.classList.remove('show');
+                            isDropdownOpen = false;
+                        } else {
+                            dropdownMenu.classList.add('show');
+                            isDropdownOpen = true;
+                        }
+                    });
+
+                    // Prevent dropdown from closing when clicking inside
+                    dropdownMenu.addEventListener('click', function (e) {
+                        e.stopPropagation();
+                    });
+
+                    // Close dropdown when clicking outside
+                    document.addEventListener('click', function (e) {
+                        if (!dropdownToggle.contains(e.target) && !dropdownMenu.contains(e.target)) {
+                            dropdownMenu.classList.remove('show');
+                            isDropdownOpen = false;
+                        }
+                    });
+
+                    // Ensure logout link works properly
+                    const logoutLink = dropdownMenu.querySelector('a[href*="logout"]');
+                    if (logoutLink) {
+                        logoutLink.addEventListener('click', function (e) {
+                            // Allow normal navigation
+                            window.location.href = this.href;
+                        });
+                    }
+                }
+            }
+
+            // Handle navbar collapse on mobile
+            const navbarToggler = document.querySelector('.navbar-toggler');
+            const navbarCollapse = document.querySelector('.navbar-collapse');
+
+            if (navbarToggler && navbarCollapse) {
+                navbarToggler.addEventListener('click', function () {
+                    if (navbarCollapse.classList.contains('show')) {
+                        document.body.classList.remove('navbar-open');
+                    } else {
+                        document.body.classList.add('navbar-open');
+                    }
+                });
+
+                // Remove overlay when navbar closes
+                navbarCollapse.addEventListener('hidden.bs.collapse', function () {
+                    document.body.classList.remove('navbar-open');
+                });
+
+                navbarCollapse.addEventListener('shown.bs.collapse', function () {
+                    document.body.classList.add('navbar-open');
+                });
+
+                // Close navbar when clicking outside on mobile
+                document.addEventListener('click', function (e) {
+                    // Check if the click is outside the navbar
+                    const navbar = document.querySelector('.navbar');
+                    const isClickInsideNavbar = navbar.contains(e.target);
+                    const isNavbarOpen = navbarCollapse.classList.contains('show');
+
+                    // Only close if navbar is open and click is outside
+                    if (isNavbarOpen && !isClickInsideNavbar) {
+                        // Use Bootstrap's collapse instance to close the navbar
+                        const bsCollapse = bootstrap.Collapse.getInstance(navbarCollapse) ||
+                            new bootstrap.Collapse(navbarCollapse, { toggle: false });
+                        bsCollapse.hide();
+                    }
+                });
+
+                // Also close when clicking on a nav link (for better UX)
+                const navLinks = navbarCollapse.querySelectorAll('.nav-link');
+                navLinks.forEach(function (link) {
+                    link.addEventListener('click', function () {
+                        // Small delay to allow navigation to start before closing
+                        setTimeout(function () {
+                            const bsCollapse = bootstrap.Collapse.getInstance(navbarCollapse) ||
+                                new bootstrap.Collapse(navbarCollapse, { toggle: false });
+                            bsCollapse.hide();
+                        }, 100);
+                    });
+                });
+            }
+        });
+
+        // Handle window resize
+        window.addEventListener('resize', function () {
+            if (window.innerWidth > 991.98) {
+                document.body.classList.remove('navbar-open');
+                const dropdownMenu = document.querySelector('.dropdown-menu');
+                if (dropdownMenu) {
+                    dropdownMenu.classList.remove('show');
+                }
+            }
+        });
+    </script>
+
+    {% block extra_js %}{% endblock %}
+</body>
+
+</html>

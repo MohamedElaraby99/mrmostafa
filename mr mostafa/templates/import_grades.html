@@ -1,0 +1,299 @@
+{% extends "base.html" %}
+
+{% block title %}استيراد الدرجات - نظام إدارة الطلاب{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2>
+                <i class="fas fa-file-import me-2"></i>
+                استيراد الدرجات من Excel
+            </h2>
+            <p class="text-muted">قم بتحميل ملف Excel لإضافة أو تحديث درجات الطلاب بشكل مجمع</p>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{{ url_for('grades') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-right me-2"></i>
+                العودة لرصد الدرجات
+            </a>
+        </div>
+    </div>
+
+    <!-- Instructions Card -->
+    <div class="card mb-4">
+        <div class="card-header bg-info text-white">
+            <h5 class="card-title mb-0">
+                <i class="fas fa-info-circle me-2"></i>
+                تعليمات الاستيراد
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <h6 class="text-primary">خطوات الاستيراد:</h6>
+                    <ol>
+                        <li>قم بتحميل قالب Excel من الرابط أدناه</li>
+                        <li>املأ البيانات في الأعمدة المطلوبة</li>
+                        <li>احذف الصفوف التجريبية</li>
+                        <li>ارفع الملف هنا للاستيراد</li>
+                    </ol>
+                    
+                    <div class="alert alert-warning mt-3">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>تأكد من:</strong>
+                        <ul class="mb-0 mt-2">
+                            <li>وجود الطلاب في النظام قبل إدخال درجاتهم</li>
+                            <li>صحة الدرجات والنسب المئوية</li>
+                            <li>عدم ترك اسم الطالب أو المادة فارغ</li>
+                            <li>تطابق أسماء الطلاب مع الموجود في النظام</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <h6 class="text-primary">الأعمدة المطلوبة:</h6>
+                    <ul>
+                        <li><strong>اسم الطالب:</strong> مطلوب (يجب أن يكون موجود في النظام)</li>
+                        <li><strong>اسم المادة/الاختبار:</strong> مطلوب</li>
+                        <li><strong>نوع المادة:</strong> اختياري (مادة، اختبار، واجب، مشروع)</li>
+                        <li><strong>الدرجة المحصلة:</strong> مطلوب (رقم)</li>
+                        <li><strong>الدرجة القصوى:</strong> اختياري (افتراضي: 100)</li>
+                        <li><strong>تاريخ الاختبار:</strong> اختياري (YYYY-MM-DD)</li>
+                        <li><strong>المجموعة:</strong> اختياري</li>
+                        <li><strong>ملاحظات:</strong> اختياري</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Download Template Section -->
+    <div class="card mb-4">
+        <div class="card-header bg-success text-white">
+            <h5 class="card-title mb-0">
+                <i class="fas fa-download me-2"></i>
+                تحميل القالب
+            </h5>
+        </div>
+        <div class="card-body text-center">
+            <p class="mb-3">قم بتحميل قالب Excel الجاهز مع التعليمات والبيانات التجريبية</p>
+            <a href="{{ url_for('download_grades_template') }}" class="btn btn-success btn-lg">
+                <i class="fas fa-file-excel me-2"></i>
+                تحميل قالب الدرجات
+            </a>
+        </div>
+    </div>
+
+    <!-- Upload Section -->
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h5 class="card-title mb-0">
+                <i class="fas fa-cloud-upload-alt me-2"></i>
+                رفع ملف Excel
+            </h5>
+        </div>
+        <div class="card-body">
+            <form id="importForm" action="{{ url_for('import_grades') }}" method="post" enctype="multipart/form-data">
+                <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+                    <div style="font-size: 4rem; color: #007bff; margin-bottom: 1rem;">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                    </div>
+                    <h4>اختر ملف Excel أو اسحبه هنا</h4>
+                    <p class="text-muted">يدعم النظام ملفات .xlsx و .xls فقط</p>
+                    <button type="button" class="btn btn-primary">
+                        <i class="fas fa-folder-open me-2"></i>
+                        اختيار ملف
+                    </button>
+                    <input type="file" id="fileInput" name="excel_file" style="display: none;" accept=".xlsx,.xls" required>
+                </div>
+
+                <div class="file-info" id="fileInfo" style="display: none;">
+                    <h6><i class="fas fa-file-excel me-2"></i>معلومات الملف:</h6>
+                    <p id="fileName" class="mb-1" style="font-weight: 600; color: #007bff;"></p>
+                    <p id="fileSize" class="text-muted mb-0"></p>
+                </div>
+
+                <div class="row mt-4">
+                    <div class="col-md-8">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>ملاحظات مهمة:</strong>
+                            <ul class="mb-0 mt-2">
+                                <li>سيتم تحديث الدرجات الموجودة إذا كان للطالب درجة في نفس المادة</li>
+                                <li>سيتم إنشاء مواد جديدة تلقائياً إذا لم تكن موجودة</li>
+                                <li>سيتم حساب النسبة المئوية والتقدير تلقائياً</li>
+                                <li>يمكن ربط الدرجات بالمجموعات عبر عمود المجموعة</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="col-md-4 text-end">
+                        <button type="submit" id="importBtn" class="btn btn-primary btn-lg" disabled>
+                            <i class="fas fa-upload me-2"></i>
+                            استيراد الدرجات
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Processing Instructions -->
+    <div class="card mt-4">
+        <div class="card-header bg-secondary text-white">
+            <h5 class="card-title mb-0">
+                <i class="fas fa-cogs me-2"></i>
+                كيف يتم معالجة البيانات؟
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4">
+                    <h6 class="text-primary">معالجة الطلاب:</h6>
+                    <ul>
+                        <li>البحث عن الطالب بالاسم الكامل</li>
+                        <li>إظهار خطأ إذا لم يوجد الطالب</li>
+                        <li>مطابقة دقيقة للأسماء</li>
+                    </ul>
+                </div>
+                <div class="col-md-4">
+                    <h6 class="text-primary">معالجة المواد:</h6>
+                    <ul>
+                        <li>البحث عن المادة بالاسم</li>
+                        <li>إنشاء مادة جديدة إذا لم توجد</li>
+                        <li>ربط بالمجموعة إن أمكن</li>
+                    </ul>
+                </div>
+                <div class="col-md-4">
+                    <h6 class="text-primary">معالجة الدرجات:</h6>
+                    <ul>
+                        <li>حساب النسبة المئوية تلقائياً</li>
+                        <li>تحديد التقدير (A, B, C, D, F)</li>
+                        <li>تحديث الدرجات الموجودة</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.upload-area {
+    border: 2px dashed #007bff;
+    border-radius: 10px;
+    padding: 40px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-bottom: 20px;
+}
+
+.upload-area:hover {
+    border-color: #0056b3;
+    background-color: #f8f9fa;
+}
+
+.upload-area.dragover {
+    border-color: #28a745;
+    background-color: #d4edda;
+}
+
+.file-info {
+    background: #e9ecef;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.fade-in {
+    animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+</style>
+
+<script>
+const fileInput = document.getElementById('fileInput');
+const fileInfo = document.getElementById('fileInfo');
+const fileName = document.getElementById('fileName');
+const fileSize = document.getElementById('fileSize');
+const importBtn = document.getElementById('importBtn');
+const importForm = document.getElementById('importForm');
+const uploadArea = document.querySelector('.upload-area');
+
+// File input change handler
+fileInput.addEventListener('change', function () {
+    const file = fileInput.files[0];
+    if (file) {
+        if (!file.name.endsWith('.xlsx') && !file.name.endsWith('.xls')) {
+            alert('يرجى اختيار ملف Excel (.xlsx أو .xls)');
+            fileInput.value = '';
+            return;
+        }
+
+        fileName.textContent = file.name;
+        fileSize.textContent = `الحجم: ${(file.size / 1024 / 1024).toFixed(2)} MB`;
+        fileInfo.style.display = 'block';
+        importBtn.disabled = false;
+    }
+});
+
+// Form submit handler
+importForm.addEventListener('submit', function (e) {
+    const file = fileInput.files[0];
+    if (!file) {
+        e.preventDefault();
+        alert('يرجى اختيار ملف Excel للاستيراد');
+        return;
+    }
+
+    const confirmMessage = 'سيتم استيراد الدرجات من الملف. هل تريد المتابعة؟';
+    if (!confirm(confirmMessage)) {
+        e.preventDefault();
+        return;
+    }
+
+    importBtn.disabled = true;
+    importBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>جاري الاستيراد...';
+});
+
+// Drag and drop functionality
+['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+    uploadArea.addEventListener(eventName, preventDefaults, false);
+});
+
+function preventDefaults(e) {
+    e.preventDefault();
+    e.stopPropagation();
+}
+
+['dragenter', 'dragover'].forEach(eventName => {
+    uploadArea.addEventListener(eventName, highlight, false);
+});
+
+['dragleave', 'drop'].forEach(eventName => {
+    uploadArea.addEventListener(eventName, unhighlight, false);
+});
+
+function highlight(e) {
+    uploadArea.classList.add('dragover');
+}
+
+function unhighlight(e) {
+    uploadArea.classList.remove('dragover');
+}
+
+uploadArea.addEventListener('drop', handleDrop, false);
+
+function handleDrop(e) {
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+        fileInput.files = files;
+        fileInput.dispatchEvent(new Event('change'));
+    }
+}
+</script>
+{% endblock %} 

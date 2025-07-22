@@ -1,0 +1,1325 @@
+{% extends "base.html" %}
+
+{% block title %}التقارير والإحصائيات - نظام إدارة الطلاب{% endblock %}
+
+{% block extra_css %}
+<style>
+    .modern-card {
+        border: none;
+        border-radius: 20px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease;
+        overflow: hidden;
+    }
+
+    .modern-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+    }
+
+    .gradient-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 2rem;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .gradient-header::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="white" opacity="0.1"/><circle cx="75" cy="75" r="1" fill="white" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+        opacity: 0.3;
+    }
+
+    .gradient-header h1 {
+        position: relative;
+        z-index: 2;
+        margin: 0;
+        font-weight: 700;
+        font-size: 2.5rem;
+    }
+
+    .gradient-header p {
+        position: relative;
+        z-index: 2;
+        opacity: 0.9;
+        margin-bottom: 0;
+        font-size: 1.1rem;
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 2rem;
+        margin: 2rem 0;
+    }
+
+    .stat-card {
+        background: white;
+        padding: 2rem;
+        border-radius: 20px;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease;
+    }
+
+    .stat-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: var(--gradient);
+    }
+
+    .stat-card:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+    }
+
+    .stat-card.total::before {
+        background: linear-gradient(90deg, #667eea, #764ba2);
+    }
+
+    .stat-card.present::before {
+        background: linear-gradient(90deg, #11998e, #38ef7d);
+    }
+
+    .stat-card.absent::before {
+        background: linear-gradient(90deg, #fc4a1a, #f7b733);
+    }
+
+    .stat-card.late::before {
+        background: linear-gradient(90deg, #f7971e, #ffd200);
+    }
+
+    .stat-icon {
+        width: 70px;
+        height: 70px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1.5rem;
+        font-size: 2rem;
+        color: white;
+    }
+
+    .stat-card.total .stat-icon {
+        background: linear-gradient(135deg, #667eea, #764ba2);
+    }
+
+    .stat-card.present .stat-icon {
+        background: linear-gradient(135deg, #11998e, #38ef7d);
+    }
+
+    .stat-card.absent .stat-icon {
+        background: linear-gradient(135deg, #fc4a1a, #f7b733);
+    }
+
+    .stat-card.late .stat-icon {
+        background: linear-gradient(135deg, #f7971e, #ffd200);
+    }
+
+    .stat-number {
+        font-size: 3rem;
+        font-weight: 700;
+        color: #2d3748;
+        margin-bottom: 0.5rem;
+        counter-reset: count;
+        animation: countUp 2s ease-in-out;
+    }
+
+    .stat-label {
+        color: #718096;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        font-size: 0.875rem;
+    }
+
+    .financial-card {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        border: none;
+        border-radius: 20px;
+        overflow: hidden;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+    }
+
+    .financial-item {
+        padding: 1.5rem;
+        text-align: center;
+        border-radius: 15px;
+        margin: 0.5rem;
+        background: white;
+        transition: all 0.3s ease;
+    }
+
+    .financial-item:hover {
+        transform: scale(1.05);
+    }
+
+    .financial-amount {
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+    }
+
+    .financial-label {
+        color: #6c757d;
+        font-weight: 500;
+    }
+
+    .revenue {
+        color: #28a745;
+    }
+
+    .pending {
+        color: #ffc107;
+    }
+
+    .expense {
+        color: #dc3545;
+    }
+
+    .progress-ring {
+        width: 120px;
+        height: 120px;
+        margin: 0 auto 1rem;
+        position: relative;
+    }
+
+    .progress-ring circle {
+        transition: stroke-dasharray 0.8s ease;
+    }
+
+    .progress-text {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        pointer-events: none;
+    }
+
+    .percentage-number {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: #2d3748;
+        text-align: center;
+        display: block;
+    }
+
+    .chart-container {
+        background: white;
+        border-radius: 20px;
+        padding: 2rem;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        margin-bottom: 2rem;
+    }
+
+    .fade-in {
+        animation: fadeIn 0.8s ease forwards;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @keyframes countUp {
+        from {
+            transform: scale(0.8);
+            opacity: 0;
+        }
+
+        to {
+            transform: scale(1);
+            opacity: 1;
+        }
+    }
+
+    .modern-btn {
+        border: none;
+        padding: 0.875rem 2rem;
+        border-radius: 12px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        cursor: pointer;
+        font-size: 1rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        text-decoration: none;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .modern-btn::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+        transition: left 0.5s;
+    }
+
+    .modern-btn:hover::before {
+        left: 100%;
+    }
+
+    .modern-btn:hover {
+        transform: translateY(-3px) scale(1.05);
+        text-decoration: none;
+    }
+
+    .modern-btn:active {
+        transform: translateY(-1px) scale(1.02);
+    }
+
+    .modern-btn.primary {
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+    }
+
+    .modern-btn.primary:hover {
+        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        color: white;
+        background: linear-gradient(135deg, #5a6fd8, #6b42a0);
+    }
+
+    .modern-btn.success {
+        background: linear-gradient(135deg, #11998e, #38ef7d);
+        color: white;
+        box-shadow: 0 4px 15px rgba(17, 153, 142, 0.3);
+    }
+
+    .modern-btn.success:hover {
+        box-shadow: 0 8px 25px rgba(17, 153, 142, 0.4);
+        color: white;
+        background: linear-gradient(135deg, #0e847c, #32d470);
+    }
+
+    .modern-btn.backup {
+        background: linear-gradient(135deg, #fc4a1a, #f7b733);
+        color: white;
+        box-shadow: 0 4px 15px rgba(252, 74, 26, 0.3);
+    }
+
+    .modern-btn.backup:hover {
+        box-shadow: 0 8px 25px rgba(252, 74, 26, 0.4);
+        color: white;
+        background: linear-gradient(135deg, #e8421b, #e6a82e);
+        transform: translateY(-3px) scale(1.05);
+    }
+
+    .modern-btn i {
+        transition: transform 0.3s ease;
+    }
+
+    .modern-btn:hover i {
+        transform: scale(1.2);
+    }
+
+    .modern-btn.loading {
+        pointer-events: none;
+        opacity: 0.7;
+    }
+
+    .modern-btn.loading i {
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        from {
+            transform: rotate(0deg);
+        }
+
+        to {
+            transform: rotate(360deg);
+        }
+    }
+
+    @keyframes ripple {
+        to {
+            transform: scale(2);
+            opacity: 0;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Modern Header -->
+    <div class="modern-card mb-4">
+        <div class="gradient-header">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1>
+                        <i class="fas fa-chart-line me-3"></i>
+                        التقارير والإحصائيات
+                    </h1>
+                    <p>نظرة شاملة على أداء المركز وإحصائيات مفصلة</p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <div class="d-flex gap-2 justify-content-end flex-wrap">
+                        <button class="modern-btn success" onclick="exportReport()">
+                            <i class="fas fa-download"></i>
+                            تصدير التقرير
+                        </button>
+                        <a href="{{ url_for('export_full_backup') }}" class="modern-btn backup">
+                            <i class="fas fa-database"></i>
+                            نسخة احتياطية شاملة
+                        </a>
+                        <a href="{{ url_for('import_system_data') }}" class="modern-btn"
+                            style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white;">
+                            <i class="fas fa-file-import"></i>
+                            استيراد البيانات
+                        </a>
+                        {% if session.user_role == 'admin' %}
+                        <button class="modern-btn" onclick="diagnoseImportData()"
+                            style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                            <i class="fas fa-search-plus"></i>
+                            تشخيص البيانات
+                        </button>
+                        <button class="modern-btn" onclick="diagnoseFinancialCalculations()"
+                            style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white;">
+                            <i class="fas fa-calculator"></i>
+                            تشخيص الحسابات المالية
+                        </button>
+                        <form method="POST" action="{{ url_for('fix_import_data') }}" style="display: inline;">
+                            <button type="submit" class="modern-btn"
+                                style="background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%); color: #721c24;"
+                                onclick="return confirm('هل أنت متأكد من إصلاح البيانات المستوردة؟ سيتم تحديد أسعار افتراضية للمجموعات بدون أسعار وحذف الجداول المعطلة.');">
+                                <i class="fas fa-tools"></i>
+                                إصلاح البيانات المستوردة
+                            </button>
+                        </form>
+                        {% endif %}
+                        <button class="modern-btn primary" onclick="refreshReport()">
+                            <i class="fas fa-sync-alt"></i>
+                            تحديث
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Statistics -->
+    <div class="stats-grid fade-in">
+        <div class="stat-card total">
+            <div class="stat-icon">
+                <i class="fas fa-users"></i>
+            </div>
+            <div class="stat-number">{{ total_students }}</div>
+            <div class="stat-label">إجمالي الطلاب</div>
+        </div>
+
+        <div class="stat-card present">
+            <div class="stat-icon">
+                <i class="fas fa-check"></i>
+            </div>
+            <div class="stat-number">{{ present_today }}</div>
+            <div class="stat-label">حاضر اليوم</div>
+        </div>
+
+        <div class="stat-card absent">
+            <div class="stat-icon">
+                <i class="fas fa-times"></i>
+            </div>
+            <div class="stat-number">{{ absent_today }}</div>
+            <div class="stat-label">غائب اليوم</div>
+        </div>
+
+        <div class="stat-card late">
+            <div class="stat-icon">
+                <i class="fas fa-clock"></i>
+            </div>
+            <div class="stat-number">{{ late_today|default(0) }}</div>
+            <div class="stat-label">متأخر اليوم</div>
+        </div>
+    </div>
+
+    <!-- Financial Overview -->
+    <div class="row mb-4">
+        <div class="col-lg-6">
+            <div class="financial-card">
+                <div class="card-body p-4">
+                    <h5 class="mb-4 fw-bold">
+                        <i class="fas fa-money-bill-wave me-2 text-success"></i>
+                        الوضع المالي
+                    </h5>
+
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="financial-item">
+                                <div class="financial-amount revenue">
+                                    {{ "%.0f"|format(total_revenue) }}
+                                </div>
+                                <div class="financial-label">إجمالي الإيرادات</div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <div class="financial-item">
+                                <div class="financial-amount pending">
+                                    {{ "%.0f"|format(pending_payments) }}
+                                </div>
+                                <div class="financial-label">مدفوعات معلقة</div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <div class="financial-item">
+                                <div class="financial-amount text-primary">
+                                    {{ "%.0f"|format(total_groups_revenue|default(0)) }}
+                                </div>
+                                <div class="financial-label">إيرادات متوقعة</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="financial-card">
+                <div class="card-body p-4">
+                    <h5 class="mb-4 fw-bold">
+                        <i class="fas fa-percentage me-2 text-primary"></i>
+                        نسب الحضور
+                    </h5>
+
+                    <div class="text-center">
+                        {% set total_today = present_today + absent_today + late_today|default(0) %}
+                        {% set attendance_percentage = (present_today / total_today * 100) if total_today > 0 else 0 %}
+
+                        <div class="progress-ring">
+                            <svg width="120" height="120">
+                                <circle cx="60" cy="60" r="45" stroke="#e9ecef" stroke-width="10" fill="none" />
+                                <circle cx="60" cy="60" r="45" stroke="url(#attendanceGradient)" stroke-width="10"
+                                    fill="none" stroke-dasharray="{{ (attendance_percentage / 100 * 283)|round }} 283"
+                                    stroke-linecap="round" transform="rotate(-90 60 60)" />
+                                <defs>
+                                    <linearGradient id="attendanceGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                        <stop offset="0%" style="stop-color:#11998e;stop-opacity:1" />
+                                        <stop offset="100%" style="stop-color:#38ef7d;stop-opacity:1" />
+                                    </linearGradient>
+                                </defs>
+                            </svg>
+                            <div class="progress-text">
+                                <span class="percentage-number">{{ "%.0f"|format(attendance_percentage) }}%</span>
+                            </div>
+                        </div>
+
+                        <p class="text-muted mb-0">نسبة الحضور اليوم</p>
+                        <small class="text-muted">من إجمالي {{ total_today }} طالب</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Additional Information -->
+    <div class="row">
+        <div class="col-lg-6">
+            <div class="chart-container fade-in">
+                <h5 class="mb-4 fw-bold">
+                    <i class="fas fa-info-circle me-2 text-info"></i>
+                    معلومات عامة
+                </h5>
+
+                <div class="row">
+                    <div class="col-6">
+                        <div class="text-center p-3">
+                            <h4 class="text-primary">{{ groups_count }}</h4>
+                            <p class="text-muted mb-0">مجموعات نشطة</p>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="text-center p-3">
+                            <h4 class="text-success">{{ instructors_count }}</h4>
+                            <p class="text-muted mb-0">مدرسين</p>
+                        </div>
+                    </div>
+                </div>
+
+                <hr>
+
+                <div class="row">
+                    <div class="col-12">
+                        <p><strong>تاريخ التقرير:</strong> {{ format_arabic_date(today_date) if today_date else 'غير
+                            محدد' }}</p>
+                        <p><strong>متوسط الطلاب لكل مجموعة:</strong>
+                            {{ "%.1f"|format((total_students / groups_count) if groups_count > 0 else 0) }}
+                        </p>
+                        <p class="mb-0"><strong>معدل الحضور الإجمالي:</strong>
+                            <span class="badge bg-success">ممتاز</span>
+                        </p>
+
+                        <!-- Data Health Check -->
+                        {% if session.user_role == 'admin' %}
+                        <hr>
+                        <div class="mt-3">
+                            <h6 class="fw-bold text-info">
+                                <i class="fas fa-heartbeat me-2"></i>
+                                فحص سلامة البيانات
+                            </h6>
+                            {% set zero_price_groups = [] %}
+                            {% for group in groups_count_list if group.price == 0.0 %}
+                            {% set _ = zero_price_groups.append(group) %}
+                            {% endfor %}
+
+                            {% if zero_price_groups|length > 0 %}
+                            <div class="alert alert-warning py-2 px-3 mb-2" style="font-size: 0.85rem;">
+                                <i class="fas fa-exclamation-triangle me-1"></i>
+                                {{ zero_price_groups|length }} مجموعة بسعر صفر
+                            </div>
+                            {% endif %}
+
+                            {% set groups_without_schedules = [] %}
+                            {% for group in groups_count_list if not group.schedules %}
+                            {% set _ = groups_without_schedules.append(group) %}
+                            {% endfor %}
+
+                            {% if groups_without_schedules|length > 0 %}
+                            <div class="alert alert-info py-2 px-3 mb-2" style="font-size: 0.85rem;">
+                                <i class="fas fa-calendar-times me-1"></i>
+                                {{ groups_without_schedules|length }} مجموعة بدون جدول زمني
+                            </div>
+                            {% endif %}
+
+                            {% if zero_price_groups|length == 0 and groups_without_schedules|length == 0 %}
+                            <div class="alert alert-success py-2 px-3 mb-0" style="font-size: 0.85rem;">
+                                <i class="fas fa-check-circle me-1"></i>
+                                البيانات سليمة ولا توجد مشاكل
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="chart-container fade-in">
+                <h5 class="mb-4 fw-bold">
+                    <i class="fas fa-chart-pie me-2 text-warning"></i>
+                    توزيع الحضور اليوم
+                </h5>
+
+                <div class="row text-center">
+                    <div class="col-4">
+                        <div class="p-3">
+                            <div
+                                style="width: 60px; height: 60px; border-radius: 50%; background: linear-gradient(135deg, #11998e, #38ef7d); margin: 0 auto 1rem; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;">
+                                {{ present_today }}
+                            </div>
+                            <small class="text-muted">حاضر</small>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="p-3">
+                            <div
+                                style="width: 60px; height: 60px; border-radius: 50%; background: linear-gradient(135deg, #fc4a1a, #f7b733); margin: 0 auto 1rem; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;">
+                                {{ absent_today }}
+                            </div>
+                            <small class="text-muted">غائب</small>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="p-3">
+                            <div
+                                style="width: 60px; height: 60px; border-radius: 50%; background: linear-gradient(135deg, #f7971e, #ffd200); margin: 0 auto 1rem; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;">
+                                {{ late_today|default(0) }}
+                            </div>
+                            <small class="text-muted">متأخر</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Enhanced export report functionality
+    function exportReport() {
+        const btn = event.target.closest('.modern-btn');
+        const originalText = btn.innerHTML;
+
+        // Add loading state
+        btn.classList.add('loading');
+        btn.innerHTML = '<i class="fas fa-spinner"></i> جاري التصدير...';
+
+        // Show loading message
+        if (window.Toast) {
+            Toast.fire({
+                icon: 'info',
+                title: 'جاري إنشاء ملف Excel...'
+            });
+        }
+
+        // Create a hidden form to download the file
+        const downloadForm = document.createElement('form');
+        downloadForm.method = 'GET';
+        downloadForm.action = '/export_reports';
+        downloadForm.style.display = 'none';
+        document.body.appendChild(downloadForm);
+
+        // Submit form to trigger download
+        downloadForm.submit();
+
+        // Remove form after submission
+        setTimeout(() => {
+            document.body.removeChild(downloadForm);
+        }, 1000);
+
+        // Show success message and restore button after delay
+        setTimeout(() => {
+            if (window.Swal) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'تم التصدير بنجاح!',
+                    text: 'تم تحميل ملف Excel بنجاح',
+                    timer: 3000,
+                    showConfirmButton: false,
+                    background: '#fff',
+                    color: '#333'
+                });
+            } else if (window.Toast) {
+                Toast.fire({
+                    icon: 'success',
+                    title: 'تم تحميل ملف Excel بنجاح!'
+                });
+            }
+
+            // Restore button state
+            btn.classList.remove('loading');
+            btn.innerHTML = originalText;
+        }, 2000);
+    }
+
+    // Enhanced refresh functionality
+    function refreshReport() {
+        const btn = event.target.closest('.modern-btn');
+        const originalText = btn.innerHTML;
+
+        // Add loading state
+        btn.classList.add('loading');
+        btn.innerHTML = '<i class="fas fa-sync-alt"></i> جاري التحديث...';
+
+        // Show loading message
+        if (window.Toast) {
+            Toast.fire({
+                icon: 'info',
+                title: 'جاري تحديث التقرير...'
+            });
+        }
+
+        // Reload page after a short delay
+        setTimeout(() => {
+            location.reload();
+        }, 1000);
+    }
+
+    // Function to diagnose imported data
+    function diagnoseImportData() {
+        // Show loading state
+        const btn = event.target;
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري التشخيص...';
+        btn.disabled = true;
+
+        fetch('/diagnose_import_data', {
+            method: 'GET'
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Create and show diagnosis modal
+                    showDiagnosisModal(data.diagnosis);
+                } else {
+                    alert('خطأ في التشخيص: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('خطأ في الشبكة أثناء التشخيص');
+            })
+            .finally(() => {
+                // Restore button state
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            });
+    }
+
+    function showDiagnosisModal(diagnosis) {
+        let modalHtml = `
+            <div class="modal fade" id="diagnosisModal" tabindex="-1">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">
+                                <i class="fas fa-search-plus me-2"></i>
+                                تشخيص البيانات المستوردة
+                            </h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+        `;
+
+        // Groups with issues
+        if (diagnosis.groups_with_issues.length > 0) {
+            modalHtml += `
+                <div class="alert alert-warning">
+                    <h6><i class="fas fa-users me-2"></i>مجموعات بها مشاكل (${diagnosis.groups_with_issues.length})</h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>اسم المجموعة</th>
+                                    <th>السعر الحالي</th>
+                                    <th>المشكلة</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+            `;
+            diagnosis.groups_with_issues.forEach(group => {
+                modalHtml += `
+                    <tr>
+                        <td>${group.name}</td>
+                        <td>${group.price} ج.م</td>
+                        <td><span class="badge bg-danger">${group.issue}</span></td>
+                    </tr>
+                `;
+            });
+            modalHtml += `
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Students with issues
+        if (diagnosis.students_with_issues.length > 0) {
+            modalHtml += `
+                <div class="alert alert-info">
+                    <h6><i class="fas fa-user-graduate me-2"></i>طلاب بهم مشاكل (${diagnosis.students_with_issues.length})</h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>اسم الطالب</th>
+                                    <th>الخصم</th>
+                                    <th>المبلغ المدفوع</th>
+                                    <th>المشاكل</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+            `;
+            diagnosis.students_with_issues.slice(0, 10).forEach(student => {
+                modalHtml += `
+                    <tr>
+                        <td>${student.name}</td>
+                        <td>${student.discount} ج.م</td>
+                        <td>${student.total_paid} ج.م</td>
+                        <td><span class="badge bg-warning">${student.issues}</span></td>
+                    </tr>
+                `;
+            });
+            if (diagnosis.students_with_issues.length > 10) {
+                modalHtml += `
+                    <tr>
+                        <td colspan="4" class="text-center text-muted">
+                            و ${diagnosis.students_with_issues.length - 10} طلاب آخرين...
+                        </td>
+                    </tr>
+                `;
+            }
+            modalHtml += `
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Summary
+        if (diagnosis.groups_with_issues.length === 0 &&
+            diagnosis.students_with_issues.length === 0 &&
+            diagnosis.payments_with_issues.length === 0 &&
+            diagnosis.expenses_with_issues.length === 0) {
+            modalHtml += `
+                <div class="alert alert-success">
+                    <h6><i class="fas fa-check-circle me-2"></i>البيانات سليمة</h6>
+                    <p class="mb-0">لم يتم العثور على أي مشاكل في البيانات المستوردة.</p>
+                </div>
+            `;
+        } else {
+            modalHtml += `
+                <div class="alert alert-primary">
+                    <h6><i class="fas fa-info-circle me-2"></i>ملخص التشخيص</h6>
+                    <ul class="mb-0">
+                        <li>مجموعات بها مشاكل: ${diagnosis.groups_with_issues.length}</li>
+                        <li>طلاب بهم مشاكل: ${diagnosis.students_with_issues.length}</li>
+                        <li>مدفوعات بها مشاكل: ${diagnosis.payments_with_issues.length}</li>
+                        <li>مصروفات بها مشاكل: ${diagnosis.expenses_with_issues.length}</li>
+                    </ul>
+                </div>
+            `;
+        }
+
+        modalHtml += `
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+                            ${diagnosis.groups_with_issues.length > 0 || diagnosis.students_with_issues.length > 0 ?
+                '<button type="button" class="btn btn-warning" onclick="runFixImportData()">إصلاح المشاكل</button>' : ''}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Remove existing modal if any
+        const existingModal = document.getElementById('diagnosisModal');
+        if (existingModal) {
+            existingModal.remove();
+        }
+
+        // Add modal to body and show
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        const modal = new bootstrap.Modal(document.getElementById('diagnosisModal'));
+        modal.show();
+    }
+
+    function runFixImportData() {
+        if (confirm('هل أنت متأكد من إصلاح البيانات؟ سيتم تصحيح الأسعار والقيم غير الطبيعية.')) {
+            // Submit the fix form
+            const form = document.querySelector('form[action*="fix_import_data"]');
+            if (form) {
+                form.submit();
+            }
+        }
+    }
+
+    // Function to diagnose financial calculations
+    function diagnoseFinancialCalculations() {
+        // Show loading state
+        const btn = event.target;
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري التشخيص المالي...';
+        btn.disabled = true;
+
+        fetch('/diagnose_financial_calculations', {
+            method: 'GET'
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Create and show financial diagnosis modal
+                    showFinancialDiagnosisModal(data.diagnosis);
+                } else {
+                    alert('خطأ في التشخيص المالي: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('خطأ في الشبكة أثناء التشخيص المالي');
+            })
+            .finally(() => {
+                // Restore button state
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            });
+    }
+
+    function showFinancialDiagnosisModal(diagnosis) {
+        let modalHtml = `
+            <div class="modal fade" id="financialDiagnosisModal" tabindex="-1">
+                <div class="modal-dialog modal-xl">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">
+                                <i class="fas fa-calculator me-2"></i>
+                                تشخيص الحسابات المالية
+                            </h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+        `;
+
+        // Summary section
+        modalHtml += `
+            <div class="row mb-4">
+                <div class="col-md-4">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h5 class="text-success">${diagnosis.total_revenue.toFixed(2)}</h5>
+                            <small>إجمالي الإيرادات (فعلي)</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h5 class="text-warning">${diagnosis.pending_payments.toFixed(2)}</h5>
+                            <small>مدفوعات معلقة</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h5 class="text-primary">${diagnosis.total_groups_revenue.toFixed(2)}</h5>
+                            <small>إيرادات متوقعة</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Logical consistency check
+        modalHtml += `
+            <div class="alert ${diagnosis.logical_consistency_check ? 'alert-success' : 'alert-danger'}">
+                <h6>
+                    <i class="fas ${diagnosis.logical_consistency_check ? 'fa-check-circle' : 'fa-exclamation-triangle'} me-2"></i>
+                    فحص التناسق المنطقي
+                </h6>
+                <p class="mb-2">
+                    <strong>المعادلة:</strong> إجمالي الإيرادات + مدفوعات معلقة = إيرادات متوقعة
+                </p>
+                <p class="mb-2">
+                    <strong>الحساب:</strong> ${diagnosis.total_revenue.toFixed(2)} + ${diagnosis.pending_payments.toFixed(2)} = ${diagnosis.calculated_total_should_equal_expected.toFixed(2)}
+                </p>
+                <p class="mb-1">
+                    <strong>النتيجة المتوقعة:</strong> ${diagnosis.total_groups_revenue.toFixed(2)}
+                </p>
+                <p class="mb-0">
+                    <strong>الفرق:</strong> ${diagnosis.difference.toFixed(2)}
+                    ${diagnosis.logical_consistency_check ? ' ✅ صحيح' : ' ❌ يوجد خلل'}
+                </p>
+            </div>
+        `;
+
+        // Issues detected
+        if (diagnosis.groups_with_zero_price.length > 0) {
+            modalHtml += `
+                <div class="alert alert-warning">
+                    <h6><i class="fas fa-exclamation-triangle me-2"></i>مجموعات بسعر صفر (${diagnosis.groups_with_zero_price.length})</h6>
+                    <p class="mb-0">${diagnosis.groups_with_zero_price.join(', ')}</p>
+                </div>
+            `;
+        }
+
+        if (diagnosis.students_with_negative_balance.length > 0) {
+            modalHtml += `
+                <div class="alert alert-info">
+                    <h6><i class="fas fa-minus-circle me-2"></i>طلاب برصيد سالب (${diagnosis.students_with_negative_balance.length})</h6>
+                    <p class="mb-0">${diagnosis.students_with_negative_balance.join(', ')}</p>
+                </div>
+            `;
+        }
+
+        if (diagnosis.students_with_issues.length > 0) {
+            modalHtml += `
+                <div class="alert alert-danger">
+                    <h6><i class="fas fa-bug me-2"></i>طلاب بأخطاء في الحساب (${diagnosis.students_with_issues.length})</h6>
+                    <p class="mb-0">${diagnosis.students_with_issues.join(', ')}</p>
+                </div>
+            `;
+        }
+
+        // Student details table
+        if (diagnosis.student_details.length > 0) {
+            modalHtml += `
+                <div class="mt-4">
+                    <h6>تفاصيل عينة من الطلاب (أول 10 طلاب):</h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-striped">
+                            <thead>
+                                <tr>
+                                    <th>الطالب</th>
+                                    <th>المجموعات</th>
+                                    <th>إجمالي السعر</th>
+                                    <th>الخصم</th>
+                                    <th>بعد الخصم</th>
+                                    <th>المدفوع</th>
+                                    <th>المتبقي (فعلي)</th>
+                                    <th>المتبقي (متوقع)</th>
+                                    <th>صحة الحساب</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+            `;
+
+            diagnosis.student_details.forEach(student => {
+                const isCorrect = Math.abs(student.remaining_balance - student.expected_remaining) < 0.01;
+                modalHtml += `
+                    <tr class="${isCorrect ? '' : 'table-danger'}">
+                        <td>${student.name}</td>
+                        <td><small>${student.groups.join(', ')}</small></td>
+                        <td>${student.total_group_price.toFixed(2)}</td>
+                        <td>${student.discount.toFixed(2)}</td>
+                        <td>${student.calculated_price_after_discount.toFixed(2)}</td>
+                        <td>${student.total_paid.toFixed(2)}</td>
+                        <td>${student.remaining_balance.toFixed(2)}</td>
+                        <td>${student.expected_remaining.toFixed(2)}</td>
+                        <td>${isCorrect ? '✅' : '❌'}</td>
+                    </tr>
+                `;
+            });
+
+            modalHtml += `
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+        }
+
+        modalHtml += `
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+                            <button type="button" class="btn btn-info" onclick="location.reload()">تحديث الصفحة</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Remove existing modal if any
+        const existingModal = document.getElementById('financialDiagnosisModal');
+        if (existingModal) {
+            existingModal.remove();
+        }
+
+        // Add modal to body and show
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        const modal = new bootstrap.Modal(document.getElementById('financialDiagnosisModal'));
+        modal.show();
+    }
+
+    // Add smooth scroll to top when page loads
+    function scrollToTop() {
+        window.scrollTo({
+            top: 0,
+            behavior: 'smooth'
+        });
+    }
+
+    // Enhanced number animation with counter effect
+    function animateNumbers() {
+        const numbers = document.querySelectorAll('.stat-number');
+
+        numbers.forEach((number, index) => {
+            const finalValue = parseInt(number.textContent);
+            let currentValue = 0;
+            const increment = Math.ceil(finalValue / 30); // Animation steps
+
+            // Reset to 0 first
+            number.textContent = '0';
+
+            // Animate with delay
+            setTimeout(() => {
+                const timer = setInterval(() => {
+                    currentValue += increment;
+                    if (currentValue >= finalValue) {
+                        currentValue = finalValue;
+                        clearInterval(timer);
+                    }
+                    number.textContent = currentValue;
+                }, 50);
+            }, index * 200);
+        });
+    }
+
+    // Enhanced page initialization
+    document.addEventListener('DOMContentLoaded', function () {
+        // Animate statistics numbers
+        animateNumbers();
+
+        // Add fade-in animation to cards
+        const cards = document.querySelectorAll('.modern-card, .chart-container, .financial-card');
+        cards.forEach((card, index) => {
+            card.style.opacity = '0';
+            card.style.transform = 'translateY(30px)';
+
+            setTimeout(() => {
+                card.style.transition = 'all 0.6s ease';
+                card.style.opacity = '1';
+                card.style.transform = 'translateY(0)';
+            }, index * 100);
+        });
+
+        // Add pulse animation to percentage
+        const percentage = document.querySelector('.percentage-number');
+        if (percentage) {
+            setInterval(() => {
+                percentage.style.transform = 'scale(1.1)';
+                setTimeout(() => {
+                    percentage.style.transform = 'scale(1)';
+                }, 200);
+            }, 3000);
+        }
+
+        console.log('📊 تم تحميل صفحة التقارير بنجاح');
+    });
+
+    // Add ripple effect to buttons
+    document.addEventListener('click', function (e) {
+        if (e.target.closest('.modern-btn')) {
+            const button = e.target.closest('.modern-btn');
+            const ripple = document.createElement('span');
+            const rect = button.getBoundingClientRect();
+            const size = Math.max(rect.width, rect.height);
+            const x = e.clientX - rect.left - size / 2;
+            const y = e.clientY - rect.top - size / 2;
+
+            ripple.style.cssText = `
+                position: absolute;
+                border-radius: 50%;
+                background: rgba(255,255,255,0.3);
+                width: ${size}px;
+                height: ${size}px;
+                left: ${x}px;
+                top: ${y}px;
+                animation: ripple 0.6s linear;
+                pointer-events: none;
+            `;
+
+            button.appendChild(ripple);
+
+            setTimeout(() => {
+                ripple.remove();
+            }, 600);
+        }
+    });
+
+    // Handle backup button click
+    function handleBackupClick(event) {
+        const backupBtn = event.target.closest('.modern-btn.backup');
+        if (backupBtn) {
+            // Add loading state
+            backupBtn.classList.add('loading');
+            const icon = backupBtn.querySelector('i');
+            const originalIcon = icon.className;
+            icon.className = 'fas fa-spinner';
+
+            // Change text
+            const originalText = backupBtn.innerHTML;
+            backupBtn.innerHTML = '<i class="fas fa-spinner"></i> جاري إنشاء النسخة الاحتياطية...';
+
+            // Show loading message
+            showLoadingToast();
+
+            // Reset after 30 seconds (in case something goes wrong)
+            setTimeout(() => {
+                backupBtn.classList.remove('loading');
+                backupBtn.innerHTML = originalText;
+            }, 30000);
+        }
+    }
+
+    function showLoadingToast() {
+        // Create toast notification
+        const toast = document.createElement('div');
+        toast.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, #fc4a1a, #f7b733);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 12px;
+            box-shadow: 0 8px 25px rgba(252, 74, 26, 0.3);
+            z-index: 9999;
+            font-weight: 600;
+            animation: slideInRight 0.3s ease;
+        `;
+        toast.innerHTML = `
+            <i class="fas fa-database me-2"></i>
+            جاري تحضير النسخة الاحتياطية الشاملة... قد يستغرق الأمر دقيقة أو أكثر
+        `;
+
+        document.body.appendChild(toast);
+
+        // Remove toast after 5 seconds
+        setTimeout(() => {
+            toast.style.animation = 'slideOutRight 0.3s ease';
+            setTimeout(() => {
+                document.body.removeChild(toast);
+            }, 300);
+        }, 5000);
+    }
+
+    // Add keyframes for toast animations
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes slideInRight {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        @keyframes slideOutRight {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+        }
+    `;
+    document.head.appendChild(style);
+
+    // Add event listener to backup button
+    document.addEventListener('click', handleBackupClick);
+
+    // Add loading animation for backup button
+    const backupBtnStyle = document.createElement('style');
+    backupBtnStyle.textContent = `
+        .modern-btn.backup.loading {
+            pointer-events: none;
+            opacity: 0.8;
+            transform: scale(0.98);
+        }
+        
+        .modern-btn.backup.loading i {
+            animation: spin 1s linear infinite;
+        }
+    `;
+    document.head.appendChild(backupBtnStyle);
+</script>
+{% endblock %}

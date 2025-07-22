@@ -1,0 +1,256 @@
+{% extends "base.html" %}
+
+{% block title %}استيراد البيانات من Excel - نظام إدارة الطلاب{% endblock %}
+
+{% block extra_css %}
+<style>
+    .import-container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 2rem;
+    }
+
+    .modern-card {
+        border: none;
+        border-radius: 20px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease;
+        overflow: hidden;
+        background: white;
+    }
+
+    .gradient-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 2rem;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .upload-area {
+        border: 3px dashed #ddd;
+        border-radius: 15px;
+        padding: 3rem;
+        text-align: center;
+        transition: all 0.3s ease;
+        background: #f8f9fa;
+        margin: 2rem 0;
+        cursor: pointer;
+    }
+
+    .upload-area:hover {
+        border-color: #667eea;
+        background: #f0f4ff;
+        transform: scale(1.02);
+    }
+
+    .btn-upload {
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+        border: none;
+        padding: 1rem 2rem;
+        border-radius: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .btn-import {
+        background: linear-gradient(135deg, #11998e, #38ef7d);
+        color: white;
+        border: none;
+        padding: 1rem 2rem;
+        border-radius: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        width: 100%;
+        margin-top: 2rem;
+    }
+
+    .btn-import:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+
+    .warning-box {
+        background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
+        border: none;
+        border-radius: 15px;
+        padding: 1.5rem;
+        margin: 2rem 0;
+        color: #721c24;
+    }
+
+    .info-box {
+        background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+        border: none;
+        border-radius: 15px;
+        padding: 1.5rem;
+        margin: 2rem 0;
+        color: #155724;
+    }
+
+    .file-info {
+        background: #f8f9fa;
+        padding: 1rem;
+        border-radius: 10px;
+        margin: 1rem 0;
+        display: none;
+    }
+
+    .checkbox-container {
+        background: #fff3cd;
+        border: 2px solid #ffeaa7;
+        border-radius: 10px;
+        padding: 1rem;
+        margin: 1rem 0;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="import-container">
+    <div class="modern-card">
+        <div class="gradient-header">
+            <h1>
+                <i class="fas fa-file-import me-3"></i>
+                استيراد البيانات من Excel
+            </h1>
+            <p>استعادة النظام بالكامل من ملف النسخة الاحتياطية</p>
+        </div>
+
+        <div class="p-4">
+            <div class="warning-box">
+                <h5><i class="fas fa-exclamation-triangle me-2"></i>تحذير مهم</h5>
+                <p class="mb-0">عملية الاستيراد ستؤثر على البيانات الموجودة. يُنصح بعمل نسخة احتياطية قبل المتابعة.</p>
+            </div>
+
+            <form id="importForm" action="{{ url_for('import_system_data') }}" method="post"
+                enctype="multipart/form-data">
+                <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+                    <div style="font-size: 4rem; color: #667eea; margin-bottom: 1rem;">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                    </div>
+                    <h4>اختر ملف Excel أو اسحبه هنا</h4>
+                    <p class="text-muted">يدعم النظام ملفات .xlsx و .xls فقط</p>
+                    <button type="button" class="btn-upload">
+                        <i class="fas fa-folder-open me-2"></i>
+                        اختيار ملف
+                    </button>
+                    <input type="file" id="fileInput" name="excel_file" style="display: none;" accept=".xlsx,.xls"
+                        required>
+                </div>
+
+                <div class="file-info" id="fileInfo">
+                    <h6><i class="fas fa-file-excel me-2"></i>معلومات الملف:</h6>
+                    <p id="fileName" class="mb-1" style="font-weight: 600; color: #667eea;"></p>
+                    <p id="fileSize" class="text-muted mb-0"></p>
+                </div>
+
+                <div class="checkbox-container">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="clearExisting" name="clear_existing"
+                            value="yes">
+                        <label class="form-check-label" for="clearExisting">
+                            <strong>حذف البيانات الموجودة قبل الاستيراد</strong>
+                            <br>
+                            <small class="text-muted">
+                                سيتم حذف جميع البيانات الحالية واستبدالها بالبيانات من الملف.
+                                (سيتم الاحتفاظ بحسابات المدير فقط)
+                            </small>
+                        </label>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-import" id="importBtn" disabled>
+                    <i class="fas fa-download me-2"></i>
+                    استيراد البيانات
+                </button>
+            </form>
+
+            <div class="info-box">
+                <h6><i class="fas fa-info-circle me-2"></i>معلومات مفيدة:</h6>
+                <ul class="mb-0">
+                    <li>يجب أن يكون الملف من نفس تصدير النظام ليضمن التوافق</li>
+                    <li>سيتم تجاهل المستخدمين الإداريين الموجودين في الملف لتجنب التعارض</li>
+                    <li>كلمة المرور الافتراضية للمستخدمين المستوردين هي: 123456</li>
+                    <li>في حالة وجود بيانات مكررة، سيتم تجاهلها تلقائياً</li>
+                    <li><strong>لإصلاح أي مشاكل في أسعار الكورسات:</strong> استخدم زر "إصلاح البيانات المستوردة" في صفحة
+                        التقارير بعد الاستيراد</li>
+                </ul>
+            </div>
+
+            <div class="warning-box">
+                <h6><i class="fas fa-exclamation-triangle me-2"></i>نصائح لضمان استيراد أسعار الكورسات بشكل صحيح:</h6>
+                <ul class="mb-0">
+                    <li><strong>مشكلة شائعة:</strong> إذا كانت الأرقام في Excel نوعها "General" وتظهر 8.0 بدلاً من 800،
+                        فالنظام سيصلح هذا تلقائياً</li>
+                    <li>تأكد من أن أسعار المجموعات في العمود الخامس بتنسيق رقمي (مثل: 250, 350, 500)</li>
+                    <li>تجنب استخدام رموز العملات (ج.م، ريال) في نفس خلية السعر</li>
+                    <li>النظام يكشف تلقائياً القيم الصغيرة ويضربها في 100 (مثل: 8.0 ← 800)</li>
+                    <li>تأكد من صحة أسماء الأيام في الجداول الزمنية (السبت، الأحد، إلخ)</li>
+                    <li>تنسيق الأوقات يجب أن يكون HH:MM (مثل: 09:00, 14:30)</li>
+                </ul>
+            </div>
+
+            <div class="info-box">
+                <h6><i class="fas fa-robot me-2"></i>الإصلاح التلقائي للأرقام:</h6>
+                <ul class="mb-0">
+                    <li>✅ النظام يصحح تلقائياً: 8.0 → 800</li>
+                    <li>✅ النظام يصحح تلقائياً: 2.5 → 250</li>
+                    <li>✅ النظام يصحح تلقائياً: 3.5 → 350</li>
+                    <li>⚠️ في حالة عدم الإصلاح التلقائي، استخدم زر "تشخيص البيانات" في صفحة التقارير</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const fileInput = document.getElementById('fileInput');
+    const fileInfo = document.getElementById('fileInfo');
+    const fileName = document.getElementById('fileName');
+    const fileSize = document.getElementById('fileSize');
+    const importBtn = document.getElementById('importBtn');
+    const importForm = document.getElementById('importForm');
+
+    fileInput.addEventListener('change', function () {
+        const file = fileInput.files[0];
+        if (file) {
+            if (!file.name.endsWith('.xlsx') && !file.name.endsWith('.xls')) {
+                alert('يرجى اختيار ملف Excel (.xlsx أو .xls)');
+                fileInput.value = '';
+                return;
+            }
+
+            fileName.textContent = file.name;
+            fileSize.textContent = `الحجم: ${(file.size / 1024 / 1024).toFixed(2)} MB`;
+            fileInfo.style.display = 'block';
+            importBtn.disabled = false;
+        }
+    });
+
+    importForm.addEventListener('submit', function (e) {
+        const file = fileInput.files[0];
+        if (!file) {
+            e.preventDefault();
+            alert('يرجى اختيار ملف Excel للاستيراد');
+            return;
+        }
+
+        const clearExisting = document.getElementById('clearExisting').checked;
+        const confirmMessage = clearExisting
+            ? 'سيتم حذف جميع البيانات الموجودة واستبدالها بالبيانات من الملف. هل أنت متأكد؟'
+            : 'سيتم إضافة البيانات من الملف إلى البيانات الموجودة. هل تريد المتابعة؟';
+
+        if (!confirm(confirmMessage)) {
+            e.preventDefault();
+            return;
+        }
+
+        importBtn.disabled = true;
+        importBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>جاري الاستيراد...';
+    });
+</script>
+{% endblock %}

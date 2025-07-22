@@ -1,0 +1,1041 @@
+{% extends "base.html" %}
+
+{% block title %}قائمة المهام - نظام إدارة الطلاب{% endblock %}
+
+{% block content %}
+<style>
+    .todo-card {
+        transition: all 0.3s ease;
+        border: none;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        margin-bottom: 15px;
+        border-radius: 15px;
+        overflow: hidden;
+    }
+
+    .todo-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    }
+
+    .todo-header {
+        padding: 15px 20px;
+        display: flex;
+        justify-content: between;
+        align-items: center;
+        border-bottom: 1px solid #f0f0f0;
+    }
+
+    .todo-body {
+        padding: 20px;
+    }
+
+    .priority-badge {
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-weight: 600;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .priority-عالي {
+        background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+        color: white;
+        box-shadow: 0 2px 8px rgba(220, 53, 69, 0.3);
+    }
+
+    .priority-متوسط {
+        background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%);
+        color: #212529;
+        box-shadow: 0 2px 8px rgba(255, 193, 7, 0.3);
+    }
+
+    .priority-منخفض {
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        color: white;
+        box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
+    }
+
+    .status-badge {
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-weight: 500;
+        font-size: 0.75rem;
+    }
+
+    .status-مفتوح {
+        background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+        color: white;
+    }
+
+    .status-مكتمل {
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        color: white;
+    }
+
+    .status-ملغي {
+        background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
+        color: white;
+    }
+
+    .category-badge {
+        background: linear-gradient(45deg, #667eea, #764ba2);
+        color: white;
+        padding: 3px 8px;
+        border-radius: 10px;
+        font-size: 0.7rem;
+        margin: 2px;
+    }
+
+    .overdue-indicator {
+        background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+        color: white;
+        padding: 2px 8px;
+        border-radius: 8px;
+        font-size: 0.7rem;
+        animation: pulse-danger 2s infinite;
+    }
+
+    @keyframes pulse-danger {
+
+        0%,
+        100% {
+            opacity: 1;
+        }
+
+        50% {
+            opacity: 0.7;
+        }
+    }
+
+    .stats-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 15px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+    }
+
+    .header-gradient {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 15px 15px 0 0;
+        padding: 20px;
+    }
+
+    .btn-gradient {
+        background: linear-gradient(45deg, #667eea, #764ba2);
+        border: none;
+        color: white;
+        transition: all 0.3s ease;
+        border-radius: 10px;
+    }
+
+    .btn-gradient:hover {
+        background: linear-gradient(45deg, #764ba2, #667eea);
+        transform: translateY(-2px);
+        color: white;
+    }
+
+    .filter-tabs {
+        background: white;
+        border-radius: 15px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+    }
+
+    .filter-tabs .btn {
+        border-radius: 25px;
+        margin: 0 3px;
+        padding: 8px 16px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        border: 2px solid transparent;
+    }
+
+    .filter-tabs .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    .filter-tabs .btn.active {
+        color: white !important;
+        border-color: transparent !important;
+        transform: translateY(-1px);
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+    }
+
+    .filter-tabs .btn-outline-primary.active {
+        background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+    }
+
+    .filter-tabs .btn-outline-danger.active {
+        background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+    }
+
+    .filter-tabs .btn-outline-success.active {
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    }
+
+    .filter-tabs .btn-outline-warning.active {
+        background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%);
+    }
+
+    .action-btn {
+        margin: 2px;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+        padding: 6px 12px;
+    }
+
+    .action-btn:hover {
+        transform: scale(1.1);
+    }
+
+    .modal-content {
+        border-radius: 20px;
+        border: none;
+        overflow: hidden;
+    }
+
+    .modal-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+    }
+
+    .form-control,
+    .form-select,
+    .form-control:focus,
+    .form-select:focus {
+        border-radius: 10px;
+        border: 2px solid #e3f2fd;
+        transition: all 0.3s ease;
+    }
+
+    .form-control:focus,
+    .form-select:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .todo-completed {
+        opacity: 0.7;
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    }
+
+    .todo-completed .todo-header {
+        text-decoration: line-through;
+        color: #6c757d;
+    }
+
+    .due-soon {
+        border-left: 4px solid #ffc107;
+        background: linear-gradient(135deg, rgba(255, 193, 7, 0.05) 0%, rgba(255, 152, 0, 0.05) 100%);
+    }
+
+    .overdue {
+        border-left: 4px solid #dc3545;
+        background: linear-gradient(135deg, rgba(220, 53, 69, 0.05) 0%, rgba(200, 35, 51, 0.05) 100%);
+        animation: gentle-pulse 3s infinite;
+    }
+
+    @keyframes gentle-pulse {
+
+        0%,
+        100% {
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        50% {
+            box-shadow: 0 8px 25px rgba(220, 53, 69, 0.2);
+        }
+    }
+
+    /* Dropdown Menu Styles */
+    .dropdown {
+        position: relative;
+    }
+
+    .dropdown-menu {
+        display: none;
+        position: absolute;
+        top: 100%;
+        left: auto;
+        right: 0;
+        z-index: 1000;
+        min-width: 180px;
+        padding: 0.5rem 0;
+        margin: 0.125rem 0 0;
+        font-size: 0.875rem;
+        color: #212529;
+        text-align: right;
+        background-color: #fff;
+        background-clip: padding-box;
+        border: 1px solid rgba(0, 0, 0, 0.15);
+        border-radius: 0.375rem;
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+        transform: translate3d(0px, 0px, 0px);
+    }
+
+    .dropdown-menu.show {
+        display: block;
+    }
+
+    .dropdown-item {
+        display: block;
+        width: 100%;
+        padding: 0.375rem 1rem;
+        clear: both;
+        font-weight: 400;
+        color: #212529;
+        text-align: inherit;
+        text-decoration: none;
+        white-space: nowrap;
+        background-color: transparent;
+        border: 0;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .dropdown-item:hover,
+    .dropdown-item:focus {
+        color: #1e2125;
+        background-color: #e9ecef;
+    }
+
+    .dropdown-item.text-danger:hover,
+    .dropdown-item.text-danger:focus {
+        color: #fff;
+        background-color: #dc3545;
+    }
+
+    .dropdown-toggle::after {
+        display: none;
+    }
+
+    .dropdown-divider {
+        height: 0;
+        margin: 0.5rem 0;
+        overflow: hidden;
+        border-top: 1px solid #e9ecef;
+    }
+
+    /* Force hide dropdowns initially on all devices */
+    .dropdown-menu:not(.show) {
+        display: none !important;
+    }
+
+    /* Mobile Responsive */
+    @media (max-width: 768px) {
+        .filter-tabs {
+            padding: 15px;
+        }
+
+        .filter-tabs .btn {
+            display: block;
+            width: 100%;
+            margin: 5px 0;
+            text-align: center;
+        }
+
+        .todo-card {
+            margin-bottom: 10px;
+        }
+
+        .action-btn {
+            display: block;
+            width: 100%;
+            margin: 5px 0;
+            text-align: center;
+        }
+
+        .dropdown-menu {
+            right: 0 !important;
+            left: auto !important;
+            min-width: 160px;
+            position: absolute !important;
+            display: none !important;
+            transform: translateX(0) !important;
+        }
+
+        .dropdown-menu.show {
+            display: block !important;
+            position: absolute !important;
+            z-index: 1050;
+            top: 100% !important;
+            right: 0 !important;
+            left: auto !important;
+        }
+
+        /* Fix dropdown positioning on mobile */
+        .dropdown {
+            position: relative !important;
+        }
+
+        .todo-header .dropdown {
+            position: relative !important;
+        }
+
+        .todo-header .dropdown-menu {
+            position: absolute !important;
+            top: 35px !important;
+            right: 0 !important;
+            left: auto !important;
+            transform: translateX(10px) !important;
+        }
+
+        /* Ensure dropdown stays within screen bounds */
+        .todo-card .dropdown-menu {
+            max-width: calc(100vw - 40px);
+            right: 0 !important;
+            left: auto !important;
+        }
+
+        /* Alternative positioning for cards on right edge */
+        .col-lg-4:last-child .dropdown-menu,
+        .col-md-6:last-child .dropdown-menu {
+            right: 0 !important;
+            left: auto !important;
+            transform: translateX(20px) !important;
+        }
+    }
+
+    /* Extra small devices (phones) */
+    @media (max-width: 576px) {
+        .dropdown-menu {
+            min-width: 140px;
+            font-size: 0.8rem;
+            right: 5px !important;
+            left: auto !important;
+            max-width: 150px;
+        }
+
+        .dropdown-item {
+            padding: 0.3rem 0.8rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .todo-header .dropdown-menu {
+            transform: translateX(15px) !important;
+            right: 0 !important;
+        }
+
+        /* Force dropdown to stay within screen on very small screens */
+        .todo-card {
+            overflow: visible;
+        }
+
+        .todo-card .dropdown {
+            overflow: visible;
+        }
+
+        .todo-card .dropdown-menu {
+            position: fixed !important;
+            right: 10px !important;
+            left: auto !important;
+            transform: none !important;
+            max-width: calc(100vw - 20px);
+        }
+    }
+</style>
+
+<div class="fade-in">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="d-flex align-items-center">
+                <div class="me-3">
+                    <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center"
+                        style="width: 60px; height: 60px;">
+                        <i class="fas fa-tasks fa-2x text-white"></i>
+                    </div>
+                </div>
+                <div>
+                    <h2 class="mb-0">قائمة مهامي</h2>
+                    <p class="text-muted mb-0">تنظيم وإدارة المهام الشخصية</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 text-end">
+            <button class="btn btn-gradient btn-lg" data-bs-toggle="modal" data-bs-target="#addTodoModal">
+                <i class="fas fa-plus me-2"></i>
+                إضافة مهمة جديدة
+            </button>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="stats-card text-center">
+                <i class="fas fa-list fa-2x mb-2"></i>
+                <h3>{{ total_todos }}</h3>
+                <p class="mb-0">إجمالي المهام</p>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="stats-card text-center" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%);">
+                <i class="fas fa-clipboard-list fa-2x mb-2"></i>
+                <h3>{{ open_todos }}</h3>
+                <p class="mb-0">مهام مفتوحة</p>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="stats-card text-center" style="background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);">
+                <i class="fas fa-check-circle fa-2x mb-2"></i>
+                <h3>{{ completed_todos }}</h3>
+                <p class="mb-0">مهام مكتملة</p>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="stats-card text-center" style="background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);">
+                <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
+                <h3>{{ overdue_todos }}</h3>
+                <p class="mb-0">مهام متأخرة</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Tabs -->
+    <div class="filter-tabs">
+        <div class="d-flex align-items-center justify-content-between flex-wrap">
+            <div class="d-flex align-items-center mb-2 mb-md-0">
+                <h6 class="mb-0 me-3 text-muted">
+                    <i class="fas fa-filter me-2"></i>
+                    فلترة المهام:
+                </h6>
+            </div>
+            <div class="btn-group-vertical btn-group-md-horizontal" role="group">
+                <!-- Status Filters -->
+                <div class="btn-group mb-2 mb-md-0 me-md-2" role="group">
+                    <button type="button"
+                        class="btn btn-outline-primary {{ 'active' if filter_status == 'all' else '' }}"
+                        onclick="updateFilter('status', 'all')">
+                        <i class="fas fa-list me-1"></i>جميع المهام
+                    </button>
+                    <button type="button"
+                        class="btn btn-outline-primary {{ 'active' if filter_status == 'مفتوح' else '' }}"
+                        onclick="updateFilter('status', 'مفتوح')">
+                        <i class="fas fa-clipboard-list me-1"></i>مفتوحة
+                    </button>
+                    <button type="button"
+                        class="btn btn-outline-success {{ 'active' if filter_status == 'مكتمل' else '' }}"
+                        onclick="updateFilter('status', 'مكتمل')">
+                        <i class="fas fa-check-circle me-1"></i>مكتملة
+                    </button>
+                </div>
+
+                <!-- Priority Filters -->
+                <div class="btn-group mb-2 mb-md-0 me-md-2" role="group">
+                    <button type="button"
+                        class="btn btn-outline-danger {{ 'active' if filter_priority == 'عالي' else '' }}"
+                        onclick="updateFilter('priority', 'عالي')">
+                        <i class="fas fa-exclamation me-1"></i>عالية
+                    </button>
+                    <button type="button"
+                        class="btn btn-outline-warning {{ 'active' if filter_priority == 'متوسط' else '' }}"
+                        onclick="updateFilter('priority', 'متوسط')">
+                        <i class="fas fa-minus me-1"></i>متوسطة
+                    </button>
+                    <button type="button"
+                        class="btn btn-outline-success {{ 'active' if filter_priority == 'منخفض' else '' }}"
+                        onclick="updateFilter('priority', 'منخفض')">
+                        <i class="fas fa-arrow-down me-1"></i>منخفضة
+                    </button>
+                </div>
+
+                <!-- Category Filters -->
+                <div class="btn-group" role="group">
+                    <button type="button"
+                        class="btn btn-outline-info {{ 'active' if filter_category == 'تحضير' else '' }}"
+                        onclick="updateFilter('category', 'تحضير')">
+                        <i class="fas fa-book me-1"></i>تحضير
+                    </button>
+                    <button type="button"
+                        class="btn btn-outline-info {{ 'active' if filter_category == 'حضور' else '' }}"
+                        onclick="updateFilter('category', 'حضور')">
+                        <i class="fas fa-user-check me-1"></i>حضور
+                    </button>
+                    <button type="button"
+                        class="btn btn-outline-info {{ 'active' if filter_category == 'متابعة' else '' }}"
+                        onclick="updateFilter('category', 'متابعة')">
+                        <i class="fas fa-eye me-1"></i>متابعة
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Todos List -->
+    <div class="row">
+        {% if todos %}
+        {% for todo in todos %}
+        <div class="col-md-6 col-lg-4">
+            <div class="todo-card {{ 'todo-completed' if todo.status == 'مكتمل' else '' }} 
+                           {{ 'due-soon' if todo.days_remaining is not none and todo.days_remaining <= 3 and todo.days_remaining >= 0 else '' }}
+                           {{ 'overdue' if todo.is_overdue else '' }}">
+                <div class="todo-header">
+                    <div class="d-flex justify-content-between align-items-start w-100">
+                        <div class="flex-grow-1">
+                            <h6 class="mb-1 fw-bold">{{ todo.title }}</h6>
+                            <div class="d-flex flex-wrap gap-1 mb-2">
+                                <span class="priority-badge priority-{{ todo.priority }}">
+                                    <i
+                                        class="fas fa-{{ 'exclamation-triangle' if todo.priority == 'عالي' else 'minus' if todo.priority == 'متوسط' else 'arrow-down' }} me-1"></i>
+                                    {{ todo.priority }}
+                                </span>
+                                <span class="status-badge status-{{ todo.status }}">
+                                    <i
+                                        class="fas fa-{{ 'clock' if todo.status == 'مفتوح' else 'check' if todo.status == 'مكتمل' else 'times' }} me-1"></i>
+                                    {{ todo.status }}
+                                </span>
+                                {% if todo.is_overdue %}
+                                <span class="overdue-indicator">
+                                    <i class="fas fa-exclamation-triangle me-1"></i>
+                                    متأخر
+                                </span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-ellipsis-v"></i>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li><button class="dropdown-item" onclick="editTodo({{ todo.id }})">
+                                        <i class="fas fa-edit me-2"></i>تعديل
+                                    </button></li>
+                                <li><button class="dropdown-item"
+                                        onclick="toggleTodoStatus({{ todo.id }}, '{{ 'مفتوح' if todo.status == 'مكتمل' else 'مكتمل' }}')">
+                                        <i class="fas fa-{{ 'undo' if todo.status == 'مكتمل' else 'check' }} me-2"></i>
+                                        {{ 'إلغاء الإكمال' if todo.status == 'مكتمل' else 'تم الإكمال' }}
+                                    </button></li>
+                                <li>
+                                    <hr class="dropdown-divider">
+                                </li>
+                                <li><button class="dropdown-item text-danger"
+                                        onclick="deleteTodo({{ todo.id }}, '{{ todo.title }}')">
+                                        <i class="fas fa-trash me-2"></i>حذف
+                                    </button></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="todo-body">
+                    {% if todo.description %}
+                    <p class="text-muted mb-3">{{ todo.description[:100] }}{% if todo.description|length > 100 %}...{%
+                        endif %}</p>
+                    {% endif %}
+
+                    <div class="d-flex flex-wrap gap-1 mb-3">
+                        <span class="category-badge">
+                            <i class="fas fa-tag me-1"></i>
+                            {{ todo.category }}
+                        </span>
+                        {% if todo.group %}
+                        <span class="badge bg-info">
+                            <i class="fas fa-users me-1"></i>
+                            {{ todo.group.name }}
+                        </span>
+                        {% endif %}
+                        {% if todo.student %}
+                        <span class="badge bg-warning text-dark">
+                            <i class="fas fa-user me-1"></i>
+                            {{ todo.student.name }}
+                        </span>
+                        {% endif %}
+                    </div>
+
+                    <div class="small text-muted">
+                        <div class="d-flex justify-content-between">
+                            <span>
+                                <i class="fas fa-clock me-1"></i>
+                                {{ todo.created_ago }}
+                            </span>
+                            {% if todo.due_date %}
+                            <span
+                                class="{{ 'text-danger' if todo.is_overdue else 'text-warning' if todo.days_remaining is not none and todo.days_remaining <= 3 else '' }}">
+                                <i class="fas fa-calendar me-1"></i>
+                                {{ todo.due_date.strftime('%Y-%m-%d') }}
+                                {% if todo.days_remaining is not none %}
+                                ({{ todo.days_remaining }} أيام)
+                                {% endif %}
+                            </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+        {% else %}
+        <div class="col-12">
+            <div class="text-center py-5">
+                <i class="fas fa-tasks fa-5x text-muted mb-3" style="opacity: 0.3;"></i>
+                <h4 class="text-muted">لا توجد مهام</h4>
+                <p class="text-muted">ابدأ بإضافة مهمة جديدة لتنظيم عملك</p>
+                <button class="btn btn-gradient btn-lg" data-bs-toggle="modal" data-bs-target="#addTodoModal">
+                    <i class="fas fa-plus me-2"></i>
+                    إضافة أول مهمة
+                </button>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Add Todo Modal -->
+<div class="modal fade" id="addTodoModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-plus me-2"></i>
+                    إضافة مهمة جديدة
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('add_instructor_todo') }}">
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">عنوان المهمة *</label>
+                                <input type="text" class="form-control" name="title" required
+                                    placeholder="أدخل عنوان المهمة">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">الأولوية *</label>
+                                <select class="form-select" name="priority" required>
+                                    <option value="متوسط" selected>متوسط</option>
+                                    <option value="عالي">عالي</option>
+                                    <option value="منخفض">منخفض</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">الوصف</label>
+                        <textarea class="form-control" name="description" rows="3"
+                            placeholder="تفاصيل إضافية عن المهمة (اختياري)"></textarea>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">التصنيف *</label>
+                                <select class="form-select" name="category" required>
+                                    <option value="عام" selected>عام</option>
+                                    <option value="تحضير">تحضير الدروس</option>
+                                    <option value="حضور">أخذ الحضور</option>
+                                    <option value="متابعة">متابعة الطلاب</option>
+                                    <option value="إداري">أعمال إدارية</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">تاريخ الاستحقاق</label>
+                                <input type="date" class="form-control" name="due_date">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">ربط بمجموعة</label>
+                                <select class="form-select" name="group_id">
+                                    <option value="">اختر مجموعة (اختياري)</option>
+                                    {% for group in instructor_groups %}
+                                    <option value="{{ group.id }}">{{ group.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">ربط بطالب</label>
+                                <select class="form-select" name="student_id">
+                                    <option value="">اختر طالب (اختياري)</option>
+                                    {% for student in instructor_students %}
+                                    <option value="{{ student.id }}">{{ student.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-2"></i>
+                        إلغاء
+                    </button>
+                    <button type="submit" class="btn btn-gradient">
+                        <i class="fas fa-save me-2"></i>
+                        حفظ المهمة
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Todo Modal -->
+<div class="modal fade" id="editTodoModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-edit me-2"></i>
+                    تعديل المهمة
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="editTodoForm" method="POST">
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">عنوان المهمة *</label>
+                                <input type="text" class="form-control" name="title" id="editTitle" required>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">الأولوية *</label>
+                                <select class="form-select" name="priority" id="editPriority" required>
+                                    <option value="عالي">عالي</option>
+                                    <option value="متوسط">متوسط</option>
+                                    <option value="منخفض">منخفض</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">الوصف</label>
+                        <textarea class="form-control" name="description" id="editDescription" rows="3"></textarea>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">التصنيف *</label>
+                                <select class="form-select" name="category" id="editCategory" required>
+                                    <option value="عام">عام</option>
+                                    <option value="تحضير">تحضير الدروس</option>
+                                    <option value="حضور">أخذ الحضور</option>
+                                    <option value="متابعة">متابعة الطلاب</option>
+                                    <option value="إداري">أعمال إدارية</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">تاريخ الاستحقاق</label>
+                                <input type="date" class="form-control" name="due_date" id="editDueDate">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">ربط بمجموعة</label>
+                                <select class="form-select" name="group_id" id="editGroupId">
+                                    <option value="">اختر مجموعة (اختياري)</option>
+                                    {% for group in instructor_groups %}
+                                    <option value="{{ group.id }}">{{ group.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">ربط بطالب</label>
+                                <select class="form-select" name="student_id" id="editStudentId">
+                                    <option value="">اختر طالب (اختياري)</option>
+                                    {% for student in instructor_students %}
+                                    <option value="{{ student.id }}">{{ student.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-2"></i>
+                        إلغاء
+                    </button>
+                    <button type="submit" class="btn btn-gradient">
+                        <i class="fas fa-save me-2"></i>
+                        حفظ التغييرات
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Filter functionality
+    function updateFilter(type, value) {
+        const url = new URL(window.location);
+
+        if (value === 'all') {
+            url.searchParams.delete(type);
+        } else {
+            url.searchParams.set(type, value);
+        }
+
+        window.location.href = url.toString();
+    }
+
+    // Edit todo function
+    function editTodo(todoId) {
+        // This would typically make an AJAX call to get todo details
+        // For now, we'll use a simple form redirect
+        fetch(`/get_instructor_todo/${todoId}`)
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('editTodoForm').action = `/edit_instructor_todo/${todoId}`;
+                document.getElementById('editTitle').value = data.title;
+                document.getElementById('editDescription').value = data.description || '';
+                document.getElementById('editPriority').value = data.priority;
+                document.getElementById('editCategory').value = data.category;
+                document.getElementById('editDueDate').value = data.due_date || '';
+                document.getElementById('editGroupId').value = data.group_id || '';
+                document.getElementById('editStudentId').value = data.student_id || '';
+
+                new bootstrap.Modal(document.getElementById('editTodoModal')).show();
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                // Fallback: redirect to a simple edit page
+                window.location.href = `/edit_instructor_todo/${todoId}`;
+            });
+    }
+
+    // Toggle todo status
+    function toggleTodoStatus(todoId, newStatus) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/update_instructor_todo_status/${todoId}`;
+
+        const statusInput = document.createElement('input');
+        statusInput.type = 'hidden';
+        statusInput.name = 'status';
+        statusInput.value = newStatus;
+
+        form.appendChild(statusInput);
+        document.body.appendChild(form);
+        form.submit();
+    }
+
+    // Delete todo with confirmation
+    function deleteTodo(todoId, todoTitle) {
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: 'هل أنت متأكد؟',
+                html: `سيتم حذف المهمة "<strong>${todoTitle}</strong>" نهائياً`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'نعم، احذف',
+                cancelButtonText: 'إلغاء'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = `/delete_instructor_todo/${todoId}`;
+                    document.body.appendChild(form);
+                    form.submit();
+                }
+            });
+        } else {
+            if (confirm(`هل أنت متأكد من حذف المهمة "${todoTitle}"؟`)) {
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = `/delete_instructor_todo/${todoId}`;
+                document.body.appendChild(form);
+                form.submit();
+            }
+        }
+    }
+
+    // Load SweetAlert2 if not available
+    if (typeof Swal === 'undefined') {
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/sweetalert2@11';
+        document.head.appendChild(script);
+    }
+
+    // Mobile dropdown fix
+    document.addEventListener('DOMContentLoaded', function () {
+        // Force hide all dropdowns initially
+        document.querySelectorAll('.dropdown-menu').forEach(menu => {
+            menu.classList.remove('show');
+        });
+
+        // Check if device is mobile
+        function isMobile() {
+            return window.innerWidth <= 768;
+        }
+
+        // Mobile-specific dropdown handling
+        if (isMobile()) {
+            document.querySelectorAll('[data-bs-toggle="dropdown"]').forEach(button => {
+                button.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+
+                    const dropdown = this.closest('.dropdown');
+                    const menu = dropdown.querySelector('.dropdown-menu');
+
+                    // Close all other dropdowns
+                    document.querySelectorAll('.dropdown-menu.show').forEach(otherMenu => {
+                        if (otherMenu !== menu) {
+                            otherMenu.classList.remove('show');
+                        }
+                    });
+
+                    // Toggle current dropdown
+                    menu.classList.toggle('show');
+                });
+            });
+
+            // Close dropdown when clicking outside
+            document.addEventListener('click', function (e) {
+                if (!e.target.closest('.dropdown')) {
+                    document.querySelectorAll('.dropdown-menu.show').forEach(menu => {
+                        menu.classList.remove('show');
+                    });
+                }
+            });
+        }
+
+        // Handle window resize
+        window.addEventListener('resize', function () {
+            if (window.innerWidth > 768) {
+                // Remove all show classes when switching to desktop
+                document.querySelectorAll('.dropdown-menu.show').forEach(menu => {
+                    menu.classList.remove('show');
+                });
+            }
+        });
+    });
+</script>
+{% endblock %}

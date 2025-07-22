@@ -1,0 +1,2282 @@
+{% extends "base.html" %}
+
+{% block title %}إدارة المالية - نظام إدارة الطلاب{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2>
+                <i class="fas fa-chart-line me-2"></i>
+                إدارة المالية
+            </h2>
+        </div>
+        <div class="col-md-4 text-end">
+            <div class="btn-group" role="group">
+                <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addPaymentModal">
+                    <i class="fas fa-plus me-2"></i>
+                    دفعة جديدة
+                </button>
+                <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#addExpenseModal">
+                    <i class="fas fa-minus me-2"></i>
+                    مصروف جديد
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Financial Overview Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="financial-card income-card">
+                <div class="card-icon">
+                    <i class="fas fa-arrow-down"></i>
+                </div>
+                <div class="card-content">
+                    <h3>{{ "%.2f"|format(total_income) }} ج.م</h3>
+                    <p>إجمالي الإيرادات</p>
+                    <small class="trend">
+                        <i class="fas fa-calendar me-1"></i>
+                        {{ recent_payments }} دفعة خلال 30 يوم
+                    </small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="financial-card expense-card">
+                <div class="card-icon">
+                    <i class="fas fa-arrow-up"></i>
+                </div>
+                <div class="card-content">
+                    <h3>{{ "%.2f"|format(total_expenses) }} ج.م</h3>
+                    <p>إجمالي المصروفات</p>
+                    <small class="trend">
+                        <i class="fas fa-calendar me-1"></i>
+                        {{ recent_expenses }} مصروف خلال 30 يوم
+                    </small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="financial-card balance-card {% if net_balance >= 0 %}positive{% else %}negative{% endif %}">
+                <div class="card-icon">
+                    <i class="fas fa-balance-scale"></i>
+                </div>
+                <div class="card-content">
+                    <h3>{{ "%.2f"|format(net_balance) }} ج.م</h3>
+                    <p>الرصيد الصافي</p>
+                    <small class="trend">
+                        {% if net_balance >= 0 %}
+                        <i class="fas fa-arrow-up text-success me-1"></i>
+                        ربح صافي
+                        {% else %}
+                        <i class="fas fa-arrow-down text-danger me-1"></i>
+                        خسارة صافية
+                        {% endif %}
+                    </small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="financial-card dues-card">
+                <div class="card-icon">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <div class="card-content">
+                    <h3>{{ students_with_dues }}</h3>
+                    <p>طلاب لديهم مستحقات</p>
+                    <small class="trend">
+                        <i class="fas fa-users me-1"></i>
+                        من إجمالي {{ students|length }} طالب
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Monthly Revenue Breakdown -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-calendar-alt me-2"></i>
+                        الإيرادات الشهرية
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="monthly-breakdown">
+                        {% for month_name, groups in monthly_group_income.items() %}
+                        <div class="month-section mb-3">
+                            <h6 class="text-primary">{{ month_name }}</h6>
+                            <div class="row">
+                                {% for group_name, amount in groups.items() %}
+                                <div class="col-md-6 mb-2">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span class="text-muted">{{ group_name }}</span>
+                                        <span class="badge bg-success">{{ "%.2f"|format(amount) }} ج.م</span>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            <div class="text-end">
+                                <strong>المجموع: {{ "%.2f"|format(groups.values()|sum) }} ج.م</strong>
+                            </div>
+                            <hr>
+                        </div>
+                        {% else %}
+                        <div class="text-center text-muted">
+                            <i class="fas fa-chart-line fa-2x mb-2"></i>
+                            <p>لا توجد إيرادات شهرية بعد</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-users me-2"></i>
+                        الإيرادات حسب المجموعات
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="group-breakdown">
+                        {% for group_name, months in group_monthly_income.items() %}
+                        <div class="group-section mb-3">
+                            <h6 class="text-info">{{ group_name }}</h6>
+                            <div class="row">
+                                {% for month_name, amount in months.items() %}
+                                <div class="col-md-6 mb-2">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span class="text-muted">{{ month_name }}</span>
+                                        <span class="badge bg-info">{{ "%.2f"|format(amount) }} ج.م</span>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            <div class="text-end">
+                                <strong>المجموع: {{ "%.2f"|format(months.values()|sum) }} ج.م</strong>
+                            </div>
+                            <hr>
+                        </div>
+                        {% else %}
+                        <div class="text-center text-muted">
+                            <i class="fas fa-users fa-2x mb-2"></i>
+                            <p>لا توجد إيرادات للمجموعات بعد</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabs for Income and Expenses -->
+    <div class="card">
+        <div class="card-header">
+            <ul class="nav nav-tabs card-header-tabs" id="financialTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="income-tab" data-bs-toggle="tab" data-bs-target="#income"
+                        type="button" role="tab">
+                        <i class="fas fa-arrow-down text-success me-2"></i>
+                        الإيرادات ({{ payments_pagination.total }})
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="expenses-tab" data-bs-toggle="tab" data-bs-target="#expenses"
+                        type="button" role="tab">
+                        <i class="fas fa-arrow-up text-danger me-2"></i>
+                        المصروفات ({{ expenses_pagination.total }})
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="students-tab" data-bs-toggle="tab" data-bs-target="#students"
+                        type="button" role="tab">
+                        <i class="fas fa-users text-info me-2"></i>
+                        حالة الطلاب
+                    </button>
+                </li>
+            </ul>
+        </div>
+        <div class="card-body">
+            <div class="tab-content" id="financialTabsContent">
+                <!-- Income Tab -->
+                <div class="tab-pane fade show active" id="income" role="tabpanel">
+                    <!-- Search Form for Payments -->
+                    <div class="card mb-4 search-form">
+                        <div class="card-header">
+                            <h6 class="mb-0">
+                                <i class="fas fa-search me-2"></i>
+                                فلتر البحث في الإيرادات
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <form method="GET" id="paymentSearchForm">
+                                <div class="row">
+                                    <div class="col-md-3 mb-3">
+                                        <label for="search_student" class="form-label">اسم الطالب</label>
+                                        <input type="text" class="form-control" id="search_student"
+                                            name="search_student" value="{{ search_student }}"
+                                            placeholder="ابحث بالاسم">
+                                    </div>
+                                    <div class="col-md-3 mb-3">
+                                        <label for="search_month" class="form-label">الشهر</label>
+                                        <select class="form-select" id="search_month" name="search_month">
+                                            <option value="">جميع الأشهر</option>
+                                            <option value="يناير" {% if search_month=='يناير' %}selected{% endif %}>
+                                                يناير</option>
+                                            <option value="فبراير" {% if search_month=='فبراير' %}selected{% endif %}>
+                                                فبراير</option>
+                                            <option value="مارس" {% if search_month=='مارس' %}selected{% endif %}>مارس
+                                            </option>
+                                            <option value="أبريل" {% if search_month=='أبريل' %}selected{% endif %}>
+                                                أبريل</option>
+                                            <option value="مايو" {% if search_month=='مايو' %}selected{% endif %}>مايو
+                                            </option>
+                                            <option value="يونيو" {% if search_month=='يونيو' %}selected{% endif %}>
+                                                يونيو</option>
+                                            <option value="يوليو" {% if search_month=='يوليو' %}selected{% endif %}>
+                                                يوليو</option>
+                                            <option value="أغسطس" {% if search_month=='أغسطس' %}selected{% endif %}>
+                                                أغسطس</option>
+                                            <option value="سبتمبر" {% if search_month=='سبتمبر' %}selected{% endif %}>
+                                                سبتمبر</option>
+                                            <option value="أكتوبر" {% if search_month=='أكتوبر' %}selected{% endif %}>
+                                                أكتوبر</option>
+                                            <option value="نوفمبر" {% if search_month=='نوفمبر' %}selected{% endif %}>
+                                                نوفمبر</option>
+                                            <option value="ديسمبر" {% if search_month=='ديسمبر' %}selected{% endif %}>
+                                                ديسمبر</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-3 mb-3">
+                                        <label for="search_amount_min" class="form-label">المبلغ من</label>
+                                        <input type="number" class="form-control" id="search_amount_min"
+                                            name="search_amount_min" value="{{ search_amount_min }}"
+                                            placeholder="الحد الأدنى" step="0.01">
+                                    </div>
+                                    <div class="col-md-3 mb-3">
+                                        <label for="search_amount_max" class="form-label">المبلغ إلى</label>
+                                        <input type="number" class="form-control" id="search_amount_max"
+                                            name="search_amount_max" value="{{ search_amount_max }}"
+                                            placeholder="الحد الأقصى" step="0.01">
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-3 mb-3">
+                                        <label for="search_date_from" class="form-label">التاريخ من</label>
+                                        <input type="date" class="form-control" id="search_date_from"
+                                            name="search_date_from" value="{{ search_date_from }}">
+                                    </div>
+                                    <div class="col-md-3 mb-3">
+                                        <label for="search_date_to" class="form-label">التاريخ إلى</label>
+                                        <input type="date" class="form-control" id="search_date_to"
+                                            name="search_date_to" value="{{ search_date_to }}">
+                                    </div>
+                                    <div class="col-md-6 mb-3 d-flex align-items-end">
+                                        <button type="submit" class="btn btn-primary me-2">
+                                            <i class="fas fa-search me-1"></i>
+                                            بحث
+                                        </button>
+                                        <a href="{{ url_for('payments') }}" class="btn btn-outline-secondary">
+                                            <i class="fas fa-times me-1"></i>
+                                            مسح الفلتر
+                                        </a>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Search Results Info -->
+                    {% if search_student or search_month or search_amount_min or search_amount_max or search_date_from
+                    or search_date_to %}
+                    <div class="search-results-info">
+                        <i class="fas fa-info-circle"></i>
+                        <strong>نتائج البحث:</strong>
+                        تم العثور على {{ payments_pagination.total }} نتيجة من أصل {{ Payment.query.count() }} إيراد.
+                        <a href="{{ url_for('payments') }}" class="btn btn-sm btn-outline-primary ms-2">
+                            <i class="fas fa-times me-1"></i>
+                            مسح الفلتر
+                        </a>
+                    </div>
+                    {% endif %}
+
+                    <!-- Bulk Actions for Payments -->
+                    <div class="bulk-actions-bar" id="paymentsBulkActions" style="display: none;">
+                        <div class="d-flex justify-content-between align-items-center p-3 bg-light border rounded mb-3">
+                            <span class="selected-count">تم تحديد <strong id="selectedPaymentsCount">0</strong>
+                                مدفوعة</span>
+                            <div class="btn-group">
+                                <button class="btn btn-outline-danger btn-sm" onclick="bulkDeletePayments()">
+                                    <i class="fas fa-trash me-1"></i>
+                                    حذف المحددة
+                                </button>
+                                <button class="btn btn-outline-secondary btn-sm" onclick="clearPaymentSelection()">
+                                    <i class="fas fa-times me-1"></i>
+                                    إلغاء التحديد
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>
+                                        <input type="checkbox" id="selectAllPayments" class="form-check-input">
+                                    </th>
+                                    <th>#</th>
+                                    <th>الطالب</th>
+                                    <th>المبلغ</th>
+                                    <th>الشهر</th>
+                                    <th>التاريخ</th>
+                                    <th>ملاحظات</th>
+                                    <th>إجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for payment in payments %}
+                                {% set student = students|selectattr('id', 'equalto', payment.student_id)|first %}
+                                <tr>
+                                    <td>
+                                        <input type="checkbox" class="form-check-input payment-checkbox"
+                                            value="{{ payment.id }}"
+                                            data-student-name="{{ student.name if student else 'غير محدد' }}"
+                                            data-amount="{{ payment.amount }}">
+                                    </td>
+                                    <td>{{ loop.index }}</td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="student-avatar me-2">{{ student.name[0] if student else '؟' }}
+                                            </div>
+                                            {{ student.name if student else 'غير محدد' }}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-success">+{{ payment.amount }} ج.م</span>
+                                    </td>
+                                    <td>{{ payment.month or '-' }}</td>
+                                    <td>{{ payment.date.strftime('%Y-%m-%d') }}</td>
+                                    <td>{{ payment.notes or '-' }}</td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <button class="btn btn-sm btn-outline-primary"
+                                                onclick="editPayment({{ payment.id }}, {{ payment.student_id }}, '{{ student.name if student else 'غير محدد' }}', {{ payment.amount }}, '{{ payment.month or '' }}', '{{ payment.notes or '' }}')"
+                                                data-bs-toggle="tooltip" title="تعديل">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-danger"
+                                                onclick="deletePayment({{ payment.id }}, '{{ student.name if student else 'غير محدد' }}', {{ payment.amount }})"
+                                                data-bs-toggle="tooltip" title="حذف">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="8" class="text-center text-muted py-4">
+                                        <i class="fas fa-money-bill fa-3x mb-3"></i>
+                                        <p>لا توجد مدفوعات مسجلة بعد</p>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Payments Pagination -->
+                    {% if payments_pagination.pages > 1 %}
+                    <div class="d-flex justify-content-center mt-4">
+                        <nav aria-label="الإيرادات">
+                            <ul class="pagination">
+                                {% if payments_pagination.has_prev %}
+                                <li class="page-item">
+                                    <a class="page-link"
+                                        href="{{ url_for('payments', payments_page=payments_pagination.prev_num) }}"
+                                        aria-label="السابق">
+                                        <span aria-hidden="true">&laquo;</span>
+                                    </a>
+                                </li>
+                                {% endif %}
+
+                                {% for page_num in payments_pagination.iter_pages() %}
+                                {% if page_num %}
+                                {% if page_num != payments_pagination.page %}
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ url_for('payments', payments_page=page_num) }}">{{
+                                        page_num }}</a>
+                                </li>
+                                {% else %}
+                                <li class="page-item active">
+                                    <span class="page-link">{{ page_num }}</span>
+                                </li>
+                                {% endif %}
+                                {% else %}
+                                <li class="page-item disabled">
+                                    <span class="page-link">...</span>
+                                </li>
+                                {% endif %}
+                                {% endfor %}
+
+                                {% if payments_pagination.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link"
+                                        href="{{ url_for('payments', payments_page=payments_pagination.next_num) }}"
+                                        aria-label="التالي">
+                                        <span aria-hidden="true">&raquo;</span>
+                                    </a>
+                                </li>
+                                {% endif %}
+                            </ul>
+                        </nav>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Expenses Tab -->
+                <div class="tab-pane fade" id="expenses" role="tabpanel">
+                    <!-- Search Form for Expenses -->
+                    <div class="card mb-4 search-form">
+                        <div class="card-header">
+                            <h6 class="mb-0">
+                                <i class="fas fa-search me-2"></i>
+                                فلتر البحث في المصروفات
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <form method="GET" id="expenseSearchForm">
+                                <div class="row">
+                                    <div class="col-md-3 mb-3">
+                                        <label for="search_description" class="form-label">الوصف</label>
+                                        <input type="text" class="form-control" id="search_description"
+                                            name="search_description" value="{{ search_description }}"
+                                            placeholder="ابحث في الوصف">
+                                    </div>
+                                    <div class="col-md-3 mb-3">
+                                        <label for="search_category" class="form-label">الفئة</label>
+                                        <select class="form-select" id="search_category" name="search_category">
+                                            <option value="">جميع الفئات</option>
+                                            <option value="رواتب" {% if search_category=='رواتب' %}selected{% endif %}>
+                                                رواتب</option>
+                                            <option value="إيجار" {% if search_category=='إيجار' %}selected{% endif %}>
+                                                إيجار</option>
+                                            <option value="مرافق" {% if search_category=='مرافق' %}selected{% endif %}>
+                                                مرافق</option>
+                                            <option value="مستلزمات" {% if search_category=='مستلزمات' %}selected{%
+                                                endif %}>مستلزمات</option>
+                                            <option value="صيانة" {% if search_category=='صيانة' %}selected{% endif %}>
+                                                صيانة</option>
+                                            <option value="تسويق" {% if search_category=='تسويق' %}selected{% endif %}>
+                                                تسويق</option>
+                                            <option value="أخرى" {% if search_category=='أخرى' %}selected{% endif %}>
+                                                أخرى</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-3 mb-3">
+                                        <label for="search_expense_amount_min" class="form-label">المبلغ من</label>
+                                        <input type="number" class="form-control" id="search_expense_amount_min"
+                                            name="search_expense_amount_min" value="{{ search_expense_amount_min }}"
+                                            placeholder="الحد الأدنى" step="0.01">
+                                    </div>
+                                    <div class="col-md-3 mb-3">
+                                        <label for="search_expense_amount_max" class="form-label">المبلغ إلى</label>
+                                        <input type="number" class="form-control" id="search_expense_amount_max"
+                                            name="search_expense_amount_max" value="{{ search_expense_amount_max }}"
+                                            placeholder="الحد الأقصى" step="0.01">
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-3 mb-3">
+                                        <label for="search_expense_date_from" class="form-label">التاريخ من</label>
+                                        <input type="date" class="form-control" id="search_expense_date_from"
+                                            name="search_expense_date_from" value="{{ search_expense_date_from }}">
+                                    </div>
+                                    <div class="col-md-3 mb-3">
+                                        <label for="search_expense_date_to" class="form-label">التاريخ إلى</label>
+                                        <input type="date" class="form-control" id="search_expense_date_to"
+                                            name="search_expense_date_to" value="{{ search_expense_date_to }}">
+                                    </div>
+                                    <div class="col-md-6 mb-3 d-flex align-items-end">
+                                        <button type="submit" class="btn btn-danger me-2">
+                                            <i class="fas fa-search me-1"></i>
+                                            بحث
+                                        </button>
+                                        <a href="{{ url_for('payments') }}" class="btn btn-outline-secondary">
+                                            <i class="fas fa-times me-1"></i>
+                                            مسح الفلتر
+                                        </a>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Search Results Info -->
+                    {% if search_description or search_category or search_expense_amount_min or
+                    search_expense_amount_max or search_expense_date_from or search_expense_date_to %}
+                    <div class="search-results-info">
+                        <i class="fas fa-info-circle"></i>
+                        <strong>نتائج البحث:</strong>
+                        تم العثور على {{ expenses_pagination.total }} نتيجة من أصل {{ Expense.query.count() }} مصروف.
+                        <a href="{{ url_for('payments') }}" class="btn btn-sm btn-outline-primary ms-2">
+                            <i class="fas fa-times me-1"></i>
+                            مسح الفلتر
+                        </a>
+                    </div>
+                    {% endif %}
+
+                    <!-- Bulk Actions for Expenses -->
+                    <div class="bulk-actions-bar" id="expensesBulkActions" style="display: none;">
+                        <div class="d-flex justify-content-between align-items-center p-3 bg-light border rounded mb-3">
+                            <span class="selected-count">تم تحديد <strong id="selectedExpensesCount">0</strong>
+                                مصروف</span>
+                            <div class="btn-group">
+                                <button class="btn btn-outline-danger btn-sm" onclick="bulkDeleteExpenses()">
+                                    <i class="fas fa-trash me-1"></i>
+                                    حذف المحددة
+                                </button>
+                                <button class="btn btn-outline-secondary btn-sm" onclick="clearExpenseSelection()">
+                                    <i class="fas fa-times me-1"></i>
+                                    إلغاء التحديد
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>
+                                        <input type="checkbox" id="selectAllExpenses" class="form-check-input">
+                                    </th>
+                                    <th>#</th>
+                                    <th>الوصف</th>
+                                    <th>الفئة</th>
+                                    <th>المبلغ</th>
+                                    <th>التاريخ</th>
+                                    <th>ملاحظات</th>
+                                    <th>إجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for expense in expenses %}
+                                <tr>
+                                    <td>
+                                        <input type="checkbox" class="form-check-input expense-checkbox"
+                                            value="{{ expense.id }}" data-description="{{ expense.description }}"
+                                            data-amount="{{ expense.amount }}">
+                                    </td>
+                                    <td>{{ loop.index }}</td>
+                                    <td>{{ expense.description }}</td>
+                                    <td>
+                                        <span class="badge bg-secondary">{{ expense.category or 'أخرى' }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-danger">-{{ expense.amount }} ج.م</span>
+                                    </td>
+                                    <td>{{ expense.date.strftime('%Y-%m-%d') }}</td>
+                                    <td>{{ expense.notes or '-' }}</td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <button class="btn btn-sm btn-outline-primary"
+                                                onclick="editExpense({{ expense.id }}, '{{ expense.description }}', '{{ expense.category or 'أخرى' }}', {{ expense.amount }}, '{{ expense.notes or '' }}')"
+                                                data-bs-toggle="tooltip" title="تعديل">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-danger"
+                                                onclick="deleteExpense({{ expense.id }}, '{{ expense.description }}', {{ expense.amount }})"
+                                                data-bs-toggle="tooltip" title="حذف">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="8" class="text-center text-muted py-4">
+                                        <i class="fas fa-receipt fa-3x mb-3"></i>
+                                        <p>لا توجد مصروفات مسجلة بعد</p>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Expenses Pagination -->
+                    {% if expenses_pagination.pages > 1 %}
+                    <div class="d-flex justify-content-center mt-4">
+                        <nav aria-label="المصروفات">
+                            <ul class="pagination">
+                                {% if expenses_pagination.has_prev %}
+                                <li class="page-item">
+                                    <a class="page-link"
+                                        href="{{ url_for('payments', expenses_page=expenses_pagination.prev_num) }}"
+                                        aria-label="السابق">
+                                        <span aria-hidden="true">&laquo;</span>
+                                    </a>
+                                </li>
+                                {% endif %}
+
+                                {% for page_num in expenses_pagination.iter_pages() %}
+                                {% if page_num %}
+                                {% if page_num != expenses_pagination.page %}
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ url_for('payments', expenses_page=page_num) }}">{{
+                                        page_num }}</a>
+                                </li>
+                                {% else %}
+                                <li class="page-item active">
+                                    <span class="page-link">{{ page_num }}</span>
+                                </li>
+                                {% endif %}
+                                {% else %}
+                                <li class="page-item disabled">
+                                    <span class="page-link">...</span>
+                                </li>
+                                {% endif %}
+                                {% endfor %}
+
+                                {% if expenses_pagination.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link"
+                                        href="{{ url_for('payments', expenses_page=expenses_pagination.next_num) }}"
+                                        aria-label="التالي">
+                                        <span aria-hidden="true">&raquo;</span>
+                                    </a>
+                                </li>
+                                {% endif %}
+                            </ul>
+                        </nav>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Students Payment Status Tab -->
+                <div class="tab-pane fade" id="students" role="tabpanel">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>الطالب</th>
+                                    <th>المجموعات</th>
+                                    <th>سعر الكورس</th>
+                                    <th>المدفوع</th>
+                                    <th>المتبقي</th>
+                                    <th>الحالة</th>
+                                    <th>آخر دفعة</th>
+                                    <th>إجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for student in students %}
+                                {% set remaining = student.remaining_balance %}
+                                {% set student_payments = payments|selectattr('student_id', 'equalto', student.id)|list
+                                %}
+                                {% set last_payment = student_payments|sort(attribute='date', reverse=true)|first %}
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="student-avatar me-2">{{ student.name[0] }}</div>
+                                            <div>
+                                                <strong>{{ student.name }}</strong>
+                                                <br>
+                                                <small class="text-muted">
+                                                    <i class="fas fa-credit-card me-1"></i>
+                                                    {{ student_payments|length }} دفعة
+                                                </small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {% if student.groups %}
+                                        {% for group in student.groups %}
+                                        <div class="mb-1">
+                                            {% if group.status == 'completed' %}
+                                            <span class="badge bg-success me-1">
+                                                <i class="fas fa-check-circle me-1"></i>
+                                                {{ group.name }}
+                                            </span>
+                                            {% else %}
+                                            <span class="badge bg-primary me-1">
+                                                <i class="fas fa-play-circle me-1"></i>
+                                                {{ group.name }}
+                                            </span>
+                                            {% endif %}
+                                            <small class="text-muted">({{ group.price }} ج.م)</small>
+                                        </div>
+                                        {% endfor %}
+                                        {% else %}
+                                        <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <strong>{{ student.total_course_price }} ج.م</strong>
+                                        {% if student.discount > 0 %}
+                                        <br><small class="text-muted">
+                                            <i class="fas fa-percentage me-1"></i>
+                                            خصم: {{ student.discount }} ج.م
+                                        </small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-success">{{ student.total_paid }} ج.م</span>
+                                    </td>
+                                    <td>
+                                        {% if remaining > 0 %}
+                                        <span class="badge bg-warning">{{ remaining }} ج.م</span>
+                                        {% else %}
+                                        <span class="badge bg-success">0 ج.م</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if remaining <= 0 %} <span class="badge bg-success">مكتمل</span>
+                                            {% elif remaining < student.total_course_price * 0.5 %} <span
+                                                class="badge bg-warning">نصف المبلغ</span>
+                                                {% else %}
+                                                <span class="badge bg-danger">غير مدفوع</span>
+                                                {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if last_payment %}
+                                        <small class="text-muted">
+                                            <i class="fas fa-calendar me-1"></i>
+                                            {{ last_payment.date.strftime('%Y-%m-%d') }}
+                                            <br>
+                                            <span class="badge bg-info">{{ last_payment.amount }} ج.م</span>
+                                        </small>
+                                        {% else %}
+                                        <span class="text-muted">لا توجد مدفوعات</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if remaining > 0 %}
+                                        <button class="btn btn-sm btn-outline-success"
+                                            onclick="quickPayment({{ student.id }}, '{{ student.name }}', {{ remaining }})">
+                                            <i class="fas fa-plus me-1"></i>
+                                            دفعة سريعة
+                                        </button>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Payment Modal -->
+<div class="modal fade" id="addPaymentModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-plus me-2"></i>
+                    إضافة دفعة جديدة
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('add_payment') }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="student_search" class="form-label">الطالب *</label>
+                        <div class="position-relative">
+                            <input type="text" class="form-control" id="student_search"
+                                placeholder="ابحث عن الطالب بالاسم..." autocomplete="off">
+                            <input type="hidden" id="student_id" name="student_id" required>
+                            <div class="invalid-feedback">
+                                يرجى اختيار طالب
+                            </div>
+
+                            <!-- Student dropdown list -->
+                            <div class="student-dropdown" id="student_dropdown" style="display: none;">
+                                <div class="student-list" id="student_list">
+                                    {% for student in students %}
+                                    <div class="student-option" data-id="{{ student.id }}"
+                                        data-name="{{ student.name }}" data-remaining="{{ student.remaining_balance }}">
+                                        <div class="d-flex align-items-center">
+                                            <div class="student-avatar-sm me-2">{{ student.name[0] }}</div>
+                                            <div class="flex-grow-1">
+                                                <div class="student-name">{{ student.name }}</div>
+                                                <small class="text-muted">متبقي: {{ student.remaining_balance }}
+                                                    ج.م</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="amount" class="form-label">المبلغ (ج.م) *</label>
+                        <input type="number" class="form-control" id="amount" name="amount" step="0.01" min="0"
+                            required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="month" class="form-label">الشهر</label>
+                        <select class="form-select" id="month" name="month">
+                            <option value="">اختر الشهر</option>
+                            <option value="يناير">يناير</option>
+                            <option value="فبراير">فبراير</option>
+                            <option value="مارس">مارس</option>
+                            <option value="أبريل">أبريل</option>
+                            <option value="مايو">مايو</option>
+                            <option value="يونيو">يونيو</option>
+                            <option value="يوليو">يوليو</option>
+                            <option value="أغسطس">أغسطس</option>
+                            <option value="سبتمبر">سبتمبر</option>
+                            <option value="أكتوبر">أكتوبر</option>
+                            <option value="نوفمبر">نوفمبر</option>
+                            <option value="ديسمبر">ديسمبر</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="notes" class="form-label">ملاحظات</label>
+                        <textarea class="form-control" id="notes" name="notes" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-save me-2"></i>
+                        حفظ
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Add Expense Modal -->
+<div class="modal fade" id="addExpenseModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-minus me-2"></i>
+                    إضافة مصروف جديد
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('add_expense') }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="description" class="form-label">وصف المصروف *</label>
+                        <input type="text" class="form-control" id="description" name="description" required
+                            placeholder="مثال: راتب المدرس، إيجار المكان">
+                    </div>
+                    <div class="mb-3">
+                        <label for="category" class="form-label">الفئة *</label>
+                        <select class="form-select" id="category" name="category" required>
+                            <option value="">اختر الفئة</option>
+                            <option value="رواتب">رواتب</option>
+                            <option value="إيجار">إيجار</option>
+                            <option value="مرافق">مرافق (كهرباء، ماء، إنترنت)</option>
+                            <option value="مستلزمات">مستلزمات تعليمية</option>
+                            <option value="صيانة">صيانة</option>
+                            <option value="تسويق">تسويق وإعلان</option>
+                            <option value="أخرى">أخرى</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="expense_amount" class="form-label">المبلغ (ج.م) *</label>
+                        <input type="number" class="form-control" id="expense_amount" name="amount" step="0.01" min="0"
+                            required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="expense_notes" class="form-label">ملاحظات</label>
+                        <textarea class="form-control" id="expense_notes" name="notes" rows="3"
+                            placeholder="تفاصيل إضافية عن المصروف"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-save me-2"></i>
+                        حفظ المصروف
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Payment Modal -->
+<div class="modal fade" id="editPaymentModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-edit me-2"></i>
+                    تعديل الدفعة
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" id="editPaymentForm">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="edit_student_search" class="form-label">الطالب *</label>
+                        <div class="position-relative">
+                            <input type="text" class="form-control" id="edit_student_search"
+                                placeholder="ابحث عن الطالب بالاسم..." autocomplete="off">
+                            <input type="hidden" id="edit_student_id" name="student_id" required>
+                            <div class="invalid-feedback">
+                                يرجى اختيار طالب
+                            </div>
+
+                            <!-- Student dropdown list -->
+                            <div class="student-dropdown" id="edit_student_dropdown" style="display: none;">
+                                <div class="student-list" id="edit_student_list">
+                                    {% for student in students %}
+                                    <div class="student-option" data-id="{{ student.id }}"
+                                        data-name="{{ student.name }}" data-remaining="{{ student.remaining_balance }}">
+                                        <div class="d-flex align-items-center">
+                                            <div class="student-avatar-sm me-2">{{ student.name[0] }}</div>
+                                            <div class="flex-grow-1">
+                                                <div class="student-name">{{ student.name }}</div>
+                                                <small class="text-muted">متبقي: {{ student.remaining_balance }}
+                                                    ج.م</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_amount" class="form-label">المبلغ (ج.م) *</label>
+                        <input type="number" class="form-control" id="edit_amount" name="amount" step="0.01" min="0"
+                            required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_month" class="form-label">الشهر</label>
+                        <select class="form-select" id="edit_month" name="month">
+                            <option value="">اختر الشهر</option>
+                            <option value="يناير">يناير</option>
+                            <option value="فبراير">فبراير</option>
+                            <option value="مارس">مارس</option>
+                            <option value="أبريل">أبريل</option>
+                            <option value="مايو">مايو</option>
+                            <option value="يونيو">يونيو</option>
+                            <option value="يوليو">يوليو</option>
+                            <option value="أغسطس">أغسطس</option>
+                            <option value="سبتمبر">سبتمبر</option>
+                            <option value="أكتوبر">أكتوبر</option>
+                            <option value="نوفمبر">نوفمبر</option>
+                            <option value="ديسمبر">ديسمبر</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_notes" class="form-label">ملاحظات</label>
+                        <textarea class="form-control" id="edit_notes" name="notes" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-2"></i>
+                        حفظ التغييرات
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Expense Modal -->
+<div class="modal fade" id="editExpenseModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-edit me-2"></i>
+                    تعديل المصروف
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" id="editExpenseForm">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="edit_description" class="form-label">وصف المصروف *</label>
+                        <input type="text" class="form-control" id="edit_description" name="description" required
+                            placeholder="مثال: راتب المدرس، إيجار المكان">
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_category" class="form-label">الفئة *</label>
+                        <select class="form-select" id="edit_category" name="category" required>
+                            <option value="">اختر الفئة</option>
+                            <option value="رواتب">رواتب</option>
+                            <option value="إيجار">إيجار</option>
+                            <option value="مرافق">مرافق (كهرباء، ماء، إنترنت)</option>
+                            <option value="مستلزمات">مستلزمات تعليمية</option>
+                            <option value="صيانة">صيانة</option>
+                            <option value="تسويق">تسويق وإعلان</option>
+                            <option value="أخرى">أخرى</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_expense_amount" class="form-label">المبلغ (ج.م) *</label>
+                        <input type="number" class="form-control" id="edit_expense_amount" name="amount" step="0.01"
+                            min="0" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_expense_notes" class="form-label">ملاحظات</label>
+                        <textarea class="form-control" id="edit_expense_notes" name="notes" rows="3"
+                            placeholder="تفاصيل إضافية عن المصروف"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-2"></i>
+                        حفظ التغييرات
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteConfirmModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-exclamation-triangle me-2 text-danger"></i>
+                    تأكيد الحذف
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p id="deleteMessage"></p>
+                <div class="alert alert-warning">
+                    <i class="fas fa-info-circle me-2"></i>
+                    هذا الإجراء لا يمكن التراجع عنه
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                <form method="POST" id="deleteForm" style="display: inline;">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash me-2"></i>
+                        حذف
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bulk Delete Confirmation Modal -->
+<div class="modal fade" id="bulkDeleteConfirmModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-exclamation-triangle me-2 text-danger"></i>
+                    تأكيد الحذف الجماعي
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p id="bulkDeleteMessage"></p>
+                <div class="alert alert-warning">
+                    <i class="fas fa-info-circle me-2"></i>
+                    هذا الإجراء لا يمكن التراجع عنه وسيتم حذف جميع العناصر المحددة
+                </div>
+                <div id="bulkDeleteList" class="mt-3"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                <form method="POST" id="bulkDeleteForm" style="display: inline;">
+                    <input type="hidden" name="bulk_delete_ids" id="bulkDeleteIds">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash me-2"></i>
+                        حذف الكل
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .financial-card {
+        background: white;
+        border-radius: 15px;
+        padding: 20px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        border: none;
+        display: flex;
+        align-items: center;
+        margin-bottom: 20px;
+        transition: transform 0.3s ease;
+    }
+
+    .financial-card:hover {
+        transform: translateY(-5px);
+    }
+
+    .income-card {
+        border-left: 5px solid #28a745;
+    }
+
+    .expense-card {
+        border-left: 5px solid #dc3545;
+    }
+
+    .balance-card.positive {
+        border-left: 5px solid #17a2b8;
+    }
+
+    .balance-card.negative {
+        border-left: 5px solid #ffc107;
+    }
+
+    .dues-card {
+        border-left: 5px solid #fd7e14;
+    }
+
+    .card-icon {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-left: 15px;
+        font-size: 1.5rem;
+    }
+
+    .income-card .card-icon {
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    }
+
+    .expense-card .card-icon {
+        background: linear-gradient(135deg, #dc3545 0%, #fd7e14 100%);
+    }
+
+    .balance-card.positive .card-icon {
+        background: linear-gradient(135deg, #17a2b8 0%, #6f42c1 100%);
+    }
+
+    .balance-card.negative .card-icon {
+        background: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%);
+    }
+
+    .dues-card .card-icon {
+        background: linear-gradient(135deg, #fd7e14 0%, #ffc107 100%);
+    }
+
+    .card-content h3 {
+        margin: 0;
+        font-size: 1.8rem;
+        font-weight: bold;
+        color: #333 !important;
+    }
+
+    .card-content p {
+        margin: 5px 0;
+        color: #666 !important;
+        font-weight: 500;
+    }
+
+    .trend {
+        color: #999 !important;
+        font-size: 0.85rem;
+    }
+
+    /* Financial cards text fix */
+    .financial-card h3,
+    .financial-card p,
+    .financial-card small,
+    .financial-card span {
+        color: #333333 !important;
+    }
+
+    .financial-card .text-success {
+        color: #28a745 !important;
+    }
+
+    .financial-card .text-danger {
+        color: #dc3545 !important;
+    }
+
+    .student-avatar {
+        width: 35px;
+        height: 35px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 0.9rem;
+    }
+
+    .nav-tabs .nav-link {
+        border: none;
+        border-bottom: 3px solid transparent;
+        color: #ffffff;
+        font-weight: 500;
+    }
+
+    .nav-tabs .nav-link.active {
+        background: none;
+        border-bottom: 3px solid #007bff;
+        color: #eeff00;
+    }
+
+    .table th {
+        border-top: none;
+        font-weight: 600;
+        color: #ffffff;
+        background: #000000;
+    }
+
+    .badge {
+        font-size: 0.8rem;
+        padding: 0.5em 0.8em;
+    }
+
+    /* Student Search Dropdown Styles */
+    .student-dropdown {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: white;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        z-index: 1000;
+        max-height: 300px;
+        overflow-y: auto;
+    }
+
+    .student-option {
+        padding: 12px 15px;
+        cursor: pointer;
+        border-bottom: 1px solid #f0f0f0;
+        transition: background-color 0.2s ease;
+    }
+
+    .student-option:hover {
+        background-color: #f8f9fa;
+    }
+
+    .student-option:last-child {
+        border-bottom: none;
+    }
+
+    .student-option.selected {
+        background-color: #e3f2fd;
+        border-left: 3px solid #2196f3;
+    }
+
+    .student-avatar-sm {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 0.8rem;
+    }
+
+    .student-name {
+        font-weight: 500;
+        color: #333;
+    }
+
+    .student-search-selected {
+        background-color: #e8f5e8;
+        border-color: #28a745;
+    }
+
+    /* Monthly and Group Breakdown Styles */
+    .monthly-breakdown,
+    .group-breakdown {
+        max-height: 400px;
+        overflow-y: auto;
+        background-color: #ffffff !important;
+        color: #333333 !important;
+    }
+
+    .month-section,
+    .group-section {
+        border-left: 3px solid #007bff;
+        padding-left: 15px;
+        margin-bottom: 15px;
+        background-color: #ffffff !important;
+    }
+
+    .group-section {
+        border-left-color: #17a2b8;
+    }
+
+    .month-section h6 {
+        color: #007bff !important;
+        font-weight: 600;
+        margin-bottom: 10px;
+    }
+
+    .group-section h6 {
+        color: #17a2b8 !important;
+        font-weight: 600;
+        margin-bottom: 10px;
+    }
+
+    .month-section hr,
+    .group-section hr {
+        margin: 10px 0;
+        border-top: 1px solid #dee2e6;
+    }
+
+    /* Monthly and Group breakdown text */
+    .monthly-breakdown p,
+    .monthly-breakdown span:not(.badge),
+    .monthly-breakdown div:not(.badge),
+    .monthly-breakdown strong,
+    .group-breakdown p,
+    .group-breakdown span:not(.badge),
+    .group-breakdown div:not(.badge),
+    .group-breakdown strong {
+        color: #333333 !important;
+    }
+
+    .monthly-breakdown .text-muted,
+    .group-breakdown .text-muted {
+        color: #6c757d !important;
+    }
+
+    /* Pagination Styles */
+    .pagination {
+        margin-bottom: 0;
+    }
+
+    .pagination .page-link {
+        color: #007bff;
+        border: 1px solid #dee2e6;
+        padding: 8px 12px;
+        margin: 0 2px;
+        border-radius: 6px;
+        transition: all 0.3s ease;
+    }
+
+    .pagination .page-link:hover {
+        background-color: #e9ecef;
+        color: #0056b3;
+    }
+
+    .pagination .page-item.active .page-link {
+        background-color: #007bff;
+        border-color: #007bff;
+        color: white;
+    }
+
+    .pagination .page-item.disabled .page-link {
+        color: #6c757d;
+        pointer-events: none;
+        cursor: auto;
+        background-color: #fff;
+        border-color: #dee2e6;
+    }
+
+    /* Enhanced Card Styles */
+    .card {
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        border: none;
+        border-radius: 12px;
+        transition: transform 0.2s ease;
+        background-color: #ffffff !important;
+    }
+
+    .card:hover {
+        transform: translateY(-2px);
+    }
+
+    .card-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+        color: white !important;
+        border-radius: 12px 12px 0 0 !important;
+        border-bottom: none;
+    }
+
+    .card-header h5,
+    .card-header h6 {
+        margin: 0;
+        font-weight: 600;
+        color: white !important;
+    }
+
+    /* Card Body Text Fix */
+    .card-body {
+        background-color: #ffffff !important;
+        color: #333333 !important;
+    }
+
+    .card-body p,
+    .card-body span,
+    .card-body div,
+    .card-body label,
+    .card-body h1,
+    .card-body h2,
+    .card-body h3,
+    .card-body h4,
+    .card-body h5,
+    .card-body h6 {
+        color: #333333 !important;
+    }
+
+    /* Table Text Fix */
+    .table {
+        background-color: #ffffff !important;
+        color: #333333 !important;
+    }
+
+    .table td,
+    .table th {
+        color: #333333 !important;
+        background-color: #ffffff !important;
+    }
+
+    .table thead th {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+        color: white !important;
+        border: none;
+        font-weight: 600;
+    }
+
+    /* Text in tabs content */
+    .tab-content {
+        background-color: #ffffff !important;
+        color: #333333 !important;
+    }
+
+    .tab-pane {
+        background-color: #ffffff !important;
+        color: #333333 !important;
+    }
+
+    .tab-pane p,
+    .tab-pane span,
+    .tab-pane div:not(.badge),
+    .tab-pane td,
+    .tab-pane th,
+    .tab-pane label,
+    .tab-pane strong {
+        color: #333333 !important;
+    }
+
+    /* Form controls text */
+    .form-control,
+    .form-select {
+        background-color: #ffffff !important;
+        color: #333333 !important;
+        border: 1px solid #ced4da !important;
+    }
+
+    .form-control:focus,
+    .form-select:focus {
+        background-color: #ffffff !important;
+        color: #333333 !important;
+    }
+
+    /* General text color enforcement */
+    body,
+    .container,
+    .row,
+    .col-md-3,
+    .col-md-6,
+    .col-md-12 {
+        color: #333333 !important;
+    }
+
+    /* Ensure badges keep their colors */
+    .badge {
+        color: white !important;
+    }
+
+    .badge.bg-success {
+        background-color: #28a745 !important;
+        color: white !important;
+    }
+
+    .badge.bg-danger {
+        background-color: #dc3545 !important;
+        color: white !important;
+    }
+
+    .badge.bg-info {
+        background-color: #17a2b8 !important;
+        color: white !important;
+    }
+
+    .badge.bg-warning {
+        background-color: #ffc107 !important;
+        color: #212529 !important;
+    }
+
+    .badge.bg-primary {
+        background-color: #007bff !important;
+        color: white !important;
+    }
+
+    .badge.bg-secondary {
+        background-color: #6c757d !important;
+        color: white !important;
+    }
+
+    /* Revenue breakdown badges */
+    .monthly-breakdown .badge,
+    .group-breakdown .badge {
+        font-size: 0.75rem;
+        padding: 4px 8px;
+    }
+
+    /* Search Form Styles */
+    .search-form .card-header {
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        color: white;
+        font-weight: 600;
+    }
+
+    .search-form .form-control:focus,
+    .search-form .form-select:focus {
+        border-color: #28a745;
+        box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+    }
+
+    .search-form .btn-primary {
+        background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+        border: none;
+        font-weight: 600;
+    }
+
+    .search-form .btn-danger {
+        background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+        border: none;
+        font-weight: 600;
+    }
+
+    .search-form .btn-outline-secondary {
+        border: 2px solid #6c757d;
+        color: #6c757d;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+
+    .search-form .btn-outline-secondary:hover {
+        background-color: #6c757d;
+        color: white;
+    }
+
+    /* Search Results Info */
+    .search-results-info {
+        background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+        border: 1px solid #2196f3;
+        border-radius: 8px;
+        padding: 10px 15px;
+        margin-bottom: 15px;
+        color: #1976d2;
+        font-weight: 500;
+    }
+
+    .search-results-info i {
+        color: #2196f3;
+        margin-left: 5px;
+    }
+
+    /* Search input indication */
+    .has-search {
+        border-color: #28a745 !important;
+        box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25) !important;
+        background-color: #f8fff8 !important;
+    }
+
+    .has-search+.input-group-text {
+        border-color: #28a745;
+        color: #28a745;
+    }
+
+    /* Bulk Actions Styles */
+    .bulk-actions-bar {
+        animation: slideDown 0.3s ease;
+    }
+
+    @keyframes slideDown {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .bulk-actions-bar .bg-light {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%) !important;
+        border: 2px solid #dee2e6 !important;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .bulk-actions-bar .selected-count {
+        font-weight: 600;
+        color: #495057;
+    }
+
+    .bulk-actions-bar .btn-outline-danger:hover {
+        background-color: #dc3545;
+        border-color: #dc3545;
+        color: white;
+    }
+
+    .bulk-actions-bar .btn-outline-secondary:hover {
+        background-color: #6c757d;
+        border-color: #6c757d;
+        color: white;
+    }
+
+    /* Checkbox Styles */
+    .form-check-input {
+        cursor: pointer;
+        width: 18px;
+        height: 18px;
+    }
+
+    .form-check-input:checked {
+        background-color: #007bff;
+        border-color: #007bff;
+    }
+
+    .form-check-input:indeterminate {
+        background-color: #6c757d;
+        border-color: #6c757d;
+    }
+
+    /* Table Row Selection */
+    tr:has(.form-check-input:checked) {
+        background-color: rgba(0, 123, 255, 0.05);
+        border-left: 3px solid #007bff;
+    }
+
+    /* Bulk Delete Modal */
+    #bulkDeleteConfirmModal .list-group-item {
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+        margin-bottom: 5px;
+    }
+
+    /* Responsive improvements */
+    @media (max-width: 768px) {
+
+        .monthly-breakdown,
+        .group-breakdown {
+            max-height: 300px;
+        }
+
+        .month-section .row,
+        .group-section .row {
+            margin: 0;
+        }
+
+        .month-section .col-md-6,
+        .group-section .col-md-6 {
+            padding: 2px 8px;
+        }
+
+        .search-form .row {
+            margin: 0;
+        }
+
+        .search-form .col-md-3,
+        .search-form .col-md-6 {
+            padding: 5px;
+        }
+
+        .bulk-actions-bar .d-flex {
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .bulk-actions-bar .btn-group {
+            width: 100%;
+        }
+
+        .bulk-actions-bar .btn {
+            flex: 1;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const studentSearch = document.getElementById('student_search');
+    const studentDropdown = document.getElementById('student_dropdown');
+    const studentIdInput = document.getElementById('student_id');
+    const amountInput = document.getElementById('amount');
+    let selectedStudentId = null;
+
+    // Show dropdown when search input is focused
+    studentSearch.addEventListener('focus', function () {
+        studentDropdown.style.display = 'block';
+        filterStudents();
+    });
+
+    // Filter students based on search input
+    studentSearch.addEventListener('input', function () {
+        filterStudents();
+        // Clear selection if user types after selecting
+        if (selectedStudentId) {
+            selectedStudentId = null;
+            studentIdInput.value = '';
+            studentSearch.classList.remove('student-search-selected');
+            amountInput.value = '';
+        }
+    });
+
+    // Hide dropdown when clicking outside
+    document.addEventListener('click', function (e) {
+        if (!e.target.closest('.position-relative')) {
+            studentDropdown.style.display = 'none';
+        }
+    });
+
+    // Handle student selection
+    document.getElementById('student_list').addEventListener('click', function (e) {
+        const studentOption = e.target.closest('.student-option');
+        if (studentOption) {
+            const studentId = studentOption.getAttribute('data-id');
+            const studentName = studentOption.getAttribute('data-name');
+            const remaining = studentOption.getAttribute('data-remaining');
+
+            // Set values
+            selectedStudentId = studentId;
+            studentIdInput.value = studentId;
+            studentSearch.value = studentName;
+            studentSearch.classList.add('student-search-selected');
+
+            // Auto-fill amount with remaining balance
+            if (remaining && remaining > 0) {
+                amountInput.value = remaining;
+                amountInput.max = remaining;
+            }
+
+            // Hide dropdown
+            studentDropdown.style.display = 'none';
+
+            // Remove previous selections
+            document.querySelectorAll('.student-option').forEach(opt => {
+                opt.classList.remove('selected');
+            });
+
+            // Mark as selected
+            studentOption.classList.add('selected');
+        }
+    });
+
+    // Filter function
+    function filterStudents() {
+        const searchValue = studentSearch.value.toLowerCase();
+        const students = document.querySelectorAll('.student-option');
+        let hasVisibleStudents = false;
+
+        students.forEach(student => {
+            const name = student.getAttribute('data-name').toLowerCase();
+            if (name.includes(searchValue)) {
+                student.style.display = 'block';
+                hasVisibleStudents = true;
+            } else {
+                student.style.display = 'none';
+            }
+        });
+
+        // Show/hide dropdown based on whether there are visible students
+        if (hasVisibleStudents && studentSearch.value.length > 0) {
+            studentDropdown.style.display = 'block';
+        } else if (studentSearch.value.length === 0) {
+            studentDropdown.style.display = 'block';
+        } else {
+            studentDropdown.style.display = 'none';
+        }
+    }
+
+    // Reset form when modal is hidden
+    document.getElementById('addPaymentModal').addEventListener('hidden.bs.modal', function () {
+        studentSearch.value = '';
+        studentIdInput.value = '';
+        selectedStudentId = null;
+        studentSearch.classList.remove('student-search-selected');
+        amountInput.value = '';
+        amountInput.removeAttribute('max');
+        document.querySelectorAll('.student-option').forEach(opt => {
+            opt.classList.remove('selected');
+            opt.style.display = 'block';
+        });
+    });
+
+    // Quick payment function (updated)
+    function quickPayment(studentId, studentName, amount) {
+        // Set values
+        selectedStudentId = studentId;
+        studentIdInput.value = studentId;
+        studentSearch.value = studentName;
+        studentSearch.classList.add('student-search-selected');
+        amountInput.value = amount;
+
+        // Mark student as selected in dropdown
+        document.querySelectorAll('.student-option').forEach(opt => {
+            opt.classList.remove('selected');
+            if (opt.getAttribute('data-id') === studentId.toString()) {
+                opt.classList.add('selected');
+            }
+        });
+
+        // Show payment modal
+        new bootstrap.Modal(document.getElementById('addPaymentModal')).show();
+    }
+
+    // Form validation
+    document.querySelector('#addPaymentModal form').addEventListener('submit', function (e) {
+        if (!studentIdInput.value) {
+            e.preventDefault();
+            studentSearch.classList.add('is-invalid');
+            studentSearch.focus();
+        } else {
+            studentSearch.classList.remove('is-invalid');
+        }
+    });
+
+    // Edit Payment Function
+    function editPayment(paymentId, studentId, studentName, amount, month, notes) {
+        // Set form action
+        document.getElementById('editPaymentForm').action = `/edit_payment/${paymentId}`;
+
+        // Set form values
+        document.getElementById('edit_student_search').value = studentName;
+        document.getElementById('edit_student_id').value = studentId;
+        document.getElementById('edit_amount').value = amount;
+        document.getElementById('edit_month').value = month;
+        document.getElementById('edit_notes').value = notes;
+
+        // Mark student as selected
+        document.getElementById('edit_student_search').classList.add('student-search-selected');
+
+        // Show modal
+        new bootstrap.Modal(document.getElementById('editPaymentModal')).show();
+    }
+
+    // Edit Expense Function
+    function editExpense(expenseId, description, category, amount, notes) {
+        // Set form action
+        document.getElementById('editExpenseForm').action = `/edit_expense/${expenseId}`;
+
+        // Set form values
+        document.getElementById('edit_description').value = description;
+        document.getElementById('edit_category').value = category;
+        document.getElementById('edit_expense_amount').value = amount;
+        document.getElementById('edit_expense_notes').value = notes;
+
+        // Show modal
+        new bootstrap.Modal(document.getElementById('editExpenseModal')).show();
+    }
+
+    // Delete Payment Function
+    function deletePayment(paymentId, studentName, amount) {
+        document.getElementById('deleteMessage').innerHTML = `
+            هل أنت متأكد من حذف دفعة الطالب <strong>${studentName}</strong> بقيمة <strong>${amount} ج.م</strong>؟
+        `;
+        document.getElementById('deleteForm').action = `/delete_payment/${paymentId}`;
+        new bootstrap.Modal(document.getElementById('deleteConfirmModal')).show();
+    }
+
+    // Delete Expense Function
+    function deleteExpense(expenseId, description, amount) {
+        document.getElementById('deleteMessage').innerHTML = `
+            هل أنت متأكد من حذف المصروف <strong>${description}</strong> بقيمة <strong>${amount} ج.م</strong>؟
+        `;
+        document.getElementById('deleteForm').action = `/delete_expense/${expenseId}`;
+        new bootstrap.Modal(document.getElementById('deleteConfirmModal')).show();
+    }
+
+    // Initialize edit modal student search functionality
+    const editStudentSearch = document.getElementById('edit_student_search');
+    const editStudentDropdown = document.getElementById('edit_student_dropdown');
+    const editStudentIdInput = document.getElementById('edit_student_id');
+    let editSelectedStudentId = null;
+
+    // Show dropdown when edit search input is focused
+    editStudentSearch.addEventListener('focus', function () {
+        editStudentDropdown.style.display = 'block';
+        filterEditStudents();
+    });
+
+    // Filter students based on edit search input
+    editStudentSearch.addEventListener('input', function () {
+        filterEditStudents();
+        // Clear selection if user types after selecting
+        if (editSelectedStudentId) {
+            editSelectedStudentId = null;
+            editStudentIdInput.value = '';
+            editStudentSearch.classList.remove('student-search-selected');
+        }
+    });
+
+    // Handle edit student selection
+    document.getElementById('edit_student_list').addEventListener('click', function (e) {
+        const studentOption = e.target.closest('.student-option');
+        if (studentOption) {
+            const studentId = studentOption.getAttribute('data-id');
+            const studentName = studentOption.getAttribute('data-name');
+
+            // Set values
+            editSelectedStudentId = studentId;
+            editStudentIdInput.value = studentId;
+            editStudentSearch.value = studentName;
+            editStudentSearch.classList.add('student-search-selected');
+
+            // Hide dropdown
+            editStudentDropdown.style.display = 'none';
+
+            // Remove previous selections
+            document.querySelectorAll('#edit_student_list .student-option').forEach(opt => {
+                opt.classList.remove('selected');
+            });
+
+            // Mark as selected
+            studentOption.classList.add('selected');
+        }
+    });
+
+    // Filter function for edit modal
+    function filterEditStudents() {
+        const searchValue = editStudentSearch.value.toLowerCase();
+        const students = document.querySelectorAll('#edit_student_list .student-option');
+        let hasVisibleStudents = false;
+
+        students.forEach(student => {
+            const name = student.getAttribute('data-name').toLowerCase();
+            if (name.includes(searchValue)) {
+                student.style.display = 'block';
+                hasVisibleStudents = true;
+            } else {
+                student.style.display = 'none';
+            }
+        });
+
+        // Show/hide dropdown based on whether there are visible students
+        if (hasVisibleStudents && editStudentSearch.value.length > 0) {
+            editStudentDropdown.style.display = 'block';
+        } else if (editStudentSearch.value.length === 0) {
+            editStudentDropdown.style.display = 'block';
+        } else {
+            editStudentDropdown.style.display = 'none';
+        }
+    }
+
+    // Reset edit form when modal is hidden
+    document.getElementById('editPaymentModal').addEventListener('hidden.bs.modal', function () {
+        editStudentSearch.value = '';
+        editStudentIdInput.value = '';
+        editSelectedStudentId = null;
+        editStudentSearch.classList.remove('student-search-selected');
+        document.getElementById('edit_amount').value = '';
+        document.getElementById('edit_month').value = '';
+        document.getElementById('edit_notes').value = '';
+        document.querySelectorAll('#edit_student_list .student-option').forEach(opt => {
+            opt.classList.remove('selected');
+            opt.style.display = 'block';
+        });
+    });
+
+    // Reset edit expense form when modal is hidden
+    document.getElementById('editExpenseModal').addEventListener('hidden.bs.modal', function () {
+        document.getElementById('edit_description').value = '';
+        document.getElementById('edit_category').value = '';
+        document.getElementById('edit_expense_amount').value = '';
+        document.getElementById('edit_expense_notes').value = '';
+    });
+
+    // Hide dropdowns when clicking outside
+    document.addEventListener('click', function (e) {
+        if (!e.target.closest('#editPaymentModal .position-relative')) {
+            editStudentDropdown.style.display = 'none';
+        }
+    });
+
+    // Initialize tooltips for action buttons
+    document.addEventListener('DOMContentLoaded', function () {
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+    });
+
+    // Search form enhancements
+    document.addEventListener('DOMContentLoaded', function () {
+        // Auto-submit search form on Enter key
+        const searchForms = document.querySelectorAll('#paymentSearchForm, #expenseSearchForm');
+
+        searchForms.forEach(form => {
+            form.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    form.submit();
+                }
+            });
+        });
+
+        // Clear individual search fields
+        const clearButtons = document.querySelectorAll('.clear-search');
+        clearButtons.forEach(button => {
+            button.addEventListener('click', function () {
+                const targetInput = this.getAttribute('data-target');
+                document.getElementById(targetInput).value = '';
+            });
+        });
+
+        // Real-time search indication
+        const searchInputs = document.querySelectorAll('input[name^="search"], select[name^="search"]');
+        searchInputs.forEach(input => {
+            input.addEventListener('input', function () {
+                if (this.value.length > 0) {
+                    this.classList.add('has-search');
+                } else {
+                    this.classList.remove('has-search');
+                }
+            });
+
+            // Initialize on page load
+            if (input.value.length > 0) {
+                input.classList.add('has-search');
+            }
+        });
+    });
+
+    // Function to clear all search filters
+    function clearAllFilters() {
+        const searchInputs = document.querySelectorAll('input[name^="search"], select[name^="search"]');
+        searchInputs.forEach(input => {
+            input.value = '';
+            input.classList.remove('has-search');
+        });
+    }
+
+    // Function to get search parameters as string
+    function getSearchParameters() {
+        const params = new URLSearchParams(window.location.search);
+        const searchParams = [];
+
+        for (const [key, value] of params.entries()) {
+            if (key.startsWith('search_') && value) {
+                searchParams.push(`${key}=${value}`);
+            }
+        }
+
+        return searchParams.length > 0 ? '?' + searchParams.join('&') : '';
+    }
+
+    // Update pagination links to include search parameters
+    document.addEventListener('DOMContentLoaded', function () {
+        const searchParams = getSearchParameters();
+        if (searchParams) {
+            const paginationLinks = document.querySelectorAll('.pagination a');
+            paginationLinks.forEach(link => {
+                const href = link.getAttribute('href');
+                if (href && href.includes('payments')) {
+                    // Add search parameters to pagination links
+                    const separator = href.includes('?') ? '&' : '?';
+                    link.setAttribute('href', href + separator + searchParams.substring(1));
+                }
+            });
+        }
+    });
+
+    // Bulk Selection Functions for Payments
+    document.addEventListener('DOMContentLoaded', function () {
+        const selectAllPayments = document.getElementById('selectAllPayments');
+        const paymentCheckboxes = document.querySelectorAll('.payment-checkbox');
+        const paymentsBulkActions = document.getElementById('paymentsBulkActions');
+        const selectedPaymentsCount = document.getElementById('selectedPaymentsCount');
+
+        // Select All Payments
+        if (selectAllPayments) {
+            selectAllPayments.addEventListener('change', function () {
+                paymentCheckboxes.forEach(checkbox => {
+                    checkbox.checked = this.checked;
+                });
+                updatePaymentsBulkActions();
+            });
+        }
+
+        // Individual Payment Checkbox
+        paymentCheckboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', function () {
+                updatePaymentsBulkActions();
+            });
+        });
+
+        function updatePaymentsBulkActions() {
+            const checkedPayments = document.querySelectorAll('.payment-checkbox:checked');
+            const count = checkedPayments.length;
+
+            if (count > 0) {
+                paymentsBulkActions.style.display = 'block';
+                selectedPaymentsCount.textContent = count;
+                selectAllPayments.indeterminate = count > 0 && count < paymentCheckboxes.length;
+                selectAllPayments.checked = count === paymentCheckboxes.length;
+            } else {
+                paymentsBulkActions.style.display = 'none';
+                selectAllPayments.indeterminate = false;
+                selectAllPayments.checked = false;
+            }
+        }
+
+        // Bulk Selection Functions for Expenses
+        const selectAllExpenses = document.getElementById('selectAllExpenses');
+        const expenseCheckboxes = document.querySelectorAll('.expense-checkbox');
+        const expensesBulkActions = document.getElementById('expensesBulkActions');
+        const selectedExpensesCount = document.getElementById('selectedExpensesCount');
+
+        // Select All Expenses
+        if (selectAllExpenses) {
+            selectAllExpenses.addEventListener('change', function () {
+                expenseCheckboxes.forEach(checkbox => {
+                    checkbox.checked = this.checked;
+                });
+                updateExpensesBulkActions();
+            });
+        }
+
+        // Individual Expense Checkbox
+        expenseCheckboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', function () {
+                updateExpensesBulkActions();
+            });
+        });
+
+        function updateExpensesBulkActions() {
+            const checkedExpenses = document.querySelectorAll('.expense-checkbox:checked');
+            const count = checkedExpenses.length;
+
+            if (count > 0) {
+                expensesBulkActions.style.display = 'block';
+                selectedExpensesCount.textContent = count;
+                selectAllExpenses.indeterminate = count > 0 && count < expenseCheckboxes.length;
+                selectAllExpenses.checked = count === expenseCheckboxes.length;
+            } else {
+                expensesBulkActions.style.display = 'none';
+                selectAllExpenses.indeterminate = false;
+                selectAllExpenses.checked = false;
+            }
+        }
+    });
+
+    // Bulk Delete Functions
+    function bulkDeletePayments() {
+        const selectedPayments = document.querySelectorAll('.payment-checkbox:checked');
+        if (selectedPayments.length === 0) {
+            alert('يرجى تحديد مدفوعات للحذف');
+            return;
+        }
+
+        const ids = Array.from(selectedPayments).map(checkbox => checkbox.value);
+        document.getElementById('bulkDeleteIds').value = ids.join(',');
+        document.getElementById('bulkDeleteForm').action = '/bulk_delete_payments';
+
+        // Build list of payments to delete
+        let listHtml = '<ul class="list-group">';
+        selectedPayments.forEach(checkbox => {
+            const studentName = checkbox.getAttribute('data-student-name');
+            const amount = checkbox.getAttribute('data-amount');
+            listHtml += `<li class="list-group-item d-flex justify-content-between">
+                <span>${studentName}</span>
+                <span class="badge bg-success">${amount} ج.م</span>
+            </li>`;
+        });
+        listHtml += '</ul>';
+
+        document.getElementById('bulkDeleteList').innerHTML = listHtml;
+        document.getElementById('bulkDeleteMessage').innerHTML = `هل أنت متأكد من حذف <strong>${selectedPayments.length}</strong> مدفوعة؟`;
+
+        new bootstrap.Modal(document.getElementById('bulkDeleteConfirmModal')).show();
+    }
+
+    function bulkDeleteExpenses() {
+        const selectedExpenses = document.querySelectorAll('.expense-checkbox:checked');
+        if (selectedExpenses.length === 0) {
+            alert('يرجى تحديد مصروفات للحذف');
+            return;
+        }
+
+        const ids = Array.from(selectedExpenses).map(checkbox => checkbox.value);
+        document.getElementById('bulkDeleteIds').value = ids.join(',');
+        document.getElementById('bulkDeleteForm').action = '/bulk_delete_expenses';
+
+        // Build list of expenses to delete
+        let listHtml = '<ul class="list-group">';
+        selectedExpenses.forEach(checkbox => {
+            const description = checkbox.getAttribute('data-description');
+            const amount = checkbox.getAttribute('data-amount');
+            listHtml += `<li class="list-group-item d-flex justify-content-between">
+                <span>${description}</span>
+                <span class="badge bg-danger">${amount} ج.م</span>
+            </li>`;
+        });
+        listHtml += '</ul>';
+
+        document.getElementById('bulkDeleteList').innerHTML = listHtml;
+        document.getElementById('bulkDeleteMessage').innerHTML = `هل أنت متأكد من حذف <strong>${selectedExpenses.length}</strong> مصروف؟`;
+
+        new bootstrap.Modal(document.getElementById('bulkDeleteConfirmModal')).show();
+    }
+
+    function clearPaymentSelection() {
+        document.querySelectorAll('.payment-checkbox').forEach(checkbox => {
+            checkbox.checked = false;
+        });
+        document.getElementById('selectAllPayments').checked = false;
+        document.getElementById('selectAllPayments').indeterminate = false;
+        document.getElementById('paymentsBulkActions').style.display = 'none';
+    }
+
+    function clearExpenseSelection() {
+        document.querySelectorAll('.expense-checkbox').forEach(checkbox => {
+            checkbox.checked = false;
+        });
+        document.getElementById('selectAllExpenses').checked = false;
+        document.getElementById('selectAllExpenses').indeterminate = false;
+        document.getElementById('expensesBulkActions').style.display = 'none';
+    }
+
+
+</script>
+{% endblock %}

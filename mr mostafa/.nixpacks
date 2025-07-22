@@ -1,0 +1,10 @@
+providers = ["python"]
+
+[variables]
+FLASK_ENV = "production"
+
+[phases.install]
+cmds = ["python -m pip install -r requirements.txt"]
+
+[start]
+cmd = "gunicorn wsgi:application" 

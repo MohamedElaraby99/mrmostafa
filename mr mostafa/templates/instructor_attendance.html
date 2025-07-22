@@ -1,0 +1,295 @@
+{% extends "base.html" %}
+
+{% block title %}أخذ الحضور - نظام إدارة الطلاب{% endblock %}
+
+{% block content %}
+<style>
+    .attendance-card {
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+        margin-bottom: 20px;
+        overflow: hidden;
+    }
+
+    .attendance-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 20px;
+    }
+
+    .student-card {
+        background: white;
+        border-radius: 10px;
+        padding: 15px;
+        margin-bottom: 15px;
+        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease;
+    }
+
+    .student-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+    }
+
+    .attendance-btn {
+        padding: 8px 16px;
+        border-radius: 20px;
+        border: 2px solid;
+        font-weight: bold;
+        transition: all 0.3s ease;
+        margin: 0 3px;
+    }
+
+    .btn-present {
+        color: #28a745;
+        border-color: #28a745;
+        background: transparent;
+    }
+
+    .btn-present.active,
+    .btn-present:hover {
+        background: #28a745;
+        color: white;
+    }
+
+    .btn-absent {
+        color: #dc3545;
+        border-color: #dc3545;
+        background: transparent;
+    }
+
+    .btn-absent.active,
+    .btn-absent:hover {
+        background: #dc3545;
+        color: white;
+    }
+
+    .btn-late {
+        color: #ffc107;
+        border-color: #ffc107;
+        background: transparent;
+    }
+
+    .btn-late.active,
+    .btn-late:hover {
+        background: #ffc107;
+        color: #212529;
+    }
+
+    .group-selector {
+        background: white;
+        border-radius: 10px;
+        padding: 20px;
+        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+        margin-bottom: 20px;
+    }
+
+    .save-btn {
+        background: linear-gradient(45deg, #11998e, #38ef7d);
+        border: none;
+        color: white;
+        padding: 12px 30px;
+        border-radius: 25px;
+        font-weight: bold;
+        transition: all 0.3s ease;
+    }
+
+    .save-btn:hover {
+        background: linear-gradient(45deg, #38ef7d, #11998e);
+        transform: translateY(-2px);
+        color: white;
+    }
+</style>
+
+<div class="fade-in">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="d-flex align-items-center">
+                <div class="me-3">
+                    <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center"
+                        style="width: 60px; height: 60px;">
+                        <i class="fas fa-check-square fa-2x text-white"></i>
+                    </div>
+                </div>
+                <div>
+                    <h2 class="mb-0">أخذ الحضور</h2>
+                    <p class="text-muted mb-0">تسجيل حضور وغياب الطلاب</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 text-end">
+            <span class="badge bg-info p-3">
+                <i class="fas fa-calendar me-2"></i>
+                {{ today.strftime('%Y-%m-%d') }}
+            </span>
+        </div>
+    </div>
+
+    <!-- Group and Date Selection -->
+    <div class="group-selector">
+        <form method="GET" class="row align-items-end">
+            <div class="col-md-6">
+                <label class="form-label fw-bold">اختر المجموعة</label>
+                <select class="form-select" name="group_id" onchange="this.form.submit()">
+                    <option value="">اختر المجموعة</option>
+                    {% for group in groups %}
+                    <option value="{{ group.id }}" {{ 'selected' if request.args.get('group_id')==group.id|string
+                        else '' }}>
+                        {{ group.name }} ({{ group.students.count() }} طالب)
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label fw-bold">التاريخ</label>
+                <input type="date" class="form-control" name="date"
+                    value="{{ request.args.get('date', today.strftime('%Y-%m-%d')) }}" onchange="this.form.submit()">
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="fas fa-search me-2"></i>
+                    عرض
+                </button>
+            </div>
+        </form>
+    </div>
+
+    {% if request.args.get('group_id') %}
+    {% set selected_group = groups|selectattr('id', 'equalto', request.args.get('group_id')|int)|first %}
+    {% if selected_group %}
+
+    <!-- Attendance Form -->
+    <div class="attendance-card">
+        <div class="attendance-header">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h4 class="mb-0">
+                        <i class="fas fa-users me-2"></i>
+                        {{ selected_group.name }}
+                    </h4>
+                    <p class="mb-0 opacity-75">
+                        {{ selected_group.students.count() }} طالب مسجل
+                    </p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <span class="badge bg-light text-dark p-2">
+                        المستوى: {{ selected_group.level or 'غير محدد' }}
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <div class="p-4">
+            {% if selected_group.students %}
+            <form method="POST" action="{{ url_for('instructor_mark_attendance') }}">
+                <input type="hidden" name="group_id" value="{{ selected_group.id }}">
+                <input type="hidden" name="date" value="{{ request.args.get('date', today.strftime('%Y-%m-%d')) }}">
+
+                <div class="row">
+                    {% for student in selected_group.students %}
+                    {% set existing_attendance = attendance_records|selectattr('student_id', 'equalto',
+                    student.id)|first %}
+                    <div class="col-md-6 col-lg-4">
+                        <div class="student-card">
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="me-3">
+                                    <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center"
+                                        style="width: 45px; height: 45px; font-size: 1.1rem; color: white;">
+                                        {{ student.name.split()[0][0] }}{{ student.name.split()[-1][0] if
+                                        student.name.split()|length > 1 else '' }}
+                                    </div>
+                                </div>
+                                <div>
+                                    <h6 class="mb-0">{{ student.name }}</h6>
+                                    <small class="text-muted">
+                                        <i class="fas fa-phone me-1"></i>
+                                        {{ student.phone or 'لا يوجد رقم' }}
+                                    </small>
+                                </div>
+                            </div>
+
+                            <div class="text-center">
+                                <div class="btn-group" role="group" data-student="{{ student.id }}">
+                                    <button type="button"
+                                        class="attendance-btn btn-present {{ 'active' if existing_attendance and existing_attendance.status == 'حاضر' else '' }}"
+                                        onclick="setAttendance({{ student.id }}, 'حاضر', this)">
+                                        <i class="fas fa-check me-1"></i>
+                                        حاضر
+                                    </button>
+                                    <button type="button"
+                                        class="attendance-btn btn-absent {{ 'active' if existing_attendance and existing_attendance.status == 'غائب' else '' }}"
+                                        onclick="setAttendance({{ student.id }}, 'غائب', this)">
+                                        <i class="fas fa-times me-1"></i>
+                                        غائب
+                                    </button>
+                                    <button type="button"
+                                        class="attendance-btn btn-late {{ 'active' if existing_attendance and existing_attendance.status == 'متأخر' else '' }}"
+                                        onclick="setAttendance({{ student.id }}, 'متأخر', this)">
+                                        <i class="fas fa-clock me-1"></i>
+                                        متأخر
+                                    </button>
+                                </div>
+                                <input type="hidden" name="attendance_{{ student.id }}" id="attendance_{{ student.id }}"
+                                    value="{{ existing_attendance.status if existing_attendance else '' }}">
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <div class="text-center mt-4">
+                    <button type="submit" class="save-btn">
+                        <i class="fas fa-save me-2"></i>
+                        حفظ الحضور
+                    </button>
+                </div>
+            </form>
+            {% else %}
+            <div class="text-center text-muted py-5">
+                <i class="fas fa-users-slash fa-5x mb-3"></i>
+                <h4>لا يوجد طلاب في هذه المجموعة</h4>
+                <p>تأكد من تسجيل الطلاب في المجموعة أولاً</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    {% endif %}
+    {% else %}
+    <!-- No Group Selected -->
+    <div class="text-center text-muted py-5">
+        <i class="fas fa-users fa-5x mb-3 opacity-50"></i>
+        <h4>اختر مجموعة لبدء أخذ الحضور</h4>
+        <p>قم بتحديد المجموعة والتاريخ من الأعلى</p>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+    function setAttendance(studentId, status, button) {
+        // Remove active class from all buttons in this group
+        const group = button.closest('[data-student="' + studentId + '"]');
+        group.querySelectorAll('.attendance-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+
+        // Add active class to clicked button
+        button.classList.add('active');
+
+        // Set the hidden input value
+        document.getElementById('attendance_' + studentId).value = status;
+    }
+
+    // Auto-submit form when group or date changes
+    document.addEventListener('DOMContentLoaded', function () {
+        // Add smooth animations
+        const studentCards = document.querySelectorAll('.student-card');
+        studentCards.forEach((card, index) => {
+            card.style.animationDelay = (index * 0.1) + 's';
+            card.classList.add('fade-in');
+        });
+    });
+</script>
+{% endblock %}

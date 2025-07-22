@@ -1,0 +1,290 @@
+{% extends "base.html" %}
+
+{% block title %}الدفعات الشهرية - {{ group.name }} - نظام إدارة الطلاب{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2>
+                <i class="fas fa-calendar-check me-2"></i>
+                الدفعات الشهرية - {{ group.name }}
+            </h2>
+            <p class="text-muted">إدارة الدفعات الشهرية للمجموعة لعام {{ year }}</p>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{{ url_for('group_details', group_id=group.id) }}" class="btn btn-secondary me-2">
+                <i class="fas fa-arrow-right me-2"></i>
+                العودة للمجموعة
+            </a>
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addPaymentModal">
+                <i class="fas fa-plus me-2"></i>
+                إضافة دفعة
+            </button>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-center" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                <div class="card-body">
+                    <i class="fas fa-money-bill-wave fa-2x mb-2"></i>
+                    <h4>{{ "%.2f"|format(total_expected) }} ج.م</h4>
+                    <p class="mb-0">المبلغ المتوقع</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); color: white;">
+                <div class="card-body">
+                    <i class="fas fa-check-circle fa-2x mb-2"></i>
+                    <h4>{{ "%.2f"|format(total_paid) }} ج.م</h4>
+                    <p class="mb-0">المبلغ المدفوع</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center" style="background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%); color: white;">
+                <div class="card-body">
+                    <i class="fas fa-exclamation-circle fa-2x mb-2"></i>
+                    <h4>{{ "%.2f"|format(total_remaining) }} ج.م</h4>
+                    <p class="mb-0">المبلغ المتبقي</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                <div class="card-body">
+                    <i class="fas fa-percentage fa-2x mb-2"></i>
+                    <h4>{{ "%.1f"|format(completion_rate) }}%</h4>
+                    <p class="mb-0">نسبة الإنجاز</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Year Selector -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h6 class="card-title">اختر السنة</h6>
+                    <div class="btn-group" role="group">
+                        {% for y in range(2023, 2027) %}
+                        <a href="{{ url_for('monthly_payments', group_id=group.id, year=y) }}" 
+                           class="btn btn-outline-primary {{ 'active' if y == year else '' }}">
+                            {{ y }}
+                        </a>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h6 class="card-title">معلومات المجموعة</h6>
+                    <p class="mb-1"><strong>السعر الشهري:</strong> {{ group.effective_monthly_price }} ج.م</p>
+                    <p class="mb-1"><strong>يوم الاستحقاق:</strong> {{ group.payment_due_day }} من كل شهر</p>
+                    <p class="mb-0"><strong>عدد الطلاب:</strong> {{ group.active_students_count }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Monthly Payments Table -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="card-title mb-0">
+                <i class="fas fa-calendar-alt me-2"></i>
+                الدفعات الشهرية لعام {{ year }}
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>الشهر</th>
+                            <th>المبلغ المطلوب</th>
+                            <th>المبلغ المدفوع</th>
+                            <th>المبلغ المتبقي</th>
+                            <th>الحالة</th>
+                            <th>تاريخ الاستحقاق</th>
+                            <th>ملاحظات</th>
+                            <th>إجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for mp in monthly_payments %}
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="month-icon me-2">
+                                        <i class="fas fa-calendar-day"></i>
+                                    </div>
+                                    <strong>{{ mp.month_name }}</strong>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge bg-info">{{ "%.2f"|format(mp.monthly_price) }} ج.م</span>
+                            </td>
+                            <td>
+                                <span class="badge bg-success">{{ "%.2f"|format(mp.total_paid) }} ج.م</span>
+                            </td>
+                            <td>
+                                {% if mp.remaining_amount > 0 %}
+                                <span class="badge bg-warning">{{ "%.2f"|format(mp.remaining_amount) }} ج.م</span>
+                                {% else %}
+                                <span class="badge bg-success">0.00 ج.م</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if mp.payment_status == 'complete' %}
+                                <span class="badge bg-success">مكتمل</span>
+                                {% elif mp.payment_status == 'partial' %}
+                                <span class="badge bg-warning">جزئي</span>
+                                {% else %}
+                                <span class="badge bg-danger">متأخر</span>
+                                {% endif %}
+                                
+                                {% if mp.is_overdue %}
+                                <br><small class="text-danger">متأخر</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if mp.due_date %}
+                                {{ mp.due_date.strftime('%Y-%m-%d') }}
+                                {% else %}
+                                -
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if mp.notes %}
+                                <span class="text-truncate" style="max-width: 100px;" title="{{ mp.notes }}">
+                                    {{ mp.notes[:30] }}...
+                                </span>
+                                {% else %}
+                                -
+                                {% endif %}
+                            </td>
+                            <td>
+                                <button class="btn btn-sm btn-primary" 
+                                        onclick="openPaymentModal({{ mp.year }}, {{ mp.month }}, '{{ mp.month_name }}', {{ mp.remaining_amount }})">
+                                    <i class="fas fa-plus"></i>
+                                    دفعة
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Payment Modal -->
+<div class="modal fade" id="addPaymentModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-plus me-2"></i>
+                    إضافة دفعة شهرية
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('add_monthly_payment', group_id=group.id) }}">
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">السنة</label>
+                                <input type="number" class="form-control" name="year" id="paymentYear" 
+                                       value="{{ year }}" min="2020" max="2030" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">الشهر</label>
+                                <select class="form-select" name="month" id="paymentMonth" required>
+                                    {% for month_num, month_name in arabic_months.items() %}
+                                    <option value="{{ month_num }}">{{ month_name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">المبلغ (ج.م)</label>
+                        <input type="number" class="form-control" name="amount" id="paymentAmount"
+                               step="0.01" min="0" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">ملاحظات</label>
+                        <textarea class="form-control" name="notes" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-2"></i>
+                        إضافة الدفعة
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+.month-icon {
+    width: 30px;
+    height: 30px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 12px;
+}
+
+.fade-in {
+    animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.table th {
+    background-color: #f8f9fa;
+    font-weight: bold;
+    border-top: none;
+}
+
+.table td {
+    vertical-align: middle;
+}
+</style>
+
+<script>
+function openPaymentModal(year, month, monthName, remainingAmount) {
+    document.getElementById('paymentYear').value = year;
+    document.getElementById('paymentMonth').value = month;
+    document.getElementById('paymentAmount').value = remainingAmount.toFixed(2);
+    
+    // Update modal title
+    document.querySelector('#addPaymentModal .modal-title').innerHTML = 
+        `<i class="fas fa-plus me-2"></i>إضافة دفعة لشهر ${monthName}`;
+    
+    // Show modal
+    new bootstrap.Modal(document.getElementById('addPaymentModal')).show();
+}
+</script>
+{% endblock %} 

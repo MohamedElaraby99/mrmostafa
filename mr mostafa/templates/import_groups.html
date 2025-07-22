@@ -1,0 +1,254 @@
+{% extends "base.html" %}
+
+{% block title %}استيراد المجموعات - نظام إدارة الطلاب{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2>
+                <i class="fas fa-file-import me-2"></i>
+                استيراد المجموعات من Excel
+            </h2>
+            <p class="text-muted">قم بتحميل ملف Excel لإضافة أو تحديث المجموعات بشكل مجمع</p>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{{ url_for('groups') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-right me-2"></i>
+                العودة للمجموعات
+            </a>
+        </div>
+    </div>
+
+    <!-- Instructions Card -->
+    <div class="card mb-4">
+        <div class="card-header bg-info text-white">
+            <h5 class="card-title mb-0">
+                <i class="fas fa-info-circle me-2"></i>
+                تعليمات الاستيراد
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <h6 class="text-primary">خطوات الاستيراد:</h6>
+                    <ol>
+                        <li>قم بتحميل قالب Excel من الرابط أدناه</li>
+                        <li>املأ البيانات في الأعمدة المطلوبة</li>
+                        <li>احذف الصفوف التجريبية</li>
+                        <li>ارفع الملف هنا للاستيراد</li>
+                    </ol>
+                    
+                    <div class="alert alert-warning mt-3">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>تأكد من:</strong>
+                        <ul class="mb-0 mt-2">
+                            <li>وجود المدرسين في النظام قبل ربطهم</li>
+                            <li>صحة الأسعار والأرقام</li>
+                            <li>عدم ترك اسم المجموعة فارغاً</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <h6 class="text-primary">الأعمدة المطلوبة:</h6>
+                    <ul>
+                        <li><strong>اسم المجموعة:</strong> مطلوب (لا يمكن أن يكون فارغاً)</li>
+                        <li><strong>المستوى:</strong> اختياري</li>
+                        <li><strong>اسم المدرس:</strong> اختياري (يجب أن يكون موجود مسبقاً)</li>
+                        <li><strong>السعر الكلي:</strong> رقم (افتراضي: 0)</li>
+                        <li><strong>السعر الشهري:</strong> رقم (افتراضي: السعر الكلي)</li>
+                        <li><strong>الحد الأقصى للطلاب:</strong> رقم (افتراضي: 15)</li>
+                        <li><strong>يوم استحقاق الدفع:</strong> رقم من 1-28 (افتراضي: 1)</li>
+                        <li><strong>تفعيل الدفع الشهري:</strong> نعم/لا (افتراضي: نعم)</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Download Template Section -->
+    <div class="card mb-4">
+        <div class="card-header bg-success text-white">
+            <h5 class="card-title mb-0">
+                <i class="fas fa-download me-2"></i>
+                تحميل القالب
+            </h5>
+        </div>
+        <div class="card-body text-center">
+            <p class="mb-3">قم بتحميل قالب Excel الجاهز مع التعليمات والبيانات التجريبية</p>
+            <a href="{{ url_for('download_groups_template') }}" class="btn btn-success btn-lg">
+                <i class="fas fa-file-excel me-2"></i>
+                تحميل قالب المجموعات
+            </a>
+        </div>
+    </div>
+
+    <!-- Upload Section -->
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h5 class="card-title mb-0">
+                <i class="fas fa-cloud-upload-alt me-2"></i>
+                رفع ملف Excel
+            </h5>
+        </div>
+        <div class="card-body">
+            <form id="importForm" action="{{ url_for('import_groups') }}" method="post" enctype="multipart/form-data">
+                <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+                    <div style="font-size: 4rem; color: #007bff; margin-bottom: 1rem;">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                    </div>
+                    <h4>اختر ملف Excel أو اسحبه هنا</h4>
+                    <p class="text-muted">يدعم النظام ملفات .xlsx و .xls فقط</p>
+                    <button type="button" class="btn btn-primary">
+                        <i class="fas fa-folder-open me-2"></i>
+                        اختيار ملف
+                    </button>
+                    <input type="file" id="fileInput" name="excel_file" style="display: none;" accept=".xlsx,.xls" required>
+                </div>
+
+                <div class="file-info" id="fileInfo" style="display: none;">
+                    <h6><i class="fas fa-file-excel me-2"></i>معلومات الملف:</h6>
+                    <p id="fileName" class="mb-1" style="font-weight: 600; color: #007bff;"></p>
+                    <p id="fileSize" class="text-muted mb-0"></p>
+                </div>
+
+                <div class="row mt-4">
+                    <div class="col-md-8">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            سيتم تحديث المجموعات الموجودة إذا كان لها نفس الاسم، أو إنشاء مجموعات جديدة إذا لم تكن موجودة.
+                        </div>
+                    </div>
+                    <div class="col-md-4 text-end">
+                        <button type="submit" id="importBtn" class="btn btn-primary btn-lg" disabled>
+                            <i class="fas fa-upload me-2"></i>
+                            استيراد المجموعات
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+.upload-area {
+    border: 2px dashed #007bff;
+    border-radius: 10px;
+    padding: 40px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-bottom: 20px;
+}
+
+.upload-area:hover {
+    border-color: #0056b3;
+    background-color: #f8f9fa;
+}
+
+.upload-area.dragover {
+    border-color: #28a745;
+    background-color: #d4edda;
+}
+
+.file-info {
+    background: #e9ecef;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.fade-in {
+    animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+</style>
+
+<script>
+const fileInput = document.getElementById('fileInput');
+const fileInfo = document.getElementById('fileInfo');
+const fileName = document.getElementById('fileName');
+const fileSize = document.getElementById('fileSize');
+const importBtn = document.getElementById('importBtn');
+const importForm = document.getElementById('importForm');
+const uploadArea = document.querySelector('.upload-area');
+
+// File input change handler
+fileInput.addEventListener('change', function () {
+    const file = fileInput.files[0];
+    if (file) {
+        if (!file.name.endsWith('.xlsx') && !file.name.endsWith('.xls')) {
+            alert('يرجى اختيار ملف Excel (.xlsx أو .xls)');
+            fileInput.value = '';
+            return;
+        }
+
+        fileName.textContent = file.name;
+        fileSize.textContent = `الحجم: ${(file.size / 1024 / 1024).toFixed(2)} MB`;
+        fileInfo.style.display = 'block';
+        importBtn.disabled = false;
+    }
+});
+
+// Form submit handler
+importForm.addEventListener('submit', function (e) {
+    const file = fileInput.files[0];
+    if (!file) {
+        e.preventDefault();
+        alert('يرجى اختيار ملف Excel للاستيراد');
+        return;
+    }
+
+    const confirmMessage = 'سيتم استيراد المجموعات من الملف. هل تريد المتابعة؟';
+    if (!confirm(confirmMessage)) {
+        e.preventDefault();
+        return;
+    }
+
+    importBtn.disabled = true;
+    importBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>جاري الاستيراد...';
+});
+
+// Drag and drop functionality
+['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+    uploadArea.addEventListener(eventName, preventDefaults, false);
+});
+
+function preventDefaults(e) {
+    e.preventDefault();
+    e.stopPropagation();
+}
+
+['dragenter', 'dragover'].forEach(eventName => {
+    uploadArea.addEventListener(eventName, highlight, false);
+});
+
+['dragleave', 'drop'].forEach(eventName => {
+    uploadArea.addEventListener(eventName, unhighlight, false);
+});
+
+function highlight(e) {
+    uploadArea.classList.add('dragover');
+}
+
+function unhighlight(e) {
+    uploadArea.classList.remove('dragover');
+}
+
+uploadArea.addEventListener('drop', handleDrop, false);
+
+function handleDrop(e) {
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+        fileInput.files = files;
+        fileInput.dispatchEvent(new Event('change'));
+    }
+}
+</script>
+{% endblock %} 

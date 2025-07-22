@@ -1,0 +1,389 @@
+{% extends "base.html" %}
+
+{% block title %}رصد الدرجات - نظام إدارة الطلاب{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2>
+                <i class="fas fa-chart-bar me-2"></i>
+                رصد الدرجات
+            </h2>
+            <p class="text-muted">إدارة وتتبع درجات الطلاب في جميع المواد والاختبارات</p>
+        </div>
+        <div class="col-md-4 text-end">
+            <div class="btn-group me-2" role="group">
+                <a href="{{ url_for('download_grades_template') }}" class="btn btn-success">
+                    <i class="fas fa-download me-2"></i>
+                    تحميل القالب
+                </a>
+                <a href="{{ url_for('import_grades') }}" class="btn btn-info">
+                    <i class="fas fa-file-import me-2"></i>
+                    استيراد Excel
+                </a>
+            </div>
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addSubjectModal">
+                <i class="fas fa-plus me-2"></i>
+                إضافة مادة
+            </button>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-center" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                <div class="card-body">
+                    <i class="fas fa-list-ol fa-2x mb-2"></i>
+                    <h4>{{ total_grades }}</h4>
+                    <p class="mb-0">إجمالي الدرجات</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); color: white;">
+                <div class="card-body">
+                    <i class="fas fa-chart-line fa-2x mb-2"></i>
+                    <h4>{{ "%.1f"|format(average_score) }}</h4>
+                    <p class="mb-0">متوسط الدرجات</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center" style="background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%); color: white;">
+                <div class="card-body">
+                    <i class="fas fa-percentage fa-2x mb-2"></i>
+                    <h4>{{ "%.1f"|format(passing_rate) }}%</h4>
+                    <p class="mb-0">نسبة النجاح</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                <div class="card-body">
+                    <i class="fas fa-book fa-2x mb-2"></i>
+                    <h4>{{ subjects|length }}</h4>
+                    <p class="mb-0">المواد النشطة</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="card-title mb-0">
+                <i class="fas fa-filter me-2"></i>
+                تصفية النتائج
+            </h5>
+        </div>
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('grades') }}">
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="mb-3">
+                            <label class="form-label">المجموعة</label>
+                            <select class="form-select" name="group_id">
+                                <option value="">جميع المجموعات</option>
+                                {% for group in groups %}
+                                <option value="{{ group.id }}" {{ 'selected' if group.id == selected_group else '' }}>
+                                    {{ group.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="mb-3">
+                            <label class="form-label">المادة</label>
+                            <select class="form-select" name="subject_id">
+                                <option value="">جميع المواد</option>
+                                {% for subject in subjects %}
+                                <option value="{{ subject.id }}" {{ 'selected' if subject.id == selected_subject else '' }}>
+                                    {{ subject.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="mb-3">
+                            <label class="form-label">الطالب</label>
+                            <select class="form-select" name="student_id">
+                                <option value="">جميع الطلاب</option>
+                                {% for student in students %}
+                                <option value="{{ student.id }}" {{ 'selected' if student.id == selected_student else '' }}>
+                                    {{ student.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="mb-3">
+                            <label class="form-label">&nbsp;</label>
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-search me-2"></i>
+                                    تصفية
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Grades Table -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="card-title mb-0">
+                <i class="fas fa-table me-2"></i>
+                درجات الطلاب
+            </h5>
+        </div>
+        <div class="card-body">
+            {% if grades %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>الطالب</th>
+                            <th>المادة/الاختبار</th>
+                            <th>النوع</th>
+                            <th>الدرجة</th>
+                            <th>النسبة المئوية</th>
+                            <th>التقدير</th>
+                            <th>تاريخ الاختبار</th>
+                            <th>المجموعة</th>
+                            <th>ملاحظات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for grade in grades %}
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="student-avatar me-2">
+                                        {{ grade.student.name[0] }}
+                                    </div>
+                                    <strong>{{ grade.student.name }}</strong>
+                                </div>
+                            </td>
+                            <td>
+                                <div>
+                                    <strong>{{ grade.subject.name }}</strong>
+                                    {% if grade.subject.code %}
+                                    <br><small class="text-muted">{{ grade.subject.code }}</small>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge bg-info rounded-pill">{{ grade.subject.subject_type }}</span>
+                            </td>
+                            <td>
+                                <div class="text-center">
+                                    <strong class="fs-5">{{ grade.score|round(1) }}</strong>
+                                    <small class="text-muted">/ {{ grade.max_score|round(1) }}</small>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="progress" style="height: 20px;">
+                                    {% set percentage = grade.percentage|round(1) %}
+                                    <div class="progress-bar 
+                                        {{ 'bg-success' if percentage >= 85 else 
+                                           'bg-info' if percentage >= 75 else 
+                                           'bg-warning' if percentage >= 60 else 'bg-danger' }}" 
+                                        style="width: {{ percentage }}%">
+                                        {{ percentage }}%
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge 
+                                    {{ 'bg-success' if grade.grade_letter in ['A', 'B'] else 
+                                       'bg-warning' if grade.grade_letter == 'C' else 
+                                       'bg-danger' }} rounded-pill fs-6">
+                                    {{ grade.grade_letter }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if grade.exam_date %}
+                                {{ grade.exam_date.strftime('%Y-%m-%d') }}
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if grade.subject.group %}
+                                <span class="badge bg-secondary rounded-pill">{{ grade.subject.group.name }}</span>
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if grade.notes %}
+                                <span class="text-truncate" style="max-width: 100px;" title="{{ grade.notes }}">
+                                    {{ grade.notes[:20] }}...
+                                </span>
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-chart-bar fa-3x text-muted mb-3"></i>
+                <h5 class="text-muted">لا توجد درجات لعرضها</h5>
+                <p class="text-muted">قم بإضافة المواد واستيراد الدرجات لبدء الرصد</p>
+                <a href="{{ url_for('import_grades') }}" class="btn btn-primary">
+                    <i class="fas fa-file-import me-2"></i>
+                    استيراد الدرجات
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Add Subject Modal -->
+<div class="modal fade" id="addSubjectModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-book me-2"></i>
+                    إضافة مادة/اختبار جديد
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('add_subject') }}">
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">اسم المادة/الاختبار *</label>
+                                <input type="text" class="form-control" name="name" required
+                                       placeholder="مثل: الرياضيات - اختبار شهري">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">كود المادة</label>
+                                <input type="text" class="form-control" name="code"
+                                       placeholder="مثل: MATH101">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">نوع المادة</label>
+                                <select class="form-select" name="subject_type">
+                                    <option value="مادة">مادة</option>
+                                    <option value="اختبار">اختبار</option>
+                                    <option value="واجب">واجب</option>
+                                    <option value="مشروع">مشروع</option>
+                                    <option value="نشاط">نشاط</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">المجموعة</label>
+                                <select class="form-select" name="group_id">
+                                    <option value="">اختر المجموعة (اختياري)</option>
+                                    {% for group in groups %}
+                                    <option value="{{ group.id }}">{{ group.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">الدرجة القصوى</label>
+                                <input type="number" class="form-control" name="max_grade" value="100" 
+                                       step="0.1" min="0">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">الدرجة الدنيا</label>
+                                <input type="number" class="form-control" name="min_grade" value="0" 
+                                       step="0.1" min="0">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">وصف المادة</label>
+                        <textarea class="form-control" name="description" rows="3"
+                                  placeholder="وصف مختصر للمادة أو الاختبار"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-2"></i>
+                        إضافة المادة
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+.student-avatar {
+    width: 35px;
+    height: 35px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+    font-size: 14px;
+}
+
+.fade-in {
+    animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.table th {
+    background-color: #f8f9fa;
+    font-weight: bold;
+    border-top: none;
+}
+
+.table td {
+    vertical-align: middle;
+}
+
+.progress {
+    background-color: #e9ecef;
+}
+
+.progress-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 12px;
+}
+</style>
+{% endblock %} 

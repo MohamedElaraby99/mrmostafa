@@ -1,0 +1,17 @@
+# Core Flask Dependencies
+Flask==3.0.3
+Flask-SQLAlchemy==3.1.1
+Werkzeug==3.0.3
+
+# Database and Environment
+python-dotenv==1.0.1
+psycopg2-binary==2.9.9
+
+# Excel Export Functionality
+openpyxl==3.1.5
+
+# Production Server (optional for PythonAnywhere)
+gunicorn==21.2.0
+
+# Additional Security and Performance (optional but recommended)
+cryptography>=41.0.0 

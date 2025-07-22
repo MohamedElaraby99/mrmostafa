@@ -1,0 +1,485 @@
+{% extends "base.html" %}
+
+{% block title %}تفاصيل المجموعة - {{ group.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .stats-card {
+        border-radius: 15px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease;
+        margin-bottom: 20px;
+    }
+
+    .stats-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    }
+
+    .gradient-bg-1 {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    .gradient-bg-2 {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    }
+
+    .gradient-bg-3 {
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    }
+
+    .gradient-bg-4 {
+        background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+    }
+
+    .gradient-bg-5 {
+        background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+    }
+
+    .gradient-bg-6 {
+        background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+    }
+
+    .attendance-table {
+        background: white;
+        border-radius: 15px;
+        overflow: hidden;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    .attendance-table thead {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+
+    .status-present {
+        background-color: #d4edda !important;
+        color: #155724 !important;
+        font-weight: bold;
+    }
+
+    .status-absent {
+        background-color: #f8d7da !important;
+        color: #721c24 !important;
+        font-weight: bold;
+    }
+
+    .status-late {
+        background-color: #fff3cd !important;
+        color: #856404 !important;
+        font-weight: bold;
+    }
+
+    .student-row {
+        transition: all 0.3s ease;
+    }
+
+    .student-row:hover {
+        background-color: #f8f9fa;
+        transform: scale(1.01);
+    }
+
+    .percentage-bar {
+        height: 20px;
+        border-radius: 10px;
+        overflow: hidden;
+        background-color: #f0f0f0;
+        position: relative;
+    }
+
+    .percentage-fill {
+        height: 100%;
+        border-radius: 10px;
+        transition: width 0.5s ease;
+    }
+
+    .schedule-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 15px;
+        padding: 20px;
+        margin-bottom: 15px;
+    }
+
+    .payment-card {
+        background: white;
+        border-radius: 10px;
+        border-left: 4px solid #28a745;
+        padding: 15px;
+        margin-bottom: 10px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    }
+
+    .financial-summary {
+        background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        color: white;
+        border-radius: 15px;
+        padding: 20px;
+    }
+
+    .btn-back {
+        background: linear-gradient(45deg, #667eea, #764ba2);
+        border: none;
+        color: white;
+        border-radius: 10px;
+        padding: 10px 20px;
+        transition: all 0.3s ease;
+    }
+
+    .btn-back:hover {
+        background: linear-gradient(45deg, #764ba2, #667eea);
+        transform: translateY(-2px);
+        color: white;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="d-flex align-items-center">
+                <div class="me-3">
+                    <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center"
+                        style="width: 60px; height: 60px;">
+                        <i class="fas fa-users fa-2x text-white"></i>
+                    </div>
+                </div>
+                <div>
+                    <h2 class="mb-0">{{ group.name }}</h2>
+                    <p class="text-muted mb-0">تفاصيل المجموعة والحضور</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{{ url_for('groups') }}" class="btn btn-back">
+                <i class="fas fa-arrow-right me-2"></i>
+                العودة للمجموعات
+            </a>
+        </div>
+    </div>
+
+    <!-- Group Information -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="stats-card gradient-bg-1 text-white p-4">
+                <h5><i class="fas fa-info-circle me-2"></i>معلومات المجموعة</h5>
+                <hr class="border-light">
+                <p class="mb-2"><strong>المستوى:</strong> {{ group.level or 'غير محدد' }}</p>
+                <p class="mb-2"><strong>المدرس:</strong> {{ group.instructor_ref.name if group.instructor_ref else 'غير
+                    محدد' }}</p>
+                <p class="mb-2"><strong>الحد الأقصى للطلاب:</strong> {{ group.max_students }}</p>
+                <p class="mb-0"><strong>عدد الطلاب الحالي:</strong> {{ students|length }}</p>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="schedule-card">
+                <h5><i class="fas fa-calendar-alt me-2"></i>جدول المجموعة</h5>
+                <hr class="border-light">
+                {% for schedule in group.schedules %}
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span><i class="fas fa-calendar-day me-2"></i>{{ schedule.day_of_week }}</span>
+                    <span>
+                        <i class="fas fa-clock me-1"></i>
+                        {{ convert_24_to_12_hour(schedule.start_time).hour }}:{{
+                        convert_24_to_12_hour(schedule.start_time).minute }} {{
+                        convert_24_to_12_hour(schedule.start_time).period }}
+                        -
+                        {{ convert_24_to_12_hour(schedule.end_time).hour }}:{{
+                        convert_24_to_12_hour(schedule.end_time).minute }} {{
+                        convert_24_to_12_hour(schedule.end_time).period }}
+                    </span>
+                </div>
+                {% else %}
+                <p class="text-center mb-0">لا يوجد جدول محدد</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
+            <div class="stats-card gradient-bg-2 text-white text-center p-3">
+                <i class="fas fa-users fa-2x mb-2"></i>
+                <h4>{{ students|length }}</h4>
+                <p class="mb-0">إجمالي الطلاب</p>
+            </div>
+        </div>
+        <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
+            <div class="stats-card gradient-bg-3 text-white text-center p-3">
+                <i class="fas fa-calendar-check fa-2x mb-2"></i>
+                <h4>{{ total_sessions }}</h4>
+                <p class="mb-0">إجمالي الجلسات</p>
+            </div>
+        </div>
+        <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
+            <div class="stats-card gradient-bg-4 text-white text-center p-3">
+                <i class="fas fa-check-circle fa-2x mb-2"></i>
+                <h4>{{ total_attendances }}</h4>
+                <p class="mb-0">إجمالي الحضور</p>
+            </div>
+        </div>
+        <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
+            <div class="stats-card gradient-bg-5 text-white text-center p-3">
+                <i class="fas fa-times-circle fa-2x mb-2"></i>
+                <h4>{{ total_absences }}</h4>
+                <p class="mb-0">إجمالي الغياب</p>
+            </div>
+        </div>
+        <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
+            <div class="stats-card gradient-bg-6 text-white text-center p-3">
+                <i class="fas fa-clock fa-2x mb-2"></i>
+                <h4>{{ total_late }}</h4>
+                <p class="mb-0">إجمالي التأخير</p>
+            </div>
+        </div>
+        <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
+            <div class="stats-card gradient-bg-1 text-white text-center p-3">
+                <i class="fas fa-percentage fa-2x mb-2"></i>
+                <h4>{{ attendance_percentage }}%</h4>
+                <p class="mb-0">نسبة الحضور</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Financial Summary -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="financial-summary">
+                <h5><i class="fas fa-dollar-sign me-2"></i>الملخص المالي للمجموعة</h5>
+                <hr class="border-light">
+                <div class="row">
+                    <div class="col-md-4 text-center">
+                        <h4>${{ "%.2f"|format(total_expected_revenue) }}</h4>
+                        <p class="mb-0">الإيرادات المتوقعة (بعد الخصم)</p>
+                    </div>
+                    <div class="col-md-4 text-center">
+                        <h4>${{ "%.2f"|format(total_received_revenue) }}</h4>
+                        <p class="mb-0">الإيرادات المحصلة</p>
+                    </div>
+                    <div class="col-md-4 text-center">
+                        <h4>${{ "%.2f"|format(pending_revenue) }}</h4>
+                        <p class="mb-0">المستحقات المعلقة</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detailed Attendance Table -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="attendance-table">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th class="text-center">#</th>
+                                <th><i class="fas fa-user me-2"></i>اسم الطالب</th>
+                                <th class="text-center"><i class="fas fa-phone me-2"></i>الهاتف</th>
+                                <th class="text-center"><i class="fas fa-percentage me-2"></i>نسبة الحضور</th>
+                                <th class="text-center"><i class="fas fa-check-circle me-2"></i>حاضر</th>
+                                <th class="text-center"><i class="fas fa-times-circle me-2"></i>غائب</th>
+                                <th class="text-center"><i class="fas fa-clock me-2"></i>متأخر</th>
+                                {% for date in session_dates[:10] %}
+                                <th class="text-center" style="min-width: 80px;">
+                                    <small>{{ date[5:] }}</small>
+                                </th>
+                                {% endfor %}
+                                {% if session_dates|length > 10 %}
+                                <th class="text-center">
+                                    <small>... والمزيد</small>
+                                </th>
+                                {% endif %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for student in students %}
+                            {% set attendance_data = student_attendance[student.id] %}
+                            <tr class="student-row">
+                                <td class="text-center">
+                                    <span class="badge bg-primary rounded-pill">{{ loop.index }}</span>
+                                </td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="bg-secondary rounded-circle d-flex align-items-center justify-content-center me-3"
+                                            style="width: 40px; height: 40px; color: white;">
+                                            {{ student.name[0].upper() }}
+                                        </div>
+                                        <div>
+                                            <strong>{{ student.name }}</strong>
+                                            <br><small class="text-muted">{{ student.level or 'غير محدد' }}</small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="text-center">
+                                    <small>{{ student.phone or '-' }}</small>
+                                </td>
+                                <td class="text-center">
+                                    <div class="percentage-bar mx-auto" style="width: 60px;">
+                                        <div class="percentage-fill"
+                                            style="width: {{ attendance_data.percentage }}%; 
+                                                    background: {% if attendance_data.percentage >= 80 %}#28a745{% elif attendance_data.percentage >= 60 %}#ffc107{% else %}#dc3545{% endif %};">
+                                        </div>
+                                    </div>
+                                    <small><strong>{{ attendance_data.percentage }}%</strong></small>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge bg-success">{{ attendance_data.total_present }}</span>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge bg-danger">{{ attendance_data.total_absent }}</span>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge bg-warning">{{ attendance_data.total_late }}</span>
+                                </td>
+                                {% for date in session_dates[:10] %}
+                                <td class="text-center">
+                                    {% set status = attendance_data.attendance_by_date.get(date) %}
+                                    {% if status == 'حاضر' %}
+                                    <span class="badge bg-success"><i class="fas fa-check"></i></span>
+                                    {% elif status == 'غائب' %}
+                                    <span class="badge bg-danger"><i class="fas fa-times"></i></span>
+                                    {% elif status == 'متأخر' %}
+                                    <span class="badge bg-warning"><i class="fas fa-clock"></i></span>
+                                    {% else %}
+                                    <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                {% endfor %}
+                                {% if session_dates|length > 10 %}
+                                <td class="text-center">
+                                    <button class="btn btn-sm btn-outline-primary"
+                                        onclick="showFullAttendance({{ student.id }}, '{{ student.name }}')"
+                                        title="عرض كامل الحضور">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </td>
+                                {% endif %}
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="100%" class="text-center text-muted py-5">
+                                    <div>
+                                        <i class="fas fa-users fa-5x mb-3 text-muted opacity-50"></i>
+                                        <h4>لا يوجد طلاب في هذه المجموعة</h4>
+                                        <p>ابدأ بإضافة طلاب للمجموعة</p>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Payments Section -->
+    {% if recent_payments %}
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <h5><i class="fas fa-credit-card me-2"></i>آخر المدفوعات (للطلاب في هذه المجموعة)</h5>
+            <div class="row">
+                {% for payment in recent_payments %}
+                <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="payment-card">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>{{ payment.student.name if payment.student else 'طالب محذوف' }}</strong>
+                                <br><small class="text-muted">{{ payment.month or 'شهر غير محدد' }}</small>
+                            </div>
+                            <div class="text-end">
+                                <h6 class="text-success mb-0">${{ "%.2f"|format(payment.amount) }}</h6>
+                                <small class="text-muted">{{ payment.date.strftime('%Y-%m-%d') }}</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Full Attendance Modal -->
+<div class="modal fade" id="fullAttendanceModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header"
+                style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                <h5 class="modal-title">
+                    <i class="fas fa-calendar-check me-2"></i>
+                    سجل الحضور الكامل
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="fullAttendanceContent">
+                    <!-- Content will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function showFullAttendance(studentId, studentName) {
+        const sessionDates = {{ session_dates| tojson
+    }};
+    const studentAttendance = {{ student_attendance| tojson }};
+
+    const attendance = studentAttendance[studentId];
+
+    let content = `
+        <div class="text-center mb-4">
+            <h5>${studentName}</h5>
+            <p class="text-muted">سجل الحضور الكامل</p>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th class="text-center">التاريخ</th>
+                        <th class="text-center">الحالة</th>
+                    </tr>
+                </thead>
+                <tbody>
+    `;
+
+    sessionDates.forEach(date => {
+        const status = attendance.attendance_by_date[date];
+        let statusBadge = '';
+
+        if (status === 'حاضر') {
+            statusBadge = '<span class="badge bg-success">حاضر</span>';
+        } else if (status === 'متأخر') {
+            statusBadge = '<span class="badge bg-warning">متأخر</span>';
+        } else if (status === 'غائب') {
+            statusBadge = '<span class="badge bg-danger">غائب</span>';
+        } else {
+            statusBadge = '<span class="text-muted">لم يتم تسجيل</span>';
+        }
+
+        content += `
+            <tr>
+                <td class="text-center">${new Date(date).toLocaleDateString('ar-EG')}</td>
+                <td class="text-center">${statusBadge}</td>
+            </tr>
+        `;
+    });
+
+    content += `
+                </tbody>
+            </table>
+        </div>
+    `;
+
+    document.getElementById('fullAttendanceContent').innerHTML = content;
+    new bootstrap.Modal(document.getElementById('fullAttendanceModal')).show();
+}
+</script>
+{% endblock %}

@@ -1,0 +1,1596 @@
+{% extends "base.html" %}
+
+{% block title %}إدارة المهام والملاحظات - نظام إدارة الطلاب{% endblock %}
+
+{% block extra_css %}
+<style>
+    .modern-card {
+        border: none;
+        border-radius: 20px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease;
+        overflow: hidden;
+    }
+
+    .modern-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+    }
+
+    .gradient-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 2rem;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .gradient-header::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="white" opacity="0.1"/><circle cx="75" cy="75" r="1" fill="white" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+        opacity: 0.3;
+    }
+
+    .gradient-header h1 {
+        position: relative;
+        z-index: 2;
+        margin: 0;
+        font-weight: 700;
+        font-size: 2.5rem;
+    }
+
+    .gradient-header p {
+        position: relative;
+        z-index: 2;
+        opacity: 0.9;
+        margin-bottom: 0;
+        font-size: 1.1rem;
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 1.5rem;
+        margin: 2rem 0;
+    }
+
+    .stat-card {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 15px;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease;
+    }
+
+    .stat-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: var(--gradient);
+    }
+
+    .stat-card:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+    }
+
+    .stat-card.total::before {
+        background: linear-gradient(90deg, #667eea, #764ba2);
+    }
+
+    .stat-card.completed::before {
+        background: linear-gradient(90deg, #11998e, #38ef7d);
+    }
+
+    .stat-card.pending::before {
+        background: linear-gradient(90deg, #f7971e, #ffd200);
+    }
+
+    .stat-card.overdue::before {
+        background: linear-gradient(90deg, #fc4a1a, #f7b733);
+    }
+
+    .stat-number {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: #2d3748;
+        margin-bottom: 0.5rem;
+    }
+
+    .stat-label {
+        color: #718096;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        font-size: 0.875rem;
+    }
+
+    .task-card {
+        background: white;
+        border-radius: 15px;
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+        transition: all 0.3s ease;
+        border-left: 4px solid;
+    }
+
+    .task-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+    }
+
+    .task-card.priority-عالي {
+        border-left-color: #dc3545;
+    }
+
+    .task-card.priority-متوسط {
+        border-left-color: #ffc107;
+    }
+
+    .task-card.priority-منخفض {
+        border-left-color: #28a745;
+    }
+
+    .task-card.status-مكتمل {
+        opacity: 0.7;
+        background: #f8f9fa;
+    }
+
+    .task-header {
+        display: flex;
+        justify-content: between;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+
+    .task-title {
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: #2d3748;
+        margin: 0;
+    }
+
+    .task-meta {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 1rem;
+        flex-wrap: wrap;
+    }
+
+    .task-badge {
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 500;
+    }
+
+    .priority-عالي {
+        background: #dc354520;
+        color: #dc3545;
+    }
+
+    .priority-متوسط {
+        background: #ffc10720;
+        color: #ffc107;
+    }
+
+    .priority-منخفض {
+        background: #28a74520;
+        color: #28a745;
+    }
+
+    .status-قيد-التنفيذ {
+        background: #17a2b820;
+        color: #17a2b8;
+    }
+
+    .status-مكتمل {
+        background: #28a74520;
+        color: #28a745;
+    }
+
+    .status-ملغي {
+        background: #dc354520;
+        color: #dc3545;
+    }
+
+    .status-جديد {
+        background: #007bff20;
+        color: #007bff;
+    }
+
+    .status-قيد-المراجعة {
+        background: #ffc10720;
+        color: #ffc107;
+    }
+
+    .task-description {
+        color: #6c757d;
+        margin-bottom: 1rem;
+        line-height: 1.6;
+    }
+
+    .task-actions {
+        display: flex;
+        gap: 0.5rem;
+        justify-content: flex-end;
+        flex-wrap: wrap;
+    }
+
+    .btn-sm {
+        padding: 0.375rem 0.75rem;
+        font-size: 0.875rem;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+    }
+
+    .btn-sm:hover {
+        transform: translateY(-2px);
+    }
+
+    .modern-btn {
+        border: none;
+        padding: 0.875rem 2rem;
+        border-radius: 12px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        cursor: pointer;
+        font-size: 1rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        text-decoration: none;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.2);
+    }
+
+    .modern-btn::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+        transition: left 0.5s;
+    }
+
+    .modern-btn:hover::before {
+        left: 100%;
+    }
+
+    .modern-btn:hover {
+        transform: translateY(-3px);
+        text-decoration: none;
+        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+    }
+
+    .modern-btn:active {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.6);
+    }
+
+    .modern-btn.primary {
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+    }
+
+    .modern-btn.primary:hover {
+        background: linear-gradient(135deg, #5a6fd8, #6a4190);
+        color: white;
+    }
+
+    .modern-btn i {
+        transition: transform 0.3s ease;
+    }
+
+    .modern-btn:hover i {
+        transform: scale(1.1);
+    }
+
+    .filter-section {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 15px;
+        margin-bottom: 2rem;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+    }
+
+    .overdue-indicator {
+        color: #dc3545;
+        font-weight: bold;
+        font-size: 0.8rem;
+    }
+
+    .due-date {
+        color: #6c757d;
+        font-size: 0.85rem;
+    }
+
+    .assignee {
+        color: #495057;
+        font-size: 0.85rem;
+    }
+
+    .task-status-form {
+        display: inline-block;
+    }
+
+    .task-status-select {
+        border: none;
+        background: transparent;
+        color: inherit;
+        font-size: inherit;
+        font-weight: inherit;
+        cursor: pointer;
+    }
+
+    .fade-in {
+        animation: fadeIn 0.6s ease forwards;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* Notes Styles */
+    .note-card {
+        background: white;
+        border-radius: 15px;
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+        transition: all 0.3s ease;
+        border-top: 4px solid;
+        position: relative;
+    }
+
+    .note-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+    }
+
+    .note-card.color-yellow {
+        border-top-color: #ffc107;
+        background: linear-gradient(135deg, rgba(255, 193, 7, 0.05) 0%, rgba(255, 255, 255, 1) 100%);
+    }
+
+    .note-card.color-blue {
+        border-top-color: #0d6efd;
+        background: linear-gradient(135deg, rgba(13, 110, 253, 0.05) 0%, rgba(255, 255, 255, 1) 100%);
+    }
+
+    .note-card.color-green {
+        border-top-color: #198754;
+        background: linear-gradient(135deg, rgba(25, 135, 84, 0.05) 0%, rgba(255, 255, 255, 1) 100%);
+    }
+
+    .note-card.color-red {
+        border-top-color: #dc3545;
+        background: linear-gradient(135deg, rgba(220, 53, 69, 0.05) 0%, rgba(255, 255, 255, 1) 100%);
+    }
+
+    .note-card.color-purple {
+        border-top-color: #6f42c1;
+        background: linear-gradient(135deg, rgba(111, 66, 193, 0.05) 0%, rgba(255, 255, 255, 1) 100%);
+    }
+
+    .note-card.pinned {
+        background: linear-gradient(135deg, rgba(255, 215, 0, 0.1) 0%, rgba(255, 255, 255, 1) 100%);
+        box-shadow: 0 8px 25px rgba(255, 215, 0, 0.2);
+    }
+
+    .note-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+
+    .note-title {
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: #2d3748;
+        margin: 0;
+    }
+
+    .note-meta {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+        margin-bottom: 1rem;
+        flex-wrap: wrap;
+    }
+
+    .note-badge {
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+
+    .category-عام {
+        background: #6c757d20;
+        color: #6c757d;
+    }
+
+    .category-شخصي {
+        background: #0dcaf020;
+        color: #0dcaf0;
+    }
+
+    .category-عمل {
+        background: #fd7e1420;
+        color: #fd7e14;
+    }
+
+    .category-مهم {
+        background: #dc354520;
+        color: #dc3545;
+    }
+
+    .note-content {
+        color: #495057;
+        line-height: 1.6;
+        margin-bottom: 1rem;
+        white-space: pre-wrap;
+    }
+
+    .note-actions {
+        display: flex;
+        gap: 0.5rem;
+        justify-content: flex-end;
+        flex-wrap: wrap;
+    }
+
+    .pin-button {
+        position: absolute;
+        top: 0.75rem;
+        left: 0.75rem;
+        background: none;
+        border: none;
+        color: #ffc107;
+        font-size: 1.2rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .pin-button:hover {
+        transform: scale(1.2);
+    }
+
+    .pin-button.pinned {
+        color: #ff6b35;
+        transform: rotate(45deg);
+    }
+
+    .notes-masonry {
+        column-count: auto;
+        column-width: 300px;
+        column-gap: 1.5rem;
+    }
+
+    .note-card {
+        break-inside: avoid;
+        margin-bottom: 1.5rem;
+    }
+
+    .tab-content {
+        margin-top: 2rem;
+    }
+
+    .nav-tabs .nav-link {
+        border-radius: 10px 10px 0 0;
+        border: 2px solid transparent;
+        color: #6c757d;
+        font-weight: 600;
+        padding: 0.75rem 1.5rem;
+        transition: all 0.3s ease;
+    }
+
+    .nav-tabs .nav-link:hover {
+        color: #667eea;
+        border-color: #667eea20;
+    }
+
+    .nav-tabs .nav-link.active {
+        color: #667eea;
+        border-color: #667eea;
+        background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(255, 255, 255, 1) 100%);
+    }
+
+    /* Modal Fallback Styles */
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1055;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background-color: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(2px);
+    }
+
+    .modal.show {
+        display: block !important;
+    }
+
+    .modal-dialog {
+        position: relative;
+        width: auto;
+        margin: 1.75rem auto;
+        max-width: 500px;
+        pointer-events: none;
+    }
+
+    .modal-content {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        pointer-events: auto;
+        background-color: #fff;
+        background-clip: padding-box;
+        border: 1px solid rgba(0, 0, 0, 0.2);
+        border-radius: 0.5rem;
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+        outline: 0;
+    }
+
+    .modal-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 1rem 1rem;
+        border-bottom: 1px solid #dee2e6;
+        border-top-left-radius: calc(0.5rem - 1px);
+        border-top-right-radius: calc(0.5rem - 1px);
+    }
+
+    .modal-body {
+        position: relative;
+        flex: 1 1 auto;
+        padding: 1rem;
+    }
+
+    .modal-footer {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        padding: 0.75rem;
+        border-top: 1px solid #dee2e6;
+        border-bottom-right-radius: calc(0.5rem - 1px);
+        border-bottom-left-radius: calc(0.5rem - 1px);
+    }
+
+    .btn-close {
+        box-sizing: content-box;
+        width: 1em;
+        height: 1em;
+        padding: 0.25em 0.25em;
+        color: #000;
+        background: transparent url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23000'%3e%3cpath d='m.235 1.406 1.17-1.17L8 6.83l6.596-6.596 1.17 1.17L9.168 8l6.596 6.596-1.17 1.17L8 9.168l-6.596 6.596-1.17-1.17L6.832 8z'/%3e%3c/svg%3e") center/1em auto no-repeat;
+        border: 0;
+        border-radius: 0.375rem;
+        opacity: 0.5;
+        cursor: pointer;
+    }
+
+    .btn-close:hover {
+        opacity: 0.75;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Modern Header -->
+    <div class="modern-card mb-4">
+        <div class="gradient-header">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1>
+                        <i class="fas fa-tasks me-3"></i>
+                        إدارة المهام والملاحظات
+                    </h1>
+                    <p>تنظيم وتتبع المهام والملاحظات اليومية</p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <button class="modern-btn primary me-2" id="addTaskBtn" type="button">
+                        <i class="fas fa-plus"></i>
+                        إضافة مهمة
+                    </button>
+                    <button class="modern-btn primary" id="addNoteBtn" type="button">
+                        <i class="fas fa-sticky-note"></i>
+                        إضافة ملاحظة
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics -->
+    <div class="stats-grid fade-in">
+        <div class="stat-card total">
+            <div class="stat-number">{{ total_tasks }}</div>
+            <div class="stat-label">إجمالي المهام</div>
+        </div>
+
+        <div class="stat-card completed">
+            <div class="stat-number">{{ completed_tasks }}</div>
+            <div class="stat-label">مهام مكتملة</div>
+        </div>
+
+        <div class="stat-card pending">
+            <div class="stat-number">{{ pending_tasks }}</div>
+            <div class="stat-label">قيد التنفيذ</div>
+        </div>
+
+        <div class="stat-card overdue">
+            <div class="stat-number">{{ overdue_tasks }}</div>
+            <div class="stat-label">متأخرة</div>
+        </div>
+
+        <div class="stat-card total">
+            <div class="stat-number">{{ total_notes }}</div>
+            <div class="stat-label">إجمالي الملاحظات</div>
+        </div>
+
+        <div class="stat-card completed">
+            <div class="stat-number">{{ pinned_notes }}</div>
+            <div class="stat-label">ملاحظات مثبتة</div>
+        </div>
+
+        {% if current_user.role == 'admin' %}
+        <div class="stat-card pending">
+            <div class="stat-number">{{ total_instructor_notes }}</div>
+            <div class="stat-label">ملاحظات المدرسين</div>
+        </div>
+
+        <div class="stat-card overdue">
+            <div class="stat-number">{{ new_instructor_notes }}</div>
+            <div class="stat-label">ملاحظات جديدة</div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Tabs Navigation -->
+    <ul class="nav nav-tabs" id="mainTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="tasks-tab" data-bs-toggle="tab" data-bs-target="#tasks-content"
+                type="button" role="tab">
+                <i class="fas fa-tasks me-2"></i>المهام
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="notes-tab" data-bs-toggle="tab" data-bs-target="#notes-content" type="button"
+                role="tab">
+                <i class="fas fa-sticky-note me-2"></i>الملاحظات
+            </button>
+        </li>
+        {% if current_user.role == 'admin' %}
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="instructor-notes-tab" data-bs-toggle="tab"
+                data-bs-target="#instructor-notes-content" type="button" role="tab">
+                <i class="fas fa-chalkboard-teacher me-2"></i>ملاحظات المدرسين
+                {% if new_instructor_notes > 0 %}
+                <span class="badge bg-danger ms-1">{{ new_instructor_notes }}</span>
+                {% endif %}
+            </button>
+        </li>
+        {% endif %}
+    </ul>
+
+    <!-- Tab Content -->
+    <div class="tab-content" id="mainTabContent">
+        <!-- Tasks Tab -->
+        <div class="tab-pane fade show active" id="tasks-content" role="tabpanel">
+            <!-- Filter Section for Tasks -->
+            <div class="filter-section">
+                <form method="GET" action="{{ url_for('tasks') }}">
+                    <div class="row align-items-end">
+                        <div class="col-md-4">
+                            <label class="form-label">فلترة حسب الحالة</label>
+                            <select name="status" class="form-select">
+                                <option value="all" {% if filter_status=='all' %}selected{% endif %}>جميع الحالات
+                                </option>
+                                <option value="قيد التنفيذ" {% if filter_status=='قيد التنفيذ' %}selected{% endif %}>قيد
+                                    التنفيذ</option>
+                                <option value="مكتمل" {% if filter_status=='مكتمل' %}selected{% endif %}>مكتمل</option>
+                                <option value="ملغي" {% if filter_status=='ملغي' %}selected{% endif %}>ملغي</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">فلترة حسب الأولوية</label>
+                            <select name="priority" class="form-select">
+                                <option value="all" {% if filter_priority=='all' %}selected{% endif %}>جميع الأولويات
+                                </option>
+                                <option value="عالي" {% if filter_priority=='عالي' %}selected{% endif %}>عالي</option>
+                                <option value="متوسط" {% if filter_priority=='متوسط' %}selected{% endif %}>متوسط
+                                </option>
+                                <option value="منخفض" {% if filter_priority=='منخفض' %}selected{% endif %}>منخفض
+                                </option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-filter"></i>
+                                تطبيق الفلتر
+                            </button>
+                            <a href="{{ url_for('tasks') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-times"></i>
+                                إزالة الفلتر
+                            </a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Tasks List -->
+            <div class="row">
+                <div class="col-12">
+                    {% if tasks %}
+                    {% for task in tasks %}
+                    <div
+                        class="task-card priority-{{ task.priority }} status-{{ task.status|replace(' ', '-') }} fade-in">
+                        <div class="task-header">
+                            <h5 class="task-title">{{ task.title }}</h5>
+                            <div class="task-actions">
+                                <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal"
+                                    data-bs-target="#editTaskModal{{ task.id }}">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <form method="POST" action="{{ url_for('delete_task', task_id=task.id) }}"
+                                    style="display: inline;"
+                                    onsubmit="return confirm('هل أنت متأكد من حذف هذه المهمة؟')">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+
+                        <div class="task-meta">
+                            <span class="task-badge priority-{{ task.priority }}">
+                                <i class="fas fa-flag"></i>
+                                {{ task.priority }}
+                            </span>
+
+                            <form method="POST" action="{{ url_for('update_task_status', task_id=task.id) }}"
+                                class="task-status-form">
+                                <select name="status"
+                                    class="task-badge status-{{ task.status|replace(' ', '-') }} task-status-select"
+                                    onchange="this.form.submit()">
+                                    <option value="قيد التنفيذ" {% if task.status=='قيد التنفيذ' %}selected{% endif %}>
+                                        قيد التنفيذ</option>
+                                    <option value="مكتمل" {% if task.status=='مكتمل' %}selected{% endif %}>مكتمل
+                                    </option>
+                                    <option value="ملغي" {% if task.status=='ملغي' %}selected{% endif %}>ملغي</option>
+                                </select>
+                            </form>
+
+                            {% if task.due_date %}
+                            <span class="due-date">
+                                <i class="fas fa-calendar"></i>
+                                {{ task.due_date.strftime('%Y-%m-%d') }}
+                                {% if task.is_overdue %}
+                                <span class="overdue-indicator">(متأخر)</span>
+                                {% elif task.days_remaining is not none %}
+                                <span>(باقي {{ task.days_remaining }} يوم)</span>
+                                {% endif %}
+                            </span>
+                            {% endif %}
+
+                            {% if task.assignee %}
+                            <span class="assignee">
+                                <i class="fas fa-user"></i>
+                                {{ task.assignee.full_name }}
+                            </span>
+                            {% endif %}
+                        </div>
+
+                        {% if task.description %}
+                        <div class="task-description">
+                            {{ task.description }}
+                        </div>
+                        {% endif %}
+
+                        <div class="text-muted small">
+                            أنشأت بواسطة: {{ task.creator.full_name if task.creator else 'غير معروف' }} -
+                            {{ task.created_at.strftime('%Y-%m-%d %H:%M') }}
+                            {% if task.completed_at %}
+                            <br>
+                            تم الإنجاز في: {{ task.completed_at.strftime('%Y-%m-%d %H:%M') }}
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Edit Task Modal -->
+                    <div class="modal fade" id="editTaskModal{{ task.id }}" tabindex="-1">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">تعديل المهمة</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <form method="POST" action="{{ url_for('edit_task', task_id=task.id) }}">
+                                    <div class="modal-body">
+                                        <div class="mb-3">
+                                            <label class="form-label">عنوان المهمة</label>
+                                            <input type="text" name="title" class="form-control"
+                                                value="{{ task.title }}" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">الوصف</label>
+                                            <textarea name="description" class="form-control"
+                                                rows="3">{{ task.description or '' }}</textarea>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <label class="form-label">الأولوية</label>
+                                                <select name="priority" class="form-select">
+                                                    <option value="عالي" {% if task.priority=='عالي' %}selected{% endif
+                                                        %}>عالي</option>
+                                                    <option value="متوسط" {% if task.priority=='متوسط' %}selected{%
+                                                        endif %}>متوسط</option>
+                                                    <option value="منخفض" {% if task.priority=='منخفض' %}selected{%
+                                                        endif %}>منخفض</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label">الموعد النهائي</label>
+                                                <input type="date" name="due_date" class="form-control"
+                                                    value="{{ task.due_date.strftime('%Y-%m-%d') if task.due_date else '' }}">
+                                            </div>
+                                        </div>
+                                        <div class="mt-3">
+                                            <label class="form-label">تكليف إلى</label>
+                                            <select name="assigned_to" class="form-select">
+                                                <option value="">غير محدد</option>
+                                                {% for user in users %}
+                                                <option value="{{ user.id }}" {% if task.assigned_to==user.id
+                                                    %}selected{% endif %}>
+                                                    {{ user.full_name }}
+                                                </option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary"
+                                            data-bs-dismiss="modal">إلغاء</button>
+                                        <button type="submit" class="btn btn-primary">حفظ التغييرات</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-tasks fa-3x text-muted mb-3"></i>
+                        <h4 class="text-muted">لا توجد مهام</h4>
+                        <p class="text-muted">ابدأ بإضافة مهمة جديدة</p>
+                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addTaskModal">
+                            <i class="fas fa-plus"></i>
+                            إضافة مهمة جديدة
+                        </button>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Notes Tab -->
+        <div class="tab-pane fade" id="notes-content" role="tabpanel">
+            <!-- Notes List -->
+            <div class="row">
+                <div class="col-12">
+                    {% if notes %}
+                    <div class="notes-masonry">
+                        {% for note in notes %}
+                        <div class="note-card color-{{ note.color }} {% if note.is_pinned %}pinned{% endif %}"
+                            style="break-inside: avoid;">
+                            <!-- Pin Button -->
+                            <form method="POST" action="{{ url_for('toggle_pin_note', note_id=note.id) }}"
+                                style="display: inline;">
+                                <button type="submit" class="pin-button {% if note.is_pinned %}pinned{% endif %}"
+                                    title="{% if note.is_pinned %}إلغاء التثبيت{% else %}تثبيت الملاحظة{% endif %}">
+                                    <i class="fas fa-thumbtack"></i>
+                                </button>
+                            </form>
+
+                            <div class="note-header">
+                                <h5 class="note-title">{{ note.title }}</h5>
+                                <div class="note-actions">
+                                    <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal"
+                                        data-bs-target="#editNoteModal{{ note.id }}">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <form method="POST" action="{{ url_for('delete_note', note_id=note.id) }}"
+                                        style="display: inline;"
+                                        onsubmit="return confirm('هل أنت متأكد من حذف هذه الملاحظة؟')">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                            <div class="note-meta">
+                                <span class="note-badge category-{{ note.category }}">
+                                    <i class="fas fa-tag"></i>
+                                    {{ note.category }}
+                                </span>
+                            </div>
+                            <div class="note-content">
+                                {{ note.content }}
+                            </div>
+                            <div class="text-muted small">
+                                أنشأت بواسطة: {{ note.creator.full_name if note.creator else 'غير معروف' }} -
+                                {{ note.created_at.strftime('%Y-%m-%d %H:%M') }}
+                            </div>
+                        </div>
+
+                        <!-- Edit Note Modal -->
+                        <div class="modal fade" id="editNoteModal{{ note.id }}" tabindex="-1">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title">تعديل الملاحظة</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                    </div>
+                                    <form method="POST" action="{{ url_for('edit_note', note_id=note.id) }}">
+                                        <div class="modal-body">
+                                            <div class="mb-3">
+                                                <label class="form-label">عنوان الملاحظة</label>
+                                                <input type="text" name="title" class="form-control"
+                                                    value="{{ note.title }}" required>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label">المحتوى</label>
+                                                <textarea name="content" class="form-control"
+                                                    rows="3">{{ note.content }}</textarea>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label">الفئة</label>
+                                                <select name="category" class="form-select">
+                                                    <option value="عام" {% if note.category=='عام' %}selected{% endif
+                                                        %}>عام</option>
+                                                    <option value="شخصي" {% if note.category=='شخصي' %}selected{% endif
+                                                        %}>شخصي</option>
+                                                    <option value="عمل" {% if note.category=='عمل' %}selected{% endif
+                                                        %}>عمل</option>
+                                                    <option value="مهم" {% if note.category=='مهم' %}selected{% endif
+                                                        %}>مهم</option>
+                                                </select>
+                                            </div>
+                                            <div class="row">
+                                                <div class="col-md-6">
+                                                    <label class="form-label">اللون</label>
+                                                    <select name="color" class="form-select">
+                                                        <option value="yellow" {% if note.color=='yellow' %}selected{%
+                                                            endif %}>أصفر</option>
+                                                        <option value="blue" {% if note.color=='blue' %}selected{% endif
+                                                            %}>أزرق</option>
+                                                        <option value="green" {% if note.color=='green' %}selected{%
+                                                            endif %}>أخضر</option>
+                                                        <option value="red" {% if note.color=='red' %}selected{% endif
+                                                            %}>أحمر</option>
+                                                        <option value="purple" {% if note.color=='purple' %}selected{%
+                                                            endif %}>بنفسجي</option>
+                                                    </select>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <div class="form-check mt-4">
+                                                        <input class="form-check-input" type="checkbox" name="is_pinned"
+                                                            id="is_pinned_{{ note.id }}" {% if note.is_pinned
+                                                            %}checked{% endif %}>
+                                                        <label class="form-check-label" for="is_pinned_{{ note.id }}">
+                                                            تثبيت الملاحظة
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary"
+                                                data-bs-dismiss="modal">إلغاء</button>
+                                            <button type="submit" class="btn btn-primary">حفظ التغييرات</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-sticky-note fa-3x text-muted mb-3"></i>
+                        <h4 class="text-muted">لا توجد ملاحظات</h4>
+                        <p class="text-muted">ابدأ بإضافة ملاحظة جديدة</p>
+                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addNoteModal">
+                            <i class="fas fa-plus"></i>
+                            إضافة ملاحظة جديدة
+                        </button>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Instructor Notes Tab (Admin Only) -->
+        {% if current_user.role == 'admin' %}
+        <div class="tab-pane fade" id="instructor-notes-content" role="tabpanel">
+            <!-- Filter Section for Instructor Notes -->
+            <div class="filter-section">
+                <form method="GET" action="{{ url_for('tasks') }}#instructor-notes">
+                    <div class="row align-items-end">
+                        <div class="col-md-4">
+                            <label class="form-label">فلترة حسب الحالة</label>
+                            <select name="status" class="form-select">
+                                <option value="all" {% if filter_status=='all' %}selected{% endif %}>جميع الحالات
+                                </option>
+                                <option value="جديد" {% if filter_status=='جديد' %}selected{% endif %}>جديد</option>
+                                <option value="قيد المراجعة" {% if filter_status=='قيد المراجعة' %}selected{% endif %}>
+                                    قيد المراجعة</option>
+                                <option value="مكتمل" {% if filter_status=='مكتمل' %}selected{% endif %}>مكتمل</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">فلترة حسب الأولوية</label>
+                            <select name="priority" class="form-select">
+                                <option value="all" {% if filter_priority=='all' %}selected{% endif %}>جميع الأولويات
+                                </option>
+                                <option value="عالي" {% if filter_priority=='عالي' %}selected{% endif %}>عالي</option>
+                                <option value="متوسط" {% if filter_priority=='متوسط' %}selected{% endif %}>متوسط
+                                </option>
+                                <option value="منخفض" {% if filter_priority=='منخفض' %}selected{% endif %}>منخفض
+                                </option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-filter"></i>
+                                تطبيق الفلتر
+                            </button>
+                            <a href="{{ url_for('tasks') }}#instructor-notes" class="btn btn-outline-secondary">
+                                <i class="fas fa-times"></i>
+                                إزالة الفلتر
+                            </a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Instructor Notes List -->
+            <div class="row">
+                <div class="col-12">
+                    {% if instructor_notes %}
+                    {% for note in instructor_notes %}
+                    <div
+                        class="task-card priority-{{ note.priority }} status-{{ note.status|replace(' ', '-') }} fade-in">
+                        <div class="task-header">
+                            <h5 class="task-title">{{ note.title }}</h5>
+                            <div class="task-actions">
+                                
+                            </div>
+                        </div>
+
+                        <div class="task-meta">
+                            <span class="task-badge priority-{{ note.priority }}">
+                                <i class="fas fa-flag"></i>
+                                {{ note.priority }}
+                            </span>
+
+                            <form method="POST"
+                                action="{{ url_for('admin_update_instructor_note_status', note_id=note.id) }}"
+                                class="task-status-form">
+                                <select name="status"
+                                    class="task-badge status-{{ note.status|replace(' ', '-') }} task-status-select"
+                                    onchange="this.form.submit()">
+                                    <option value="جديد" {% if note.status=='جديد' %}selected{% endif %}>جديد</option>
+                                    <option value="قيد المراجعة" {% if note.status=='قيد المراجعة' %}selected{% endif
+                                        %}>قيد المراجعة</option>
+                                    <option value="مكتمل" {% if note.status=='مكتمل' %}selected{% endif %}>مكتمل
+                                    </option>
+                                </select>
+                            </form>
+
+                            {% if note.student %}
+                            <span class="task-badge" style="background: #e3f2fd; color: #1976d2;">
+                                <i class="fas fa-user-graduate"></i>
+                                {{ note.student.name }}
+                            </span>
+                            {% endif %}
+
+                            {% if note.group %}
+                            <span class="task-badge" style="background: #f3e5f5; color: #7b1fa2;">
+                                <i class="fas fa-users"></i>
+                                {{ note.group.name }}
+                            </span>
+                            {% endif %}
+                        </div>
+
+                        <div class="task-description">
+                            {{ note.content }}
+                        </div>
+
+                        {% if note.admin_response %}
+                        <div class="mt-3 p-3"
+                            style="background: #e8f5e8; border-radius: 8px; border-left: 4px solid #28a745;">
+                            <strong>رد الإدارة:</strong>
+                            <p class="mb-0 mt-1">{{ note.admin_response }}</p>
+                            <small class="text-muted">
+                                رد {{ note.reviewer.full_name if note.reviewer else 'غير معروف' }} -
+                                {{ note.reviewed_at.strftime('%Y-%m-%d %H:%M') if note.reviewed_at else '' }}
+                            </small>
+                        </div>
+                        {% endif %}
+
+                        <div class="text-muted small">
+                            أرسل بواسطة: {{ note.creator.full_name if note.creator else 'غير معروف' }} -
+                            {{ note.created_at.strftime('%Y-%m-%d %H:%M') }}
+                        </div>
+                    </div>
+
+                    <!-- Respond to Instructor Note Modal -->
+                    <div class="modal fade" id="respondInstructorNoteModal{{ note.id }}" tabindex="-1">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">الرد على ملاحظة المدرس</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <form method="POST"
+                                    action="{{ url_for('admin_respond_instructor_note', note_id=note.id) }}">
+                                    <div class="modal-body">
+                                        <div class="mb-3">
+                                            <label class="form-label">الملاحظة الأصلية</label>
+                                            <div class="p-3 bg-light rounded">
+                                                <strong>{{ note.title }}</strong>
+                                                <p class="mb-0 mt-2">{{ note.content }}</p>
+                                                <small class="text-muted">
+                                                    من: {{ note.creator.full_name if note.creator else 'غير معروف' }} -
+                                                    {{ note.created_at.strftime('%Y-%m-%d %H:%M') }}
+                                                </small>
+                                            </div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">ردك</label>
+                                            <textarea name="response" class="form-control" rows="4"
+                                                placeholder="اكتب ردك هنا...">{{ note.admin_response or '' }}</textarea>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">تحديث الحالة</label>
+                                            <select name="status" class="form-select">
+                                                <option value="قيد المراجعة" {% if note.status=='قيد المراجعة'
+                                                    %}selected{% endif %}>قيد المراجعة</option>
+                                                <option value="مكتمل" {% if note.status=='مكتمل' %}selected{% endif %}>
+                                                    مكتمل</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary"
+                                            data-bs-dismiss="modal">إلغاء</button>
+
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-chalkboard-teacher fa-3x text-muted mb-3"></i>
+                        <h4 class="text-muted">لا توجد ملاحظات من المدرسين</h4>
+                        <p class="text-muted">عندما يرسل المدرسون ملاحظات ستظهر هنا</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Add Task Modal -->
+<div class="modal fade" id="addTaskModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">إضافة مهمة جديدة</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('add_task') }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">عنوان المهمة</label>
+                        <input type="text" name="title" class="form-control" placeholder="أدخل عنوان المهمة" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">الوصف</label>
+                        <textarea name="description" class="form-control" rows="3"
+                            placeholder="وصف تفصيلي للمهمة"></textarea>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label class="form-label">الأولوية</label>
+                            <select name="priority" class="form-select">
+                                <option value="متوسط" selected>متوسط</option>
+                                <option value="عالي">عالي</option>
+                                <option value="منخفض">منخفض</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">الموعد النهائي</label>
+                            <input type="date" name="due_date" class="form-control">
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <label class="form-label">تكليف إلى</label>
+                        <select name="assigned_to" class="form-select">
+                            <option value="">غير محدد</option>
+                            {% for user in users %}
+                            <option value="{{ user.id }}">{{ user.full_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-primary">إضافة المهمة</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Add Note Modal -->
+<div class="modal fade" id="addNoteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">إضافة ملاحظة جديدة</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('add_note') }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">عنوان الملاحظة</label>
+                        <input type="text" name="title" class="form-control" placeholder="أدخل عنوان الملاحظة" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">المحتوى</label>
+                        <textarea name="content" class="form-control" rows="3"
+                            placeholder="أدخل محتوى الملاحظة"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">الفئة</label>
+                        <select name="category" class="form-select">
+                            <option value="عام">عام</option>
+                            <option value="شخصي">شخصي</option>
+                            <option value="عمل">عمل</option>
+                            <option value="مهم">مهم</option>
+                        </select>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label class="form-label">اللون</label>
+                            <select name="color" class="form-select">
+                                <option value="yellow">أصفر</option>
+                                <option value="blue">أزرق</option>
+                                <option value="green">أخضر</option>
+                                <option value="red">أحمر</option>
+                                <option value="purple">بنفسجي</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check mt-4">
+                                <input class="form-check-input" type="checkbox" name="is_pinned" id="is_pinned">
+                                <label class="form-check-label" for="is_pinned">
+                                    تثبيت الملاحظة
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-primary">إضافة الملاحظة</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Initialize modals manually if Bootstrap is available
+    let addTaskModal, addNoteModal;
+
+    // Debug function to check Bootstrap Modal availability
+    function checkBootstrap() {
+        console.log('Checking Bootstrap availability...');
+        console.log('window.bootstrap:', window.bootstrap);
+        console.log('typeof bootstrap:', typeof bootstrap);
+
+        if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+            console.log('Bootstrap 5 Modal is available');
+
+            // Initialize modals
+            const taskModalElement = document.getElementById('addTaskModal');
+            const noteModalElement = document.getElementById('addNoteModal');
+
+            if (taskModalElement) {
+                addTaskModal = new bootstrap.Modal(taskModalElement);
+                console.log('Task modal initialized');
+            }
+
+            if (noteModalElement) {
+                addNoteModal = new bootstrap.Modal(noteModalElement);
+                console.log('Note modal initialized');
+            }
+
+            return true;
+        }
+        console.error('Bootstrap 5 Modal is not available');
+        return false;
+    }
+
+    // Manual modal opening function
+    function openModal(modalId) {
+        console.log('Attempting to open modal:', modalId);
+
+        // Try Bootstrap first
+        if (modalId === 'addTaskModal' && addTaskModal) {
+            addTaskModal.show();
+            return;
+        }
+
+        if (modalId === 'addNoteModal' && addNoteModal) {
+            addNoteModal.show();
+            return;
+        }
+
+        // Enhanced fallback method
+        const modal = document.getElementById(modalId);
+        if (modal) {
+            // Create backdrop if it doesn't exist
+            let backdrop = document.querySelector('.modal-backdrop');
+            if (!backdrop) {
+                backdrop = document.createElement('div');
+                backdrop.className = 'modal-backdrop fade show';
+                backdrop.style.cssText = `
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    z-index: 1050;
+                    width: 100vw;
+                    height: 100vh;
+                    background-color: rgba(0, 0, 0, 0.5);
+                `;
+                document.body.appendChild(backdrop);
+                modal._backdrop = backdrop;
+            }
+
+            // Show modal with animation
+            modal.style.display = 'block';
+            modal.classList.add('show');
+            modal.style.zIndex = '1055';
+            modal.setAttribute('aria-modal', 'true');
+            modal.setAttribute('role', 'dialog');
+
+            // Focus on modal
+            modal.focus();
+
+            console.log('Modal opened with enhanced fallback method');
+        }
+    }
+
+    // Enhanced close modal function
+    function closeModal(modalElement) {
+        if (modalElement) {
+            modalElement.style.display = 'none';
+            modalElement.classList.remove('show');
+            modalElement.removeAttribute('aria-modal');
+            modalElement.removeAttribute('role');
+
+            // Remove backdrop
+            if (modalElement._backdrop) {
+                modalElement._backdrop.remove();
+                delete modalElement._backdrop;
+            } else {
+                const backdrop = document.querySelector('.modal-backdrop');
+                if (backdrop) {
+                    backdrop.remove();
+                }
+            }
+        }
+    }
+
+    // Event listeners for modal buttons
+    function setupModalButtons() {
+        // Add Task button - using ID selector
+        const addTaskBtn = document.getElementById('addTaskBtn');
+        if (addTaskBtn) {
+            addTaskBtn.addEventListener('click', function (e) {
+                e.preventDefault();
+                console.log('Add task button clicked (ID)');
+                openModal('addTaskModal');
+            });
+        }
+
+        // Add Note button - using ID selector  
+        const addNoteBtn = document.getElementById('addNoteBtn');
+        if (addNoteBtn) {
+            addNoteBtn.addEventListener('click', function (e) {
+                e.preventDefault();
+                console.log('Add note button clicked (ID)');
+                openModal('addNoteModal');
+            });
+        }
+
+        // Fallback for any remaining data-bs-target buttons
+        const addTaskBtns = document.querySelectorAll('[data-bs-target="#addTaskModal"]');
+        addTaskBtns.forEach(btn => {
+            btn.addEventListener('click', function (e) {
+                e.preventDefault();
+                console.log('Add task button clicked (data-attr)');
+                openModal('addTaskModal');
+            });
+        });
+
+        const addNoteBtns = document.querySelectorAll('[data-bs-target="#addNoteModal"]');
+        addNoteBtns.forEach(btn => {
+            btn.addEventListener('click', function (e) {
+                e.preventDefault();
+                console.log('Add note button clicked (data-attr)');
+                openModal('addNoteModal');
+            });
+        });
+
+        // Modal close buttons
+        document.querySelectorAll('[data-bs-dismiss="modal"]').forEach(btn => {
+            btn.addEventListener('click', function (e) {
+                const modal = this.closest('.modal');
+                if (modal) {
+                    closeModal(modal);
+                }
+            });
+        });
+
+        // Background click to close modal
+        document.querySelectorAll('.modal').forEach(modal => {
+            modal.addEventListener('click', function (e) {
+                if (e.target === this) {
+                    closeModal(this);
+                }
+            });
+        });
+    }
+
+    // Animate cards on load
+    document.addEventListener('DOMContentLoaded', function () {
+        console.log('DOM Content Loaded');
+
+        // Check if Bootstrap is loaded with delay
+        setTimeout(() => {
+            const bootstrapAvailable = checkBootstrap();
+            setupModalButtons();
+
+            if (!bootstrapAvailable) {
+                console.log('Setting up fallback modal system');
+            }
+        }, 500);
+
+        // Animate cards
+        const cards = document.querySelectorAll('.task-card, .stat-card');
+        cards.forEach((card, index) => {
+            card.style.animationDelay = `${index * 0.1}s`;
+        });
+    });
+
+    // Auto-submit status changes with confirmation
+    document.querySelectorAll('.task-status-select').forEach(select => {
+        select.addEventListener('change', function (e) {
+            const newStatus = this.value;
+            const taskTitle = this.closest('.task-card').querySelector('.task-title').textContent;
+
+            if (newStatus === 'مكتمل') {
+                if (confirm(`هل أنت متأكد من تحديد المهمة "${taskTitle}" كمكتملة؟`)) {
+                    this.form.submit();
+                } else {
+                    // Reset to previous value if cancelled
+                    this.selectedIndex = [...this.options].findIndex(option => option.selected && option.value !== newStatus);
+                }
+            } else {
+                this.form.submit();
+            }
+        });
+    });
+
+    // Handle URL hash for direct navigation to tabs
+    if (window.location.hash === '#notes') {
+        const notesTab = document.getElementById('notes-tab');
+        const notesContent = document.getElementById('notes-content');
+        const tasksTab = document.getElementById('tasks-tab');
+        const tasksContent = document.getElementById('tasks-content');
+        const instructorNotesTab = document.getElementById('instructor-notes-tab');
+        const instructorNotesContent = document.getElementById('instructor-notes-content');
+
+        if (notesTab && notesContent && tasksTab && tasksContent) {
+            // Remove active from tasks
+            tasksTab.classList.remove('active');
+            tasksContent.classList.remove('show', 'active');
+            // Remove active from instructor notes if exists
+            if (instructorNotesTab && instructorNotesContent) {
+                instructorNotesTab.classList.remove('active');
+                instructorNotesContent.classList.remove('show', 'active');
+            }
+
+            // Add active to notes
+            notesTab.classList.add('active');
+            notesContent.classList.add('show', 'active');
+        }
+    } else if (window.location.hash === '#instructor-notes') {
+        const notesTab = document.getElementById('notes-tab');
+        const notesContent = document.getElementById('notes-content');
+        const tasksTab = document.getElementById('tasks-tab');
+        const tasksContent = document.getElementById('tasks-content');
+        const instructorNotesTab = document.getElementById('instructor-notes-tab');
+        const instructorNotesContent = document.getElementById('instructor-notes-content');
+
+        if (instructorNotesTab && instructorNotesContent && tasksTab && tasksContent) {
+            // Remove active from tasks
+            tasksTab.classList.remove('active');
+            tasksContent.classList.remove('show', 'active');
+            // Remove active from notes if exists
+            if (notesTab && notesContent) {
+                notesTab.classList.remove('active');
+                notesContent.classList.remove('show', 'active');
+            }
+
+            // Add active to instructor notes
+            instructorNotesTab.classList.add('active');
+            instructorNotesContent.classList.add('show', 'active');
+        }
+    }
+
+    // Add click handlers for tab switching
+    document.getElementById('notes-tab')?.addEventListener('click', function () {
+        window.location.hash = '#notes';
+    });
+
+    document.getElementById('tasks-tab')?.addEventListener('click', function () {
+        window.location.hash = '#tasks';
+    });
+
+    document.getElementById('instructor-notes-tab')?.addEventListener('click', function () {
+        window.location.hash = '#instructor-notes';
+    });
+</script>
+{% endblock %}

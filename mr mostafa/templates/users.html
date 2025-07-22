@@ -1,0 +1,701 @@
+{% extends "base.html" %}
+
+{% block title %}إدارة المستخدمين - نظام إدارة الطلاب{% endblock %}
+
+{% block content %}
+<style>
+    .user-card {
+        transition: all 0.3s ease;
+        border: none;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    .user-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    }
+
+    .role-badge {
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-weight: 500;
+        font-size: 0.75rem;
+        display: inline-flex;
+        align-items: center;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        transition: all 0.2s ease;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .role-badge:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+    }
+
+    .role-badge i {
+        font-size: 0.7rem;
+        margin-left: 4px;
+    }
+
+    .role-admin {
+        background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+        color: white;
+        box-shadow: 0 2px 8px rgba(220, 53, 69, 0.3);
+    }
+
+    .role-instructor {
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        color: white;
+        box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
+    }
+
+    .user-avatar {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: bold;
+        font-size: 1.2rem;
+    }
+
+    .stats-card {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        color: white;
+        border-radius: 15px;
+        padding: 20px;
+        margin-bottom: 15px;
+    }
+
+    .header-gradient {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 15px 15px 0 0;
+        padding: 20px;
+    }
+
+    .btn-gradient {
+        background: linear-gradient(45deg, #667eea, #764ba2);
+        border: none;
+        color: white;
+        transition: all 0.3s ease;
+    }
+
+    .btn-gradient:hover {
+        background: linear-gradient(45deg, #764ba2, #667eea);
+        transform: translateY(-2px);
+        color: white;
+    }
+
+    .action-btn {
+        margin: 2px;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+    }
+
+    .action-btn:hover {
+        transform: scale(1.1);
+    }
+
+    .modal-content {
+        border-radius: 20px;
+        border: none;
+        overflow: hidden;
+    }
+
+    .modal-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+    }
+
+    .form-control,
+    .form-select {
+        border-radius: 10px;
+        border: 2px solid #e3f2fd;
+        transition: all 0.3s ease;
+    }
+
+    .form-control:focus,
+    .form-select:focus {
+        border-color: #2196f3;
+        box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
+    }
+
+    /* تحسين مظهر المعلومات الإضافية */
+    .user-info-secondary {
+        font-size: 0.8rem;
+        color: #6c757d;
+        margin-top: 2px;
+    }
+
+    .user-info-secondary i {
+        width: 12px;
+        text-align: center;
+    }
+
+    /* Filter Tabs Styling */
+    .filter-tabs .btn {
+        border-radius: 25px;
+        margin: 0 3px;
+        padding: 8px 16px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        border: 2px solid transparent;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .filter-tabs .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    .filter-tabs .btn.active {
+        color: white !important;
+        border-color: transparent !important;
+        transform: translateY(-1px);
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+    }
+
+    .filter-tabs .btn-outline-primary.active {
+        background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+    }
+
+    .filter-tabs .btn-outline-danger.active {
+        background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+    }
+
+    .filter-tabs .btn-outline-success.active {
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    }
+
+    .filter-tabs .badge {
+        font-size: 0.7rem;
+        padding: 3px 6px;
+        border-radius: 10px;
+    }
+
+    /* تحسين مظهر الجدول مع الفلتر */
+    .user-row {
+        transition: all 0.3s ease;
+    }
+
+    .user-row.hidden {
+        display: none !important;
+    }
+
+    .user-row.fade-in {
+        animation: fadeInUp 0.4s ease;
+    }
+
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* تحسينات للموبايل */
+    @media (max-width: 768px) {
+        .filter-tabs {
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+
+        .filter-tabs .btn {
+            font-size: 0.8rem;
+            padding: 6px 12px;
+            margin: 2px;
+        }
+
+        .filter-tabs .badge {
+            font-size: 0.6rem;
+            padding: 2px 4px;
+        }
+    }
+
+    /* Online Indicator Styles */
+    .online-indicator {
+        position: absolute;
+        bottom: 2px;
+        right: 2px;
+        width: 12px;
+        height: 12px;
+        background: #10b981;
+        border: 2px solid white;
+        border-radius: 50%;
+        animation: pulse-online 2s infinite;
+    }
+
+    @keyframes pulse-online {
+        0% {
+            box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+        }
+
+        70% {
+            box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
+        }
+
+        100% {
+            box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+        }
+    }
+
+    .avatar {
+        position: relative;
+    }
+
+    .badge.bg-success {
+        background: linear-gradient(45deg, #10b981, #059669) !important;
+        animation: glow-green 2s infinite alternate;
+    }
+
+    @keyframes glow-green {
+        from {
+            box-shadow: 0 0 5px rgba(16, 185, 129, 0.3);
+        }
+
+        to {
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.6);
+        }
+    }
+</style>
+
+<div class="fade-in">
+    <!-- Enhanced Page Header -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="d-flex align-items-center">
+                <div class="me-3">
+                    <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center"
+                        style="width: 60px; height: 60px;">
+                        <i class="fas fa-users-cog fa-2x text-white"></i>
+                    </div>
+                </div>
+                <div>
+                    <h2 class="mb-0">إدارة المستخدمين</h2>
+                    <p class="text-muted mb-0">إدارة مستخدمي النظام والصلاحيات</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 text-end">
+            <button class="btn btn-gradient btn-lg" data-bs-toggle="modal" data-bs-target="#addUserModal">
+                <i class="fas fa-user-plus me-2"></i>
+                إضافة مستخدم جديد
+            </button>
+        </div>
+    </div>
+
+    <!-- User Filter Tabs -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-body py-3">
+                    <div class="d-flex align-items-center justify-content-between flex-wrap">
+                        <div class="d-flex align-items-center mb-2 mb-md-0">
+                            <h6 class="mb-0 me-3 text-muted">
+                                <i class="fas fa-filter me-2"></i>
+                                فلترة المستخدمين:
+                            </h6>
+                            <div class="btn-group filter-tabs" role="group">
+                                <button type="button" class="btn btn-outline-primary active" data-filter="all"
+                                    onclick="filterUsers('all')">
+                                    <i class="fas fa-users me-2"></i>
+                                    الكل
+                                    <span class="badge bg-primary ms-2" id="count-all">{{ users|length }}</span>
+                                </button>
+                                <button type="button" class="btn btn-outline-danger" data-filter="admin"
+                                    onclick="filterUsers('admin')">
+                                    <i class="fas fa-user-shield me-2"></i>
+                                    المديرين
+                                    <span class="badge bg-danger ms-2" id="count-admin">{{ users|selectattr('role',
+                                        'equalto', 'admin')|list|length }}</span>
+                                </button>
+                                <button type="button" class="btn btn-outline-success" data-filter="instructor"
+                                    onclick="filterUsers('instructor')">
+                                    <i class="fas fa-chalkboard-teacher me-2"></i>
+                                    المدرسين
+                                    <span class="badge bg-success ms-2" id="count-instructor">{{
+                                        users|selectattr('role', 'equalto', 'instructor')|list|length }}</span>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="text-end">
+                            <small class="text-muted">
+                                <i class="fas fa-eye me-1"></i>
+                                <span id="visible-count">{{ users|length }}</span> من {{ users|length }} مستخدم
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Enhanced Users Table -->
+    <div class="user-card card">
+        <div class="header-gradient">
+            <h5 class="mb-0">
+                <i class="fas fa-list me-2"></i>
+                قائمة المستخدمين
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="text-center">#</th>
+                            <th><i class="fas fa-user me-2"></i>المستخدم</th>
+                            <th><i class="fas fa-id-card me-2"></i>اسم المستخدم</th>
+                            <th><i class="fas fa-clock me-2"></i>آخر دخول</th>
+                            <th><i class="fas fa-calendar me-2"></i>تاريخ الإنشاء</th>
+                            <th class="text-center"><i class="fas fa-cogs me-2"></i>الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user in users %}
+                        <tr class="user-row" data-role="{{ user.role }}">
+                            <td class="text-center">
+                                <span class="badge bg-primary rounded-pill">{{ loop.index }}</span>
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar me-3"
+                                        style="width: 45px; height: 45px; background: linear-gradient(45deg, {{ 'var(--primary-color)' if user.role == 'admin' else 'var(--secondary-color)' }}, {{ 'var(--secondary-color)' if user.role == 'admin' else '#11998e' }}); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 1.2rem;">
+                                        {{ user.full_name[0].upper() }}
+                                        {% if user.is_active_now() %}
+                                        <div class="online-indicator"></div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="user-info">
+                                        <div class="user-name fw-bold">
+                                            {{ user.full_name }}
+                                            {% if user.is_active_now() %}
+                                            <span class="badge bg-success ms-2">
+                                                <i class="fas fa-circle me-1" style="font-size: 0.6rem;"></i>
+                                                نشط الآن
+                                            </span>
+                                            {% endif %}
+                                        </div>
+                                        <small class="user-info-secondary">
+                                            <i
+                                                class="fas fa-{{ 'shield-alt' if user.role == 'admin' else 'chalkboard-teacher' }} me-1"></i>
+                                            {{ 'مدير النظام' if user.role == 'admin' else 'مدرس' }}
+                                        </small>
+                                        {% if user.is_hidden %}
+                                        <small class="user-info-secondary d-block"><i
+                                                class="fas fa-eye-slash me-1"></i>مخفي</small>
+                                        {% endif %}
+                                        {% if user.role == 'instructor' and user.linked_instructor %}
+                                        <small class="user-info-secondary d-block">
+                                            <i class="fas fa-link me-1"></i>
+                                            مرتبط بـ: {{ user.linked_instructor.name }}
+                                        </small>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <code class="bg-light p-2 rounded">{{ user.username }}</code>
+                            </td>
+                            <td>
+                                {% if user.last_login %}
+                                <small class="text-muted">
+                                    <i class="fas fa-calendar-day me-1"></i>
+                                    {{ user.last_login.strftime('%Y-%m-%d') }}<br>
+                                    <i class="fas fa-clock me-1"></i>
+                                    {{ format_time_12hour(user.last_login) }}
+                                </small>
+                                {% else %}
+                                <span class="text-muted">لم يسجل دخول بعد</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <small class="text-muted">
+                                    <i class="fas fa-calendar-plus me-1"></i>
+                                    {{ user.created_at.strftime('%Y-%m-%d') }}
+                                </small>
+                            </td>
+                            <td class="text-center">
+                                {% if not user.is_hidden or current_user.username == 'araby' %}
+                                <button class="btn btn-warning btn-sm action-btn"
+                                    onclick="editUser({{ user.id }}, '{{ user.username }}', '{{ user.full_name }}', '{{ user.role }}')"
+                                    title="تعديل المستخدم">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                {% if user.id != current_user.id %}
+                                <button class="btn btn-danger btn-sm action-btn" data-user-id="{{ user.id }}"
+                                    data-user-name="{{ user.full_name }}" onclick="deleteUser(this)"
+                                    title="حذف المستخدم">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                                {% endif %}
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="6" class="text-center text-muted py-5">
+                                <div>
+                                    <i class="fas fa-users fa-5x mb-3 text-muted opacity-50"></i>
+                                    <h4>لا يوجد مستخدمين</h4>
+                                    <p>ابدأ بإضافة مستخدم جديد</p>
+                                    <button class="btn btn-gradient" data-bs-toggle="modal"
+                                        data-bs-target="#addUserModal">
+                                        <i class="fas fa-user-plus me-2"></i>
+                                        إضافة أول مستخدم
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add User Modal -->
+<div class="modal fade" id="addUserModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-user-plus me-2"></i>
+                    إضافة مستخدم جديد
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('add_user') }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">الاسم الكامل *</label>
+                        <input type="text" class="form-control" name="full_name" required
+                            placeholder="أدخل الاسم الكامل">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">اسم المستخدم *</label>
+                        <input type="text" class="form-control" name="username" required
+                            placeholder="أدخل اسم المستخدم">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">كلمة المرور *</label>
+                        <input type="password" class="form-control" name="password" required
+                            placeholder="أدخل كلمة المرور">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">الصلاحية *</label>
+                        <select class="form-select" name="role" id="addRole" required
+                            onchange="toggleInstructorField()">
+                            <option value="">اختر الصلاحية</option>
+                            <option value="admin">مدير</option>
+                            <option value="instructor">مدرس</option>
+                        </select>
+                    </div>
+                    <div class="mb-3" id="instructorField" style="display: none;">
+                        <label class="form-label fw-bold">ربط بالمدرس *</label>
+                        <select class="form-select" name="instructor_id" id="addInstructorId">
+                            <option value="">اختر المدرس</option>
+                            {% for instructor in instructors %}
+                            <option value="{{ instructor.id }}">{{ instructor.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <small class="form-text text-muted">يجب ربط حساب المدرس بملف مدرس موجود</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-2"></i>
+                        إلغاء
+                    </button>
+                    <button type="submit" class="btn btn-gradient">
+                        <i class="fas fa-save me-2"></i>
+                        حفظ المستخدم
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit User Modal -->
+<div class="modal fade" id="editUserModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-user-edit me-2"></i>
+                    تعديل المستخدم
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="editUserForm" method="POST">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">الاسم الكامل *</label>
+                        <input type="text" class="form-control" name="full_name" id="editFullName" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">اسم المستخدم *</label>
+                        <input type="text" class="form-control" name="username" id="editUsername" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">كلمة المرور الجديدة</label>
+                        <input type="password" class="form-control" name="password"
+                            placeholder="اتركه فارغاً إذا كنت لا تريد تغييرها">
+                        <small class="form-text text-muted">اتركه فارغاً إذا كنت لا تريد تغيير كلمة المرور</small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">الصلاحية *</label>
+                        <select class="form-select" name="role" id="editRole" required>
+                            <option value="admin">مدير</option>
+                            <option value="instructor">مدرس</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-2"></i>
+                        إلغاء
+                    </button>
+                    <button type="submit" class="btn btn-gradient">
+                        <i class="fas fa-save me-2"></i>
+                        حفظ التغييرات
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    // فلترة المستخدمين حسب الصلاحية
+    function filterUsers(role) {
+        const rows = document.querySelectorAll('.user-row');
+        const filterButtons = document.querySelectorAll('.filter-tabs .btn');
+        const visibleCountElement = document.getElementById('visible-count');
+
+        let visibleCount = 0;
+
+        // إزالة الـ active class من جميع الأزرار
+        filterButtons.forEach(btn => {
+            btn.classList.remove('active');
+        });
+
+        // إضافة active class للزر المحدد
+        const activeButton = document.querySelector(`[data-filter="${role}"]`);
+        if (activeButton) {
+            activeButton.classList.add('active');
+        }
+
+        // فلترة الصفوف
+        rows.forEach(row => {
+            const userRole = row.dataset.role;
+
+            if (role === 'all' || userRole === role) {
+                row.classList.remove('hidden');
+                row.classList.add('fade-in');
+                visibleCount++;
+            } else {
+                row.classList.add('hidden');
+                row.classList.remove('fade-in');
+            }
+        });
+
+        // تحديث عداد المستخدمين المرئيين
+        if (visibleCountElement) {
+            visibleCountElement.textContent = visibleCount;
+        }
+
+        // إظهار/إخفاء رسالة عدم وجود مستخدمين
+        const noUsersRow = document.querySelector('td[colspan="6"]');
+        if (noUsersRow) {
+            const parentRow = noUsersRow.parentElement;
+            if (visibleCount === 0 && role !== 'all') {
+                parentRow.style.display = '';
+                noUsersRow.innerHTML = `
+                    <div class="text-center text-muted py-5">
+                        <i class="fas fa-users-slash fa-5x mb-3 text-muted opacity-50"></i>
+                        <h4>لا يوجد مستخدمين من نوع "${getRoleDisplayName(role)}"</h4>
+                        <p>جرب فلتر آخر أو أضف مستخدمين جدد</p>
+                        <button class="btn btn-outline-primary btn-sm" onclick="filterUsers('all')">
+                            <i class="fas fa-users me-1"></i>
+                            عرض جميع المستخدمين
+                        </button>
+                    </div>
+                `;
+            } else if (visibleCount === 0 && role === 'all') {
+                parentRow.style.display = '';
+                noUsersRow.innerHTML = `
+                    <div class="text-center text-muted py-5">
+                        <i class="fas fa-users fa-5x mb-3 text-muted opacity-50"></i>
+                        <h4>لا يوجد مستخدمين</h4>
+                        <p>ابدأ بإضافة مستخدم جديد</p>
+                        <button class="btn btn-gradient" data-bs-toggle="modal" data-bs-target="#addUserModal">
+                            <i class="fas fa-user-plus me-2"></i>
+                            إضافة أول مستخدم
+                        </button>
+                    </div>
+                `;
+            } else {
+                parentRow.style.display = 'none';
+            }
+        }
+    }
+
+    // الحصول على اسم الصلاحية للعرض
+    function getRoleDisplayName(role) {
+        const roleNames = {
+            'admin': 'المديرين',
+            'instructor': 'المدرسين'
+        };
+        return roleNames[role] || role;
+    }
+
+    // تشغيل الفلتر عند تحميل الصفحة
+    document.addEventListener('DOMContentLoaded', function () {
+        // إخفاء صف "لا يوجد مستخدمين" إذا كان هناك مستخدمين
+        const userRows = document.querySelectorAll('.user-row');
+        const noUsersRow = document.querySelector('td[colspan="6"]');
+
+        if (userRows.length > 0 && noUsersRow) {
+            noUsersRow.parentElement.style.display = 'none';
+        }
+    });
+
+    function editUser(id, username, fullName, role) {
+        document.getElementById('editUserForm').action = `/edit_user/${id}`;
+        document.getElementById('editUsername').value = username;
+        document.getElementById('editFullName').value = fullName;
+        document.getElementById('editRole').value = role;
+
+        new bootstrap.Modal(document.getElementById('editUserModal')).show();
+    }
+
+    // deleteUser function is now in common.js
+
+    function toggleInstructorField() {
+        const instructorField = document.getElementById('instructorField');
+        const addRole = document.getElementById('addRole');
+        if (addRole.value === 'instructor') {
+            instructorField.style.display = 'block';
+        } else {
+            instructorField.style.display = 'none';
+        }
+    }
+
+    // SweetAlert2 and common functions are loaded in base.html
+</script>
+{% endblock %}
