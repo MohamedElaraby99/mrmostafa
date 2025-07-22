@@ -1,0 +1,657 @@
+{% extends "base.html" %}
+
+{% block title %}ملف {{ student.name }} - نظام إدارة الطلاب{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <!-- Student Header -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="d-flex align-items-center">
+                <div class="student-avatar-large me-3">
+                    {{ student.name[0] }}
+                </div>
+                <div>
+                    <h2 class="mb-1">{{ student.name }}</h2>
+                    <p class="text-muted mb-0">
+                        <i class="fas fa-graduation-cap me-2"></i>
+                        {% if student.grade_level %}
+                            {{ student.grade_level }}
+                        {% else %}
+                            المرحلة الدراسية غير محددة
+                        {% endif %}
+                    </p>
+                    <p class="text-muted mb-0">
+                        <i class="fas fa-calendar me-2"></i>
+                        تاريخ التسجيل: {{ student.registration_date.strftime('%Y-%m-%d') }}
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 text-end">
+            <div class="btn-group">
+                <a href="{{ url_for('generate_monthly_report', student_id=student.id) }}" class="btn btn-info">
+                    <i class="fas fa-file-alt me-2"></i>
+                    تقرير شهري
+                </a>
+                <a href="{{ url_for('send_whatsapp_report', student_id=student.id) }}" class="btn btn-success">
+                    <i class="fab fa-whatsapp me-2"></i>
+                    إرسال واتساب
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card stat-card stat-card-blue">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="stat-icon bg-primary">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        <div class="ms-3">
+                            <h3 class="mb-0">{{ "%.1f"|format(average_score) }}</h3>
+                            <p class="text-muted mb-0">متوسط الدرجات</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card stat-card stat-card-green">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="stat-icon bg-success">
+                            <i class="fas fa-user-check"></i>
+                        </div>
+                        <div class="ms-3">
+                            <h3 class="mb-0">{{ "%.1f"|format(attendance_percentage) }}%</h3>
+                            <p class="text-muted mb-0">نسبة الحضور</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card stat-card stat-card-orange">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="stat-icon bg-warning">
+                            <i class="fas fa-coins"></i>
+                        </div>
+                        <div class="ms-3">
+                            <h3 class="mb-0">{{ total_paid }}</h3>
+                            <p class="text-muted mb-0">إجمالي المدفوع</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card stat-card stat-card-red">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="stat-icon bg-danger">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </div>
+                        <div class="ms-3">
+                            <h3 class="mb-0">{{ remaining_balance }}</h3>
+                            <p class="text-muted mb-0">المتبقي</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contact Information -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-address-card me-2"></i>
+                        معلومات الاتصال
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <strong>رقم الهاتف:</strong>
+                            {% if student.phone %}
+                            <div class="d-flex align-items-center mt-1">
+                                <span class="me-2">{{ student.phone }}</span>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="tel:{{ student.phone }}" class="btn btn-outline-primary btn-sm">
+                                        <i class="fas fa-phone"></i>
+                                    </a>
+                                    <a href="https://wa.me/{{ student.phone.replace('+', '').replace(' ', '') }}" 
+                                       class="btn btn-outline-success btn-sm" target="_blank">
+                                        <i class="fab fa-whatsapp"></i>
+                                    </a>
+                                </div>
+                            </div>
+                            {% else %}
+                            <span class="text-muted">غير محدد</span>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-3">
+                            <strong>العمر:</strong>
+                            <div class="mt-1">{{ student.age }} سنة</div>
+                        </div>
+                        <div class="col-md-3">
+                            <strong>الموقع:</strong>
+                            <div class="mt-1">{{ student.location or 'غير محدد' }}</div>
+                        </div>
+                        <div class="col-md-3">
+                            <strong>الخصم:</strong>
+                            <div class="mt-1">{{ student.discount }} ج.م</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Groups Information -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-users me-2"></i>
+                        المجموعات المسجل بها
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if student.groups %}
+                    <div class="row">
+                        {% for group in student.groups %}
+                        <div class="col-md-6 mb-3">
+                            <div class="group-card">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="mb-1">{{ group.name }}</h6>
+                                        <small class="text-muted">
+                                            {% if group.instructor_ref %}
+                                            <i class="fas fa-chalkboard-teacher me-1"></i>
+                                            {{ group.instructor_ref.name }}
+                                            {% else %}
+                                            <i class="fas fa-user-slash me-1"></i>
+                                            بدون مدرس
+                                            {% endif %}
+                                        </small>
+                                    </div>
+                                    <div class="text-end">
+                                        <span class="badge bg-primary">{{ group.price }} ج.م</span>
+                                        {% if group.status == 'completed' %}
+                                        <br><span class="badge bg-success mt-1">مكتملة</span>
+                                        {% else %}
+                                        <br><span class="badge bg-info mt-1">نشطة</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center text-muted py-3">
+                        <i class="fas fa-users fa-2x mb-2"></i>
+                        <p>لم يتم تسجيل الطالب في أي مجموعة بعد</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Tabs -->
+    <div class="row">
+        <div class="col-12">
+            <ul class="nav nav-tabs nav-fill" id="profileTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="grades-tab" data-bs-toggle="tab" data-bs-target="#grades" 
+                            type="button" role="tab">
+                        <i class="fas fa-chart-bar me-2"></i>
+                        الدرجات ({{ total_grades }})
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="attendance-tab" data-bs-toggle="tab" data-bs-target="#attendance" 
+                            type="button" role="tab">
+                        <i class="fas fa-calendar-check me-2"></i>
+                        الحضور ({{ total_sessions }})
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="payments-tab" data-bs-toggle="tab" data-bs-target="#payments" 
+                            type="button" role="tab">
+                        <i class="fas fa-money-bill-wave me-2"></i>
+                        المدفوعات ({{ payments|length }})
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="activities-tab" data-bs-toggle="tab" data-bs-target="#activities" 
+                            type="button" role="tab">
+                        <i class="fas fa-clock me-2"></i>
+                        الأنشطة الحديثة
+                    </button>
+                </li>
+            </ul>
+
+            <div class="tab-content" id="profileTabsContent">
+                <!-- Grades Tab -->
+                <div class="tab-pane fade show active" id="grades" role="tabpanel">
+                    <div class="card border-0">
+                        <div class="card-body">
+                            {% if grades %}
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>المادة</th>
+                                            <th>النوع</th>
+                                            <th>الدرجة</th>
+                                            <th>النسبة</th>
+                                            <th>التقدير</th>
+                                            <th>تاريخ الاختبار</th>
+                                            <th>ملاحظات</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for grade in grades %}
+                                        <tr>
+                                            <td>
+                                                <strong>{{ grade.subject.name }}</strong>
+                                                {% if grade.subject.code %}
+                                                <br><small class="text-muted">{{ grade.subject.code }}</small>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-info">{{ grade.subject.subject_type }}</span>
+                                            </td>
+                                            <td>
+                                                <strong>{{ grade.score|round(1) }}</strong>
+                                                <small class="text-muted">/ {{ grade.max_score|round(1) }}</small>
+                                            </td>
+                                            <td>
+                                                <div class="progress" style="height: 20px;">
+                                                    {% set percentage = grade.percentage|round(1) %}
+                                                    <div class="progress-bar 
+                                                        {{ 'bg-success' if percentage >= 85 else 
+                                                           'bg-info' if percentage >= 75 else 
+                                                           'bg-warning' if percentage >= 60 else 'bg-danger' }}" 
+                                                        style="width: {{ percentage }}%">
+                                                        {{ percentage }}%
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <span class="badge 
+                                                    {{ 'bg-success' if grade.grade_letter in ['A', 'B'] else 
+                                                       'bg-warning' if grade.grade_letter == 'C' else 
+                                                       'bg-danger' }} fs-6">
+                                                    {{ grade.grade_letter }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                {% if grade.exam_date %}
+                                                {{ grade.exam_date.strftime('%Y-%m-%d') }}
+                                                {% else %}
+                                                <span class="text-muted">-</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if grade.notes %}
+                                                <span title="{{ grade.notes }}">
+                                                    {{ grade.notes[:30] }}{% if grade.notes|length > 30 %}...{% endif %}
+                                                </span>
+                                                {% else %}
+                                                <span class="text-muted">-</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {% else %}
+                            <div class="text-center text-muted py-5">
+                                <i class="fas fa-chart-bar fa-3x mb-3"></i>
+                                <h5>لا توجد درجات مسجلة</h5>
+                                <p>لم يتم تسجيل أي درجات للطالب بعد</p>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Attendance Tab -->
+                <div class="tab-pane fade" id="attendance" role="tabpanel">
+                    <div class="card border-0">
+                        <div class="card-body">
+                            {% if attendance_records %}
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>التاريخ</th>
+                                            <th>المجموعة</th>
+                                            <th>الحالة</th>
+                                            <th>ملاحظات</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for record in attendance_records %}
+                                        <tr>
+                                            <td>{{ record.date.strftime('%Y-%m-%d') }}</td>
+                                            <td>
+                                                {% if record.group %}
+                                                {{ record.group.name }}
+                                                {% else %}
+                                                <span class="text-muted">غير محدد</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if record.status == 'حاضر' %}
+                                                <span class="badge bg-success">{{ record.status }}</span>
+                                                {% elif record.status == 'غائب' %}
+                                                <span class="badge bg-danger">{{ record.status }}</span>
+                                                {% else %}
+                                                <span class="badge bg-warning">{{ record.status }}</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ record.notes or '-' }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {% else %}
+                            <div class="text-center text-muted py-5">
+                                <i class="fas fa-calendar-check fa-3x mb-3"></i>
+                                <h5>لا توجد سجلات حضور</h5>
+                                <p>لم يتم تسجيل حضور للطالب بعد</p>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Payments Tab -->
+                <div class="tab-pane fade" id="payments" role="tabpanel">
+                    <div class="card border-0">
+                        <div class="card-body">
+                            {% if payments %}
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>التاريخ</th>
+                                            <th>المبلغ</th>
+                                            <th>طريقة الدفع</th>
+                                            <th>المجموعة</th>
+                                            <th>ملاحظات</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for payment in payments %}
+                                        <tr>
+                                            <td>{{ payment.date.strftime('%Y-%m-%d') }}</td>
+                                            <td>
+                                                <strong class="text-success">{{ payment.amount }} ج.م</strong>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-info">نقدي</span>
+                                            </td>
+                                            <td>
+                                                <span class="text-muted">عام</span>
+                                            </td>
+                                            <td>{{ payment.notes or '-' }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <!-- Payment Summary -->
+                            <div class="row mt-4">
+                                <div class="col-md-4">
+                                    <div class="card bg-light">
+                                        <div class="card-body text-center">
+                                            <h5 class="text-success">{{ total_paid }} ج.م</h5>
+                                            <small class="text-muted">إجمالي المدفوع</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card bg-light">
+                                        <div class="card-body text-center">
+                                            <h5 class="text-primary">{{ total_fees }} ج.م</h5>
+                                            <small class="text-muted">إجمالي الرسوم</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card bg-light">
+                                        <div class="card-body text-center">
+                                            <h5 class="{{ 'text-danger' if remaining_balance > 0 else 'text-success' }}">
+                                                {{ remaining_balance }} ج.م
+                                            </h5>
+                                            <small class="text-muted">
+                                                {% if remaining_balance > 0 %}المتبقي{% else %}مكتمل الدفع{% endif %}
+                                            </small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% else %}
+                            <div class="text-center text-muted py-5">
+                                <i class="fas fa-money-bill-wave fa-3x mb-3"></i>
+                                <h5>لا توجد مدفوعات مسجلة</h5>
+                                <p>لم يتم تسجيل أي مدفوعات للطالب بعد</p>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Activities Tab -->
+                <div class="tab-pane fade" id="activities" role="tabpanel">
+                    <div class="card border-0">
+                        <div class="card-body">
+                            <h6 class="text-muted mb-3">الأنشطة خلال آخر 30 يوم</h6>
+                            
+                            <div class="timeline">
+                                <!-- Recent Grades -->
+                                {% for grade in recent_grades %}
+                                <div class="timeline-item">
+                                    <div class="timeline-marker bg-primary">
+                                        <i class="fas fa-chart-bar"></i>
+                                    </div>
+                                    <div class="timeline-content">
+                                        <h6 class="mb-1">درجة جديدة - {{ grade.subject.name }}</h6>
+                                        <p class="mb-1">
+                                            حصل على {{ grade.score }}/{{ grade.max_score }} 
+                                            ({{ grade.percentage|round(1) }}%)
+                                        </p>
+                                        <small class="text-muted">
+                                            {{ grade.created_at.strftime('%Y-%m-%d %H:%M') }}
+                                        </small>
+                                    </div>
+                                </div>
+                                {% endfor %}
+
+                                <!-- Recent Attendance -->
+                                {% for attendance in recent_attendance %}
+                                <div class="timeline-item">
+                                    <div class="timeline-marker {{ 'bg-success' if attendance.status == 'حاضر' else 'bg-danger' }}">
+                                        <i class="fas fa-calendar-check"></i>
+                                    </div>
+                                    <div class="timeline-content">
+                                        <h6 class="mb-1">{{ attendance.status }}</h6>
+                                        <p class="mb-1">
+                                            {% if attendance.group %}
+                                            {{ attendance.group.name }}
+                                            {% else %}
+                                            حصة دراسية
+                                            {% endif %}
+                                        </p>
+                                        <small class="text-muted">
+                                            {{ attendance.date.strftime('%Y-%m-%d') }}
+                                        </small>
+                                    </div>
+                                </div>
+                                {% endfor %}
+
+                                <!-- Recent Payments -->
+                                {% for payment in recent_payments %}
+                                <div class="timeline-item">
+                                    <div class="timeline-marker bg-success">
+                                        <i class="fas fa-money-bill-wave"></i>
+                                    </div>
+                                    <div class="timeline-content">
+                                        <h6 class="mb-1">دفعة جديدة</h6>
+                                        <p class="mb-1">{{ payment.amount }} ج.م</p>
+                                                                <small class="text-muted">
+                            {{ payment.date.strftime('%Y-%m-%d') }}
+                        </small>
+                                    </div>
+                                </div>
+                                {% endfor %}
+
+                                {% if not recent_grades and not recent_attendance and not recent_payments %}
+                                <div class="text-center text-muted py-3">
+                                    <i class="fas fa-clock fa-2x mb-2"></i>
+                                    <p>لا توجد أنشطة حديثة خلال آخر 30 يوم</p>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.student-avatar-large {
+    width: 80px;
+    height: 80px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+    font-size: 2rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.stat-card {
+    border: none;
+    border-radius: 15px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+}
+
+.stat-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.2rem;
+}
+
+.group-card {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 10px;
+    border-left: 4px solid #667eea;
+}
+
+.nav-tabs .nav-link {
+    border: none;
+    border-radius: 0;
+    color: #6c757d;
+    font-weight: 600;
+    padding: 15px 20px;
+}
+
+.nav-tabs .nav-link.active {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 10px 10px 0 0;
+}
+
+.timeline {
+    position: relative;
+    padding: 20px 0;
+}
+
+.timeline-item {
+    position: relative;
+    padding-left: 60px;
+    margin-bottom: 20px;
+}
+
+.timeline-marker {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 14px;
+}
+
+.timeline-item:not(:last-child)::before {
+    content: '';
+    position: absolute;
+    left: 19px;
+    top: 40px;
+    width: 2px;
+    height: calc(100% + 10px);
+    background: #e9ecef;
+}
+
+.timeline-content {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 10px;
+    border-left: 3px solid #667eea;
+}
+
+.fade-in {
+    animation: fadeInUp 0.6s ease-out;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+</style>
+{% endblock %} 

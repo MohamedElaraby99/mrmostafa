@@ -687,6 +687,12 @@
                         </a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link {{ 'active' if request.endpoint == 'manage_subjects' else '' }}"
+                            href="{{ url_for('manage_subjects') }}">
+                            <i class="fas fa-book me-1"></i>إدارة المواد
+                        </a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link {{ 'active' if request.endpoint == 'reports' else '' }}"
                             href="{{ url_for('reports') }}">
                             <i class="fas fa-chart-line me-1"></i>التقارير

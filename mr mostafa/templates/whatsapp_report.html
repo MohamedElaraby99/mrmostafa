@@ -1,0 +1,434 @@
+{% extends "base.html" %}
+
+{% block title %}إرسال تقرير واتساب - {{ student.name }}{% endblock %}
+
+{% block content %}
+<div class="whatsapp-container">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <!-- Header -->
+            <div class="whatsapp-header">
+                <div class="d-flex align-items-center mb-4">
+                    <div class="whatsapp-icon">
+                        <i class="fab fa-whatsapp"></i>
+                    </div>
+                    <div class="ms-3">
+                        <h2 class="mb-1">إرسال تقرير واتساب</h2>
+                        <p class="text-muted mb-0">تقرير شهري لـ {{ student.name }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Phone Number Check -->
+            {% if not phone %}
+            <div class="alert alert-warning d-flex align-items-center">
+                <i class="fas fa-exclamation-triangle me-3 fa-2x"></i>
+                <div>
+                    <h5 class="alert-heading mb-2">رقم الهاتف غير متوفر</h5>
+                    <p class="mb-0">لم يتم تسجيل رقم هاتف للطالب. يرجى إضافة رقم الهاتف أولاً لتتمكن من إرسال التقرير عبر الواتساب.</p>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Message Preview -->
+            <div class="whatsapp-preview">
+                <div class="preview-header">
+                    <h4 class="mb-3">
+                        <i class="fas fa-eye me-2"></i>
+                        معاينة الرسالة
+                    </h4>
+                </div>
+                
+                <div class="message-container">
+                    <div class="message-bubble">
+                        <pre class="message-text">{{ message }}</pre>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="action-buttons">
+                {% if phone %}
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <a href="{{ whatsapp_url }}" target="_blank" class="btn btn-whatsapp btn-lg w-100">
+                            <i class="fab fa-whatsapp me-2"></i>
+                            إرسال عبر الواتساب
+                        </a>
+                        <small class="text-muted d-block mt-2 text-center">
+                            سيتم فتح الواتساب مع الرسالة جاهزة للإرسال
+                        </small>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <button class="btn btn-outline-primary btn-lg w-100" onclick="copyMessage()">
+                            <i class="fas fa-copy me-2"></i>
+                            نسخ النص
+                        </button>
+                        <small class="text-muted d-block mt-2 text-center">
+                            انسخ النص لاستخدامه في تطبيق آخر
+                        </small>
+                    </div>
+                </div>
+                {% endif %}
+                
+                <div class="row mt-3">
+                    <div class="col-md-6 mb-2">
+                        <a href="{{ url_for('student_profile', student_id=student.id) }}" class="btn btn-outline-secondary w-100">
+                            <i class="fas fa-arrow-left me-2"></i>
+                            العودة للملف الشخصي
+                        </a>
+                    </div>
+                    <div class="col-md-6 mb-2">
+                        <a href="{{ url_for('generate_monthly_report', student_id=student.id) }}" class="btn btn-outline-info w-100">
+                            <i class="fas fa-file-alt me-2"></i>
+                            عرض التقرير المفصل
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Instructions -->
+            <div class="instructions-card">
+                <h5 class="mb-3">
+                    <i class="fas fa-info-circle me-2"></i>
+                    كيفية الاستخدام
+                </h5>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="instruction-step">
+                            <div class="step-number">1</div>
+                            <div class="step-content">
+                                <strong>اضغط على "إرسال عبر الواتساب"</strong>
+                                <p>سيتم فتح تطبيق الواتساب تلقائياً</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="instruction-step">
+                            <div class="step-number">2</div>
+                            <div class="step-content">
+                                <strong>تأكد من الرقم والرسالة</strong>
+                                <p>ستجد الرسالة جاهزة للإرسال</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="instruction-step">
+                            <div class="step-number">3</div>
+                            <div class="step-content">
+                                <strong>اضغط إرسال</strong>
+                                <p>سيتم إرسال التقرير لولي الأمر</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="instruction-step">
+                            <div class="step-number">4</div>
+                            <div class="step-content">
+                                <strong>بديل: انسخ النص</strong>
+                                <p>يمكنك نسخ الرسالة لاستخدامها في أي تطبيق</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Student Contact Info -->
+            <div class="contact-info-card">
+                <h5 class="mb-3">
+                    <i class="fas fa-address-card me-2"></i>
+                    معلومات الاتصال
+                </h5>
+                <div class="row">
+                    <div class="col-md-4">
+                        <strong>الطالب:</strong> {{ student.name }}
+                    </div>
+                    <div class="col-md-4">
+                        <strong>رقم الهاتف:</strong> 
+                        {% if student.phone %}
+                        <span class="phone-number">{{ student.phone }}</span>
+                        {% else %}
+                        <span class="text-muted">غير محدد</span>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-4">
+                        <strong>المرحلة الدراسية:</strong> {{ student.grade_level or 'غير محددة' }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Success Modal -->
+<div class="modal fade" id="copySuccessModal" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-body text-center py-4">
+                <i class="fas fa-check-circle text-success fa-3x mb-3"></i>
+                <h5>تم النسخ بنجاح!</h5>
+                <p class="mb-0">تم نسخ النص إلى الحافظة</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.whatsapp-container {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.whatsapp-header {
+    background: linear-gradient(135deg, #25d366 0%, #128c7e 100%);
+    padding: 30px;
+    border-radius: 20px;
+    color: white;
+    box-shadow: 0 4px 15px rgba(37, 211, 102, 0.3);
+}
+
+.whatsapp-icon {
+    width: 60px;
+    height: 60px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+}
+
+.whatsapp-preview {
+    background: #f8f9fa;
+    border-radius: 15px;
+    padding: 25px;
+    margin: 30px 0;
+    border: 1px solid #e9ecef;
+}
+
+.preview-header h4 {
+    color: #333;
+    font-weight: 600;
+}
+
+.message-container {
+    background: linear-gradient(135deg, #dcf8c6 0%, #d4edda 100%);
+    border-radius: 15px;
+    padding: 20px;
+    position: relative;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.message-container::before {
+    content: '';
+    position: absolute;
+    top: 20px;
+    right: -10px;
+    width: 0;
+    height: 0;
+    border-left: 10px solid #dcf8c6;
+    border-top: 10px solid transparent;
+    border-bottom: 10px solid transparent;
+}
+
+.message-bubble {
+    background: transparent;
+    border-radius: 10px;
+}
+
+.message-text {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    color: #333;
+    margin: 0;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    background: transparent;
+    border: none;
+    padding: 0;
+}
+
+.btn-whatsapp {
+    background: linear-gradient(135deg, #25d366 0%, #128c7e 100%);
+    border: none;
+    color: white;
+    font-weight: 600;
+    box-shadow: 0 4px 15px rgba(37, 211, 102, 0.3);
+    transition: all 0.3s ease;
+}
+
+.btn-whatsapp:hover {
+    background: linear-gradient(135deg, #128c7e 0%, #25d366 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(37, 211, 102, 0.4);
+    color: white;
+}
+
+.action-buttons {
+    margin: 30px 0;
+}
+
+.instructions-card, .contact-info-card {
+    background: white;
+    border-radius: 15px;
+    padding: 25px;
+    margin: 20px 0;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e9ecef;
+}
+
+.instruction-step {
+    display: flex;
+    align-items: flex-start;
+    margin-bottom: 20px;
+}
+
+.step-number {
+    width: 35px;
+    height: 35px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 14px;
+    margin-right: 15px;
+    flex-shrink: 0;
+}
+
+.step-content {
+    flex: 1;
+}
+
+.step-content strong {
+    color: #333;
+    display: block;
+    margin-bottom: 5px;
+}
+
+.step-content p {
+    color: #6c757d;
+    margin: 0;
+    font-size: 0.9rem;
+}
+
+.phone-number {
+    font-family: 'Courier New', monospace;
+    background: #f8f9fa;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: 600;
+}
+
+@media (max-width: 768px) {
+    .whatsapp-container {
+        padding: 10px;
+    }
+    
+    .whatsapp-header {
+        padding: 20px;
+    }
+    
+    .whatsapp-icon {
+        width: 50px;
+        height: 50px;
+        font-size: 1.5rem;
+    }
+    
+    .instructions-card, .contact-info-card {
+        padding: 20px;
+    }
+    
+    .instruction-step {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .step-number {
+        margin: 0 auto 10px;
+    }
+}
+
+.fade-in {
+    animation: fadeInUp 0.6s ease-out;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+</style>
+
+<script>
+function copyMessage() {
+    const messageText = document.querySelector('.message-text').textContent;
+    
+    if (navigator.clipboard && window.isSecureContext) {
+        // Modern browsers with clipboard API
+        navigator.clipboard.writeText(messageText).then(function() {
+            showCopySuccess();
+        }).catch(function(err) {
+            console.error('Could not copy text: ', err);
+            fallbackCopyTextToClipboard(messageText);
+        });
+    } else {
+        // Fallback for older browsers
+        fallbackCopyTextToClipboard(messageText);
+    }
+}
+
+function fallbackCopyTextToClipboard(text) {
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+    
+    // Avoid scrolling to bottom
+    textArea.style.top = "0";
+    textArea.style.left = "0";
+    textArea.style.position = "fixed";
+    
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    
+    try {
+        const successful = document.execCommand('copy');
+        if (successful) {
+            showCopySuccess();
+        } else {
+            console.error('Fallback: Could not copy text');
+            alert('لم يتم نسخ النص. يرجى المحاولة مرة أخرى.');
+        }
+    } catch (err) {
+        console.error('Fallback: Oops, unable to copy', err);
+        alert('لم يتم نسخ النص. يرجى المحاولة مرة أخرى.');
+    }
+    
+    document.body.removeChild(textArea);
+}
+
+function showCopySuccess() {
+    const modal = new bootstrap.Modal(document.getElementById('copySuccessModal'));
+    modal.show();
+    
+    // Auto-hide after 2 seconds
+    setTimeout(function() {
+        modal.hide();
+    }, 2000);
+}
+
+// Add fade-in animation
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelector('.whatsapp-container').classList.add('fade-in');
+});
+</script>
+{% endblock %} 

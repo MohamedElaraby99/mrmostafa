@@ -1,0 +1,585 @@
+{% extends "base.html" %}
+
+{% block title %}استيراد الطلاب - نظام إدارة الطلاب{% endblock %}
+
+{% block content %}
+<div class="import-container">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <!-- Header -->
+            <div class="import-header">
+                <div class="d-flex align-items-center mb-4">
+                    <div class="import-icon">
+                        <i class="fas fa-file-excel"></i>
+                    </div>
+                    <div class="ms-3">
+                        <h2 class="mb-1">استيراد الطلاب من ملف إكسيل</h2>
+                        <p class="text-muted mb-0">إضافة عدة طلاب دفعة واحدة باستخدام ملف إكسيل</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Download Template Section -->
+            <div class="template-section">
+                <h4 class="mb-3">
+                    <i class="fas fa-download me-2"></i>
+                    الخطوة الأولى: تحميل القالب
+                </h4>
+                <div class="template-card">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h5 class="mb-2">تحميل قالب ملف إكسيل</h5>
+                            <p class="text-muted mb-3">
+                                حمل القالب المجهز مسبقاً والذي يحتوي على التعليمات والأمثلة اللازمة لإدخال بيانات الطلاب
+                            </p>
+                            <ul class="template-features">
+                                <li><i class="fas fa-check text-success me-2"></i>تعليمات مفصلة</li>
+                                <li><i class="fas fa-check text-success me-2"></i>أمثلة توضيحية</li>
+                                <li><i class="fas fa-check text-success me-2"></i>قائمة المجموعات المتاحة</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-4 text-center">
+                            <a href="{{ url_for('download_students_template') }}" class="btn btn-success btn-lg">
+                                <i class="fas fa-download me-2"></i>
+                                تحميل القالب
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Groups Reference -->
+            {% if groups %}
+            <div class="groups-reference">
+                <h5 class="mb-3">
+                    <i class="fas fa-info-circle me-2"></i>
+                    المجموعات المتاحة (للمرجع)
+                </h5>
+                <div class="groups-grid">
+                    {% for group in groups %}
+                    <div class="group-ref-card">
+                        <div class="group-id-badge">{{ group.id }}</div>
+                        <div class="group-info">
+                            <h6 class="mb-1">{{ group.name }}</h6>
+                            <small class="text-muted">
+                                {% if group.instructor_ref %}
+                                {{ group.instructor_ref.name }}
+                                {% else %}
+                                غير محدد
+                                {% endif %}
+                            </small>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Upload Section -->
+            <div class="upload-section">
+                <h4 class="mb-3">
+                    <i class="fas fa-upload me-2"></i>
+                    الخطوة الثانية: رفع الملف المكتمل
+                </h4>
+                
+                <form id="importForm" action="{{ url_for('import_students') }}" method="post" enctype="multipart/form-data">
+                    <div class="upload-area" id="uploadArea">
+                        <div class="upload-content">
+                            <div class="upload-icon">
+                                <i class="fas fa-cloud-upload-alt"></i>
+                            </div>
+                            <h5 class="upload-title">اسحب وأفلت ملف الإكسيل هنا</h5>
+                            <p class="upload-subtitle">أو اضغط لاختيار الملف</p>
+                            <input type="file" id="fileInput" name="file" accept=".xlsx,.xls" class="file-input">
+                            <div class="upload-constraints">
+                                <small class="text-muted">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    الملفات المقبولة: .xlsx, .xls (حد أقصى 10 ميجابايت)
+                                </small>
+                            </div>
+                        </div>
+                        
+                        <div class="file-preview" id="filePreview" style="display: none;">
+                            <div class="file-info">
+                                <div class="file-icon">
+                                    <i class="fas fa-file-excel text-success"></i>
+                                </div>
+                                <div class="file-details">
+                                    <div class="file-name" id="fileName"></div>
+                                    <div class="file-size" id="fileSize"></div>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeFile()">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="upload-actions" id="uploadActions" style="display: none;">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <button type="submit" class="btn btn-primary btn-lg w-100" id="submitBtn">
+                                    <i class="fas fa-upload me-2"></i>
+                                    <span id="submitText">رفع واستيراد الطلاب</span>
+                                </button>
+                            </div>
+                            <div class="col-md-6">
+                                <a href="{{ url_for('students') }}" class="btn btn-outline-secondary btn-lg w-100">
+                                    <i class="fas fa-arrow-left me-2"></i>
+                                    العودة لقائمة الطلاب
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Instructions -->
+            <div class="instructions-section">
+                <h5 class="mb-3">
+                    <i class="fas fa-list-ul me-2"></i>
+                    تعليمات مهمة
+                </h5>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="instruction-card">
+                            <div class="instruction-icon bg-primary">
+                                <i class="fas fa-download"></i>
+                            </div>
+                            <div class="instruction-content">
+                                <h6>1. تحميل القالب</h6>
+                                <p>احرص على تحميل القالب أولاً والاطلاع على التعليمات</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="instruction-card">
+                            <div class="instruction-icon bg-info">
+                                <i class="fas fa-edit"></i>
+                            </div>
+                            <div class="instruction-content">
+                                <h6>2. ملء البيانات</h6>
+                                <p>أدخل بيانات الطلاب حسب التعليمات المرفقة</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="instruction-card">
+                            <div class="instruction-icon bg-warning">
+                                <i class="fas fa-trash"></i>
+                            </div>
+                            <div class="instruction-content">
+                                <h6>3. حذف الأمثلة</h6>
+                                <p>احذف الصفوف النموذجية قبل رفع الملف</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="instruction-card">
+                            <div class="instruction-icon bg-success">
+                                <i class="fas fa-upload"></i>
+                            </div>
+                            <div class="instruction-content">
+                                <h6>4. رفع الملف</h6>
+                                <p>ارفع الملف وانتظر النتائج</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.import-container {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.import-header {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    padding: 30px;
+    border-radius: 20px;
+    color: white;
+    box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+}
+
+.import-icon {
+    width: 60px;
+    height: 60px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+}
+
+.template-section, .upload-section, .instructions-section, .groups-reference {
+    margin: 30px 0;
+}
+
+.template-card {
+    background: white;
+    border-radius: 15px;
+    padding: 25px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e9ecef;
+}
+
+.template-features {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.template-features li {
+    margin-bottom: 8px;
+}
+
+.groups-reference {
+    background: #f8f9fa;
+    border-radius: 15px;
+    padding: 25px;
+    border: 1px solid #e9ecef;
+}
+
+.groups-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 15px;
+    margin-top: 15px;
+}
+
+.group-ref-card {
+    background: white;
+    border-radius: 10px;
+    padding: 15px;
+    display: flex;
+    align-items: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e9ecef;
+}
+
+.group-id-badge {
+    width: 35px;
+    height: 35px;
+    background: #667eea;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    margin-left: 10px;
+    flex-shrink: 0;
+}
+
+.group-info {
+    flex: 1;
+}
+
+.upload-area {
+    border: 2px dashed #dee2e6;
+    border-radius: 15px;
+    padding: 40px 20px;
+    text-align: center;
+    background: #f8f9fa;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    position: relative;
+}
+
+.upload-area:hover, .upload-area.dragover {
+    border-color: #28a745;
+    background: #f0fff4;
+}
+
+.upload-content {
+    pointer-events: none;
+}
+
+.upload-icon {
+    font-size: 3rem;
+    color: #6c757d;
+    margin-bottom: 20px;
+}
+
+.upload-area:hover .upload-icon, .upload-area.dragover .upload-icon {
+    color: #28a745;
+}
+
+.upload-title {
+    color: #333;
+    margin-bottom: 10px;
+}
+
+.upload-subtitle {
+    color: #6c757d;
+    margin-bottom: 20px;
+}
+
+.file-input {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+}
+
+.file-preview {
+    background: white;
+    border-radius: 10px;
+    padding: 20px;
+    border: 1px solid #e9ecef;
+}
+
+.file-info {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.file-icon {
+    font-size: 2rem;
+}
+
+.file-details {
+    flex: 1;
+}
+
+.file-name {
+    font-weight: 600;
+    color: #333;
+}
+
+.file-size {
+    color: #6c757d;
+    font-size: 0.9rem;
+}
+
+.upload-actions {
+    margin-top: 25px;
+}
+
+.instruction-card {
+    background: white;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e9ecef;
+    display: flex;
+    align-items: flex-start;
+    gap: 15px;
+}
+
+.instruction-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.2rem;
+    flex-shrink: 0;
+}
+
+.instruction-content h6 {
+    color: #333;
+    margin-bottom: 8px;
+}
+
+.instruction-content p {
+    color: #6c757d;
+    margin: 0;
+    font-size: 0.9rem;
+}
+
+.instructions-section {
+    background: white;
+    border-radius: 15px;
+    padding: 25px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e9ecef;
+}
+
+#submitBtn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.loading-spinner {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 2px solid #ffffff;
+    border-radius: 50%;
+    border-top-color: transparent;
+    animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+@media (max-width: 768px) {
+    .import-container {
+        padding: 10px;
+    }
+    
+    .import-header {
+        padding: 20px;
+    }
+    
+    .groups-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .instruction-card {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .upload-area {
+        padding: 30px 15px;
+    }
+}
+
+.fade-in {
+    animation: fadeInUp 0.6s ease-out;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const uploadArea = document.getElementById('uploadArea');
+    const fileInput = document.getElementById('fileInput');
+    const filePreview = document.getElementById('filePreview');
+    const uploadActions = document.getElementById('uploadActions');
+    const fileName = document.getElementById('fileName');
+    const fileSize = document.getElementById('fileSize');
+    const submitBtn = document.getElementById('submitBtn');
+    const submitText = document.getElementById('submitText');
+    const importForm = document.getElementById('importForm');
+    
+    // Add fade-in animation
+    document.querySelector('.import-container').classList.add('fade-in');
+    
+    // Handle click on upload area
+    uploadArea.addEventListener('click', function() {
+        fileInput.click();
+    });
+    
+    // Handle file selection
+    fileInput.addEventListener('change', function(e) {
+        handleFile(e.target.files[0]);
+    });
+    
+    // Handle drag and drop
+    uploadArea.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        uploadArea.classList.add('dragover');
+    });
+    
+    uploadArea.addEventListener('dragleave', function(e) {
+        e.preventDefault();
+        uploadArea.classList.remove('dragover');
+    });
+    
+    uploadArea.addEventListener('drop', function(e) {
+        e.preventDefault();
+        uploadArea.classList.remove('dragover');
+        
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+            handleFile(files[0]);
+        }
+    });
+    
+    function handleFile(file) {
+        if (!file) return;
+        
+        // Validate file type
+        const allowedTypes = [
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'application/vnd.ms-excel'
+        ];
+        
+        if (!allowedTypes.includes(file.type) && !file.name.match(/\.(xlsx|xls)$/i)) {
+            alert('يرجى اختيار ملف Excel (.xlsx أو .xls)');
+            return;
+        }
+        
+        // Validate file size (10MB)
+        if (file.size > 10 * 1024 * 1024) {
+            alert('حجم الملف كبير جداً. الحد الأقصى 10 ميجابايت');
+            return;
+        }
+        
+        // Update file input
+        const dt = new DataTransfer();
+        dt.items.add(file);
+        fileInput.files = dt.files;
+        
+        // Show file preview
+        fileName.textContent = file.name;
+        fileSize.textContent = formatFileSize(file.size);
+        
+        uploadArea.style.display = 'none';
+        filePreview.style.display = 'block';
+        uploadActions.style.display = 'block';
+    }
+    
+    function formatFileSize(bytes) {
+        if (bytes === 0) return '0 بايت';
+        
+        const k = 1024;
+        const sizes = ['بايت', 'ك.ب', 'م.ب', 'ج.ب'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+    
+    window.removeFile = function() {
+        fileInput.value = '';
+        uploadArea.style.display = 'block';
+        filePreview.style.display = 'none';
+        uploadActions.style.display = 'none';
+    };
+    
+    // Handle form submission
+    importForm.addEventListener('submit', function(e) {
+        if (!fileInput.files.length) {
+            e.preventDefault();
+            alert('يرجى اختيار ملف أولاً');
+            return;
+        }
+        
+        // Show loading state
+        submitBtn.disabled = true;
+        submitText.innerHTML = '<span class="loading-spinner me-2"></span>جاري المعالجة...';
+    });
+});
+</script>
+{% endblock %} 

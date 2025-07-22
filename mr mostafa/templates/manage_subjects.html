@@ -1,0 +1,460 @@
+{% extends "base.html" %}
+
+{% block title %}إدارة المواد - نظام إدارة الطلاب{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2>
+                <i class="fas fa-book me-2"></i>
+                إدارة المواد الدراسية
+            </h2>
+            <p class="text-muted">إدارة المواد وربطها بالمجموعات والمدرسين</p>
+        </div>
+        <div class="col-md-4 text-end">
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addSubjectModal">
+                <i class="fas fa-plus me-2"></i>
+                إضافة مادة جديدة
+            </button>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card stat-card stat-card-blue">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="stat-icon bg-primary">
+                            <i class="fas fa-book"></i>
+                        </div>
+                        <div class="ms-3">
+                            <h3 class="mb-0">{{ subjects|length }}</h3>
+                            <p class="text-muted mb-0">إجمالي المواد</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card stat-card stat-card-green">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="stat-icon bg-success">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <div class="ms-3">
+                            <h3 class="mb-0">{{ subjects|selectattr('is_active')|list|length }}</h3>
+                            <p class="text-muted mb-0">المواد النشطة</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card stat-card stat-card-orange">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="stat-icon bg-warning">
+                            <i class="fas fa-chalkboard-teacher"></i>
+                        </div>
+                        <div class="ms-3">
+                            <h3 class="mb-0">{{ subjects|selectattr('instructor_id')|list|length }}</h3>
+                            <p class="text-muted mb-0">مرتبطة بمدرس</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card stat-card stat-card-red">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="stat-icon bg-info">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="ms-3">
+                            <h3 class="mb-0">{{ subjects|map(attribute='groups')|map('list')|map('length')|sum }}</h3>
+                            <p class="text-muted mb-0">مرتبطة بمجموعات</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Subjects Table -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">قائمة المواد الدراسية</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th width="5%">#</th>
+                            <th width="20%">اسم المادة</th>
+                            <th width="10%">الكود</th>
+                            <th width="15%">النوع</th>
+                            <th width="15%">المدرس</th>
+                            <th width="10%">الدرجة القصوى</th>
+                            <th width="15%">المجموعات</th>
+                            <th width="10%">الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for subject in subjects %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="subject-icon me-2">
+                                        <i class="fas fa-book text-primary"></i>
+                                    </div>
+                                    <div>
+                                        <strong>{{ subject.name }}</strong>
+                                        {% if subject.description %}
+                                        <br><small class="text-muted">{{ subject.description[:50] }}{% if subject.description|length > 50 %}...{% endif %}</small>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                {% if subject.code %}
+                                <span class="badge bg-secondary">{{ subject.code }}</span>
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge bg-info">{{ subject.subject_type }}</span>
+                            </td>
+                            <td>
+                                {% if subject.instructor %}
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-user text-success me-1"></i>
+                                    {{ subject.instructor.name }}
+                                </div>
+                                {% else %}
+                                <span class="text-muted">غير محدد</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge bg-success">{{ subject.max_grade }}</span>
+                            </td>
+                            <td>
+                                {% if subject.groups %}
+                                <div class="groups-badges">
+                                    {% for group in subject.groups[:3] %}
+                                    <span class="badge bg-primary me-1 mb-1">{{ group.name }}</span>
+                                    {% endfor %}
+                                                            {% if subject.groups|list|length > 3 %}
+                        <span class="badge bg-secondary">+{{ subject.groups|list|length - 3 }}</span>
+                                    {% endif %}
+                                </div>
+                                {% else %}
+                                <span class="text-muted">غير مرتبطة</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-warning" 
+                                            onclick="editSubject({{ subject.id }}, '{{ subject.name }}', '{{ subject.code or '' }}', '{{ subject.description or '' }}', {{ subject.max_grade }}, {{ subject.min_grade }}, '{{ subject.subject_type }}', {{ subject.instructor_id or 'null' }})"
+                                            title="تعديل">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-danger" 
+                                            onclick="deleteSubject({{ subject.id }}, '{{ subject.name }}')"
+                                            title="حذف">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="8" class="text-center text-muted py-4">
+                                <i class="fas fa-book fa-2x mb-2"></i>
+                                <p>لا توجد مواد مضافة بعد</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Subject Modal -->
+<div class="modal fade" id="addSubjectModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-plus me-2"></i>
+                    إضافة مادة جديدة
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="{{ url_for('add_subject') }}" method="post">
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">اسم المادة *</label>
+                                <input type="text" class="form-control" name="name" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">كود المادة</label>
+                                <input type="text" class="form-control" name="code">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">وصف المادة</label>
+                        <textarea class="form-control" name="description" rows="2"></textarea>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">نوع المادة</label>
+                                <select class="form-select" name="subject_type">
+                                    <option value="مادة">مادة</option>
+                                    <option value="اختبار">اختبار</option>
+                                    <option value="واجب">واجب</option>
+                                    <option value="مشروع">مشروع</option>
+                                    <option value="نشاط">نشاط</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">الدرجة القصوى</label>
+                                <input type="number" class="form-control" name="max_grade" value="100" step="0.1">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">الدرجة الدنيا</label>
+                                <input type="number" class="form-control" name="min_grade" value="0" step="0.1">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">المدرس المختص</label>
+                        <select class="form-select" name="instructor_id">
+                            <option value="">اختر المدرس (اختياري)</option>
+                            {% for instructor in instructors %}
+                            <option value="{{ instructor.id }}">{{ instructor.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-primary">إضافة المادة</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Subject Modal -->
+<div class="modal fade" id="editSubjectModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-edit me-2"></i>
+                    تعديل المادة
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="editSubjectForm" method="post">
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">اسم المادة *</label>
+                                <input type="text" class="form-control" name="name" id="editName" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">كود المادة</label>
+                                <input type="text" class="form-control" name="code" id="editCode">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">وصف المادة</label>
+                        <textarea class="form-control" name="description" id="editDescription" rows="2"></textarea>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">نوع المادة</label>
+                                <select class="form-select" name="subject_type" id="editType">
+                                    <option value="مادة">مادة</option>
+                                    <option value="اختبار">اختبار</option>
+                                    <option value="واجب">واجب</option>
+                                    <option value="مشروع">مشروع</option>
+                                    <option value="نشاط">نشاط</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">الدرجة القصوى</label>
+                                <input type="number" class="form-control" name="max_grade" id="editMaxGrade" step="0.1">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">الدرجة الدنيا</label>
+                                <input type="number" class="form-control" name="min_grade" id="editMinGrade" step="0.1">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">المدرس المختص</label>
+                        <select class="form-select" name="instructor_id" id="editInstructor">
+                            <option value="">اختر المدرس (اختياري)</option>
+                            {% for instructor in instructors %}
+                            <option value="{{ instructor.id }}">{{ instructor.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-primary">حفظ التغييرات</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteSubjectModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-danger">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    تأكيد الحذف
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>هل أنت متأكد من حذف المادة <strong id="deleteSubjectName"></strong>؟</p>
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    لا يمكن التراجع عن هذا الإجراء
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                <form id="deleteSubjectForm" method="post" style="display: inline;">
+                    <button type="submit" class="btn btn-danger">حذف المادة</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.stat-card {
+    border: none;
+    border-radius: 15px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+}
+
+.stat-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.5rem;
+}
+
+.subject-icon {
+    width: 35px;
+    height: 35px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.groups-badges {
+    max-width: 200px;
+}
+
+.table-hover tbody tr:hover {
+    background-color: rgba(102, 126, 234, 0.05);
+}
+
+.fade-in {
+    animation: fadeInUp 0.6s ease-out;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+</style>
+
+<script>
+function editSubject(id, name, code, description, maxGrade, minGrade, type, instructorId) {
+    document.getElementById('editSubjectForm').action = `/edit_subject/${id}`;
+    document.getElementById('editName').value = name;
+    document.getElementById('editCode').value = code;
+    document.getElementById('editDescription').value = description;
+    document.getElementById('editMaxGrade').value = maxGrade;
+    document.getElementById('editMinGrade').value = minGrade;
+    document.getElementById('editType').value = type;
+    document.getElementById('editInstructor').value = instructorId || '';
+    
+    new bootstrap.Modal(document.getElementById('editSubjectModal')).show();
+}
+
+function deleteSubject(id, name) {
+    document.getElementById('deleteSubjectName').textContent = name;
+    document.getElementById('deleteSubjectForm').action = `/delete_subject/${id}`;
+    
+    new bootstrap.Modal(document.getElementById('deleteSubjectModal')).show();
+}
+
+// Add fade-in animation
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelector('.fade-in').classList.add('fade-in');
+});
+</script>
+{% endblock %} 

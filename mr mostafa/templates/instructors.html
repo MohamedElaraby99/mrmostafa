@@ -50,7 +50,7 @@
                                 <span class="badge bg-primary">{{ instructor.students|length }}</span>
                             </td>
                             <td>
-                                <span class="badge bg-info">{{ instructor.groups|length }}</span>
+                                <span class="badge bg-info">{{ instructor.groups|list|length }}</span>
                             </td>
                             <td>
                                 <button class="btn btn-sm btn-warning me-1"
@@ -58,7 +58,7 @@
                                     <i class="fas fa-edit"></i>
                                 </button>
                                 <button class="btn btn-sm btn-danger"
-                                    onclick="deleteInstructor({{ instructor.id }}, '{{ instructor.name }}', {{ instructor.students|length }}, {{ instructor.groups|length }})">
+                                    onclick="deleteInstructor({{ instructor.id }}, '{{ instructor.name }}', {{ instructor.students|length }}, {{ instructor.groups|list|length }})">
                                     <i class="fas fa-trash"></i>
                                 </button>
                             </td>

@@ -38,6 +38,12 @@ student_groups = db.Table('student_groups',
     db.Column('group_id', db.Integer, db.ForeignKey('group.id'), primary_key=True)
 )
 
+# Association table for many-to-many relationship between groups and subjects
+group_subjects = db.Table('group_subjects',
+    db.Column('group_id', db.Integer, db.ForeignKey('group.id'), primary_key=True),
+    db.Column('subject_id', db.Integer, db.ForeignKey('subject.id'), primary_key=True)
+)
+
 # Database Models
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -118,7 +124,7 @@ class Student(db.Model):
 class Group(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
-    level = db.Column(db.String(50))
+    # Removed level field - now using subjects relationship
     instructor_id = db.Column(db.Integer, db.ForeignKey('instructor.id'))
     max_students = db.Column(db.Integer, default=15)
     price = db.Column(db.Float, default=0.0)  # Price for this group
@@ -132,6 +138,8 @@ class Group(db.Model):
     payment_due_day = db.Column(db.Integer, default=1)  # Day of month when payment is due (1-31)
     # Students relationship is now defined in Student model with secondary table
     schedules = db.relationship('Schedule', backref='group_ref', lazy=True)
+    # Many-to-many relationship with subjects
+    subjects = db.relationship('Subject', secondary=group_subjects, backref=db.backref('groups', lazy='dynamic'))
     
     @property
     def is_completed(self):
@@ -302,13 +310,12 @@ class Subject(db.Model):
     max_grade = db.Column(db.Float, default=100.0)  # الدرجة القصوى
     min_grade = db.Column(db.Float, default=0.0)  # الدرجة الدنيا
     subject_type = db.Column(db.String(50), default='مادة')  # نوع (مادة، اختبار، واجب، مشروع)
-    group_id = db.Column(db.Integer, db.ForeignKey('group.id'), nullable=True)  # ربط بمجموعة معينة
+    # Removed group_id - now using many-to-many relationship with groups
     instructor_id = db.Column(db.Integer, db.ForeignKey('instructor.id'), nullable=True)  # ربط بمدرس
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     # Relationships
-    group = db.relationship('Group', backref='subjects')
     instructor = db.relationship('Instructor', backref='subjects')
     grades = db.relationship('Grade', backref='subject', cascade='all, delete-orphan')
     
@@ -683,7 +690,7 @@ def get_weekly_schedule():
                     'instructor_name': instructor_name,
                     'start_time': schedule.start_time,
                     'end_time': schedule.end_time,
-                    'level': group.level or 'عام',
+                    'subjects': [s.name for s in group.subjects] if group.subjects else ['عام'],
                     'student_count': group.students.count(),  # Use count() for dynamic relationship
                     'max_students': group.max_students or 15,  # Default to 15 if not set
                     'group_id': group.id
@@ -695,7 +702,7 @@ def get_weekly_schedule():
                     'instructor_name': 'غير محدد',
                     'start_time': schedule.start_time,
                     'end_time': schedule.end_time,
-                    'level': 'غير محدد',
+                    'subjects': ['غير محدد'],
                     'student_count': 0,
                     'max_students': 15,
                     'group_id': 0
@@ -1135,7 +1142,7 @@ def check_instructor_schedule_conflicts(day, start_time, end_time, instructor_id
 @app.route('/add_group', methods=['POST'])
 def add_group():
     name = request.form['name']
-    level = request.form['level']
+    # Removed level - now using subjects
     instructor_id = int(request.form['instructor_id'])
     max_students = int(request.form['max_students'])
     price = float(request.form['price'])
@@ -1220,7 +1227,7 @@ def add_group():
     # Create and save group
     group = Group(
         name=name,
-        level=level,
+        # Removed level parameter
         instructor_id=instructor_id,
         max_students=max_students,
         price=price,
@@ -2060,7 +2067,7 @@ def edit_group(group_id):
     
     # Update basic group information
     group.name = request.form['name']
-    group.level = request.form['level']
+    # Removed level update - now using subjects
     new_instructor_id = int(request.form['instructor_id'])
     group.price = float(request.form['price'])
     group.max_students = int(request.form['max_students'])
@@ -2195,7 +2202,7 @@ def get_group_details(group_id):
     return jsonify({
         'id': group.id,
         'name': group.name,
-        'level': group.level,
+        'subjects': [{'id': s.id, 'name': s.name, 'type': s.subject_type} for s in group.subjects],
         'instructor_id': group.instructor_id,
         'max_students': group.max_students,
         'price': group.price,
@@ -3781,40 +3788,7 @@ def grades():
                          selected_subject=subject_filter,
                          selected_student=student_filter)
 
-@app.route('/add_subject', methods=['POST'])
-@login_required
-def add_subject():
-    """Add a new subject/exam"""
-    try:
-        name = request.form['name']
-        code = request.form.get('code', '')
-        description = request.form.get('description', '')
-        max_grade = float(request.form.get('max_grade', 100))
-        min_grade = float(request.form.get('min_grade', 0))
-        subject_type = request.form.get('subject_type', 'مادة')
-        group_id = int(request.form['group_id']) if request.form.get('group_id') else None
-        instructor_id = int(request.form['instructor_id']) if request.form.get('instructor_id') else None
-        
-        subject = Subject(
-            name=name,
-            code=code,
-            description=description,
-            max_grade=max_grade,
-            min_grade=min_grade,
-            subject_type=subject_type,
-            group_id=group_id,
-            instructor_id=instructor_id
-        )
-        
-        db.session.add(subject)
-        db.session.commit()
-        
-        flash(f'تم إضافة المادة "{name}" بنجاح', 'success')
-        
-    except Exception as e:
-        flash(f'حدث خطأ أثناء إضافة المادة: {str(e)}', 'error')
-    
-    return redirect(url_for('grades'))
+# Removed old add_subject route - replaced with new subjects management system
 
 @app.route('/download_grades_template')
 @login_required
@@ -4052,8 +4026,7 @@ def import_grades():
                         subject = Subject(
                             name=subject_name,
                             subject_type=subject_type,
-                            max_grade=max_score,
-                            group_id=group.id if group else None
+                            max_grade=max_score
                         )
                         db.session.add(subject)
                         db.session.flush()  # Get the ID
@@ -4130,6 +4103,656 @@ def import_grades():
     except Exception as e:
         flash(f'حدث خطأ أثناء استيراد الدرجات: {str(e)}', 'error')
         return redirect(url_for('import_grades'))
+
+@app.route('/manage_subjects')
+@login_required
+def manage_subjects():
+    """Manage subjects page"""
+    subjects = Subject.query.all()
+    instructors = Instructor.query.all()
+    return render_template('manage_subjects.html', subjects=subjects, instructors=instructors)
+
+@app.route('/add_subject', methods=['POST'])
+@login_required
+def add_subject():
+    """Add new subject"""
+    try:
+        name = request.form.get('name', '').strip()
+        code = request.form.get('code', '').strip()
+        description = request.form.get('description', '').strip()
+        max_grade = float(request.form.get('max_grade', 100.0))
+        min_grade = float(request.form.get('min_grade', 0.0))
+        subject_type = request.form.get('subject_type', 'مادة')
+        instructor_id = request.form.get('instructor_id')
+        
+        if not name:
+            flash('اسم المادة مطلوب', 'error')
+            return redirect(url_for('manage_subjects'))
+        
+        # Check if subject already exists
+        if Subject.query.filter_by(name=name).first():
+            flash('المادة موجودة بالفعل', 'warning')
+            return redirect(url_for('manage_subjects'))
+        
+        subject = Subject(
+            name=name,
+            code=code if code else None,
+            description=description if description else None,
+            max_grade=max_grade,
+            min_grade=min_grade,
+            subject_type=subject_type,
+            instructor_id=int(instructor_id) if instructor_id else None
+        )
+        
+        db.session.add(subject)
+        db.session.commit()
+        flash('تم إضافة المادة بنجاح', 'success')
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'خطأ في إضافة المادة: {str(e)}', 'error')
+    
+    return redirect(url_for('manage_subjects'))
+
+@app.route('/edit_subject/<int:subject_id>', methods=['POST'])
+@login_required
+def edit_subject(subject_id):
+    """Edit existing subject"""
+    try:
+        subject = Subject.query.get_or_404(subject_id)
+        
+        subject.name = request.form.get('name', '').strip()
+        subject.code = request.form.get('code', '').strip() or None
+        subject.description = request.form.get('description', '').strip() or None
+        subject.max_grade = float(request.form.get('max_grade', 100.0))
+        subject.min_grade = float(request.form.get('min_grade', 0.0))
+        subject.subject_type = request.form.get('subject_type', 'مادة')
+        instructor_id = request.form.get('instructor_id')
+        subject.instructor_id = int(instructor_id) if instructor_id else None
+        
+        if not subject.name:
+            flash('اسم المادة مطلوب', 'error')
+            return redirect(url_for('manage_subjects'))
+        
+        db.session.commit()
+        flash('تم تحديث المادة بنجاح', 'success')
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'خطأ في تحديث المادة: {str(e)}', 'error')
+    
+    return redirect(url_for('manage_subjects'))
+
+@app.route('/delete_subject/<int:subject_id>', methods=['POST'])
+@login_required
+def delete_subject(subject_id):
+    """Delete subject"""
+    try:
+        subject = Subject.query.get_or_404(subject_id)
+        
+        # Check if subject has grades
+        if subject.grades:
+            flash('لا يمكن حذف المادة لأن لها درجات مسجلة', 'error')
+            return redirect(url_for('manage_subjects'))
+        
+        db.session.delete(subject)
+        db.session.commit()
+        flash('تم حذف المادة بنجاح', 'success')
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'خطأ في حذف المادة: {str(e)}', 'error')
+    
+    return redirect(url_for('manage_subjects'))
+
+@app.route('/assign_subjects_to_group/<int:group_id>', methods=['GET', 'POST'])
+@login_required
+def assign_subjects_to_group(group_id):
+    """Assign subjects to group"""
+    group = Group.query.get_or_404(group_id)
+    
+    if request.method == 'POST':
+        try:
+            subject_ids = request.form.getlist('subject_ids')
+            
+            # Clear existing subjects
+            group.subjects.clear()
+            
+            # Add new subjects
+            for subject_id in subject_ids:
+                subject = Subject.query.get(int(subject_id))
+                if subject:
+                    group.subjects.append(subject)
+            
+            db.session.commit()
+            flash(f'تم تحديث مواد المجموعة "{group.name}" بنجاح', 'success')
+            return redirect(url_for('groups'))
+            
+        except Exception as e:
+            db.session.rollback()
+            flash(f'خطأ في تحديث المواد: {str(e)}', 'error')
+    
+    subjects = Subject.query.filter_by(is_active=True).all()
+    return render_template('assign_subjects.html', group=group, subjects=subjects)
+
+@app.route('/get_group_subjects/<int:group_id>')
+@login_required
+def get_group_subjects(group_id):
+    """Get subjects for a group (API endpoint)"""
+    group = Group.query.get_or_404(group_id)
+    subjects = [{'id': s.id, 'name': s.name, 'type': s.subject_type} for s in group.subjects]
+    return jsonify({'subjects': subjects})
+
+@app.route('/student_profile/<int:student_id>')
+@login_required
+def student_profile(student_id):
+    """Student comprehensive profile page"""
+    student = Student.query.get_or_404(student_id)
+    
+    # Get student's grades
+    grades = Grade.query.filter_by(student_id=student_id).join(Subject).order_by(Grade.created_at.desc()).all()
+    
+    # Get student's attendance records
+    attendance_records = Attendance.query.filter_by(student_id=student_id).order_by(Attendance.date.desc()).limit(30).all()
+    
+    # Get student's payment history
+    payments = Payment.query.filter_by(student_id=student_id).order_by(Payment.date.desc()).all()
+    
+    # Calculate attendance statistics
+    total_sessions = len(attendance_records)
+    present_sessions = len([a for a in attendance_records if a.status == 'حاضر'])
+    attendance_percentage = (present_sessions / total_sessions * 100) if total_sessions > 0 else 0
+    
+    # Calculate grade statistics
+    total_grades = len(grades)
+    if total_grades > 0:
+        average_score = sum(g.score for g in grades if g.score) / len([g for g in grades if g.score])
+        latest_grades = grades[:5]  # Show latest 5 grades
+    else:
+        average_score = 0
+        latest_grades = []
+    
+    # Calculate financial summary
+    total_paid = sum(p.amount for p in payments)
+    total_fees = sum(group.price for group in student.groups)
+    remaining_balance = total_fees - total_paid
+    
+    # Get recent activities (last 30 days)
+    from datetime import datetime, timedelta
+    thirty_days_ago = datetime.now() - timedelta(days=30)
+    
+    recent_grades = Grade.query.filter(
+        Grade.student_id == student_id,
+        Grade.created_at >= thirty_days_ago
+    ).order_by(Grade.created_at.desc()).all()
+    
+    recent_attendance = Attendance.query.filter(
+        Attendance.student_id == student_id,
+        Attendance.date >= thirty_days_ago.date()
+    ).order_by(Attendance.date.desc()).all()
+    
+    recent_payments = Payment.query.filter(
+        Payment.student_id == student_id,
+        Payment.date >= thirty_days_ago
+    ).order_by(Payment.date.desc()).all()
+    
+    return render_template('student_profile.html',
+                         student=student,
+                         grades=grades,
+                         latest_grades=latest_grades,
+                         attendance_records=attendance_records,
+                         payments=payments,
+                         total_grades=total_grades,
+                         average_score=average_score,
+                         attendance_percentage=attendance_percentage,
+                         present_sessions=present_sessions,
+                         total_sessions=total_sessions,
+                         total_paid=total_paid,
+                         total_fees=total_fees,
+                         remaining_balance=remaining_balance,
+                         recent_grades=recent_grades,
+                         recent_attendance=recent_attendance,
+                         recent_payments=recent_payments)
+
+@app.route('/generate_monthly_report/<int:student_id>')
+@login_required
+def generate_monthly_report(student_id):
+    """Generate monthly performance report for student"""
+    from datetime import datetime, timedelta
+    from calendar import monthrange
+    
+    student = Student.query.get_or_404(student_id)
+    
+    # Get month and year from request or use current
+    month = int(request.args.get('month', datetime.now().month))
+    year = int(request.args.get('year', datetime.now().year))
+    
+    # Calculate date range for the month
+    start_date = datetime(year, month, 1).date()
+    last_day = monthrange(year, month)[1]
+    end_date = datetime(year, month, last_day).date()
+    
+    # Get monthly data
+    monthly_grades = Grade.query.filter(
+        Grade.student_id == student_id,
+        Grade.exam_date >= start_date,
+        Grade.exam_date <= end_date
+    ).all()
+    
+    monthly_attendance = Attendance.query.filter(
+        Attendance.student_id == student_id,
+        Attendance.date >= start_date,
+        Attendance.date <= end_date
+    ).all()
+    
+    monthly_payments = Payment.query.filter(
+        Payment.student_id == student_id,
+        Payment.date >= datetime.combine(start_date, datetime.min.time()),
+        Payment.date <= datetime.combine(end_date, datetime.max.time())
+    ).all()
+    
+    # Calculate statistics
+    total_classes = len(monthly_attendance)
+    present_classes = len([a for a in monthly_attendance if a.status == 'حاضر'])
+    attendance_rate = (present_classes / total_classes * 100) if total_classes > 0 else 0
+    
+    if monthly_grades:
+        month_average = sum(g.score for g in monthly_grades if g.score) / len([g for g in monthly_grades if g.score])
+    else:
+        month_average = 0
+    
+    monthly_paid = sum(p.amount for p in monthly_payments)
+    
+    # Arabic month names
+    arabic_months = [
+        '', 'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
+        'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'
+    ]
+    
+    report_data = {
+        'student': student,
+        'month': arabic_months[month],
+        'year': year,
+        'month_num': month,
+        'monthly_grades': monthly_grades,
+        'monthly_attendance': monthly_attendance,
+        'monthly_payments': monthly_payments,
+        'total_classes': total_classes,
+        'present_classes': present_classes,
+        'attendance_rate': attendance_rate,
+        'month_average': month_average,
+        'monthly_paid': monthly_paid,
+        'start_date': start_date,
+        'end_date': end_date
+    }
+    
+    return render_template('monthly_report.html', **report_data)
+
+@app.route('/send_whatsapp_report/<int:student_id>')
+@login_required
+def send_whatsapp_report(student_id):
+    """Generate WhatsApp message for monthly report"""
+    from datetime import datetime
+    from urllib.parse import quote
+    
+    student = Student.query.get_or_404(student_id)
+    
+    # Get month and year
+    month = int(request.args.get('month', datetime.now().month))
+    year = int(request.args.get('year', datetime.now().year))
+    
+    # Get report data (reuse the logic from generate_monthly_report)
+    from calendar import monthrange
+    start_date = datetime(year, month, 1).date()
+    last_day = monthrange(year, month)[1]
+    end_date = datetime(year, month, last_day).date()
+    
+    monthly_grades = Grade.query.filter(
+        Grade.student_id == student_id,
+        Grade.exam_date >= start_date,
+        Grade.exam_date <= end_date
+    ).all()
+    
+    monthly_attendance = Attendance.query.filter(
+        Attendance.student_id == student_id,
+        Attendance.date >= start_date,
+        Attendance.date <= end_date
+    ).all()
+    
+    total_classes = len(monthly_attendance)
+    present_classes = len([a for a in monthly_attendance if a.status == 'حاضر'])
+    attendance_rate = (present_classes / total_classes * 100) if total_classes > 0 else 0
+    
+    if monthly_grades:
+        month_average = sum(g.score for g in monthly_grades if g.score) / len([g for g in monthly_grades if g.score])
+    else:
+        month_average = 0
+    
+    arabic_months = [
+        '', 'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
+        'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'
+    ]
+    
+    # Create WhatsApp message
+    message = f"""🎓 *تقرير شهري - {student.name}*
+📅 *شهر {arabic_months[month]} {year}*
+
+📊 *الحضور والغياب:*
+• إجمالي الحصص: {total_classes}
+• الحصص المحضورة: {present_classes}
+• نسبة الحضور: {attendance_rate:.1f}%
+
+📝 *الدرجات:*
+• عدد الاختبارات: {len(monthly_grades)}
+• متوسط الدرجات: {month_average:.1f}
+
+"""
+    
+    if monthly_grades:
+        message += "📋 *تفاصيل الدرجات:*\n"
+        for grade in monthly_grades[:5]:  # Show top 5 grades
+            message += f"• {grade.subject.name}: {grade.score}/{grade.max_score} ({grade.percentage:.1f}%)\n"
+    
+    message += f"""
+👥 *المجموعات المسجل بها:*
+"""
+    for group in student.groups:
+        message += f"• {group.name}\n"
+    
+    message += f"""
+🏫 *مؤسسة طفرة التعليمية*
+📞 للاستفسار: {student.phone or 'غير محدد'}
+"""
+    
+    # Create WhatsApp URL
+    phone = student.phone.replace('+', '').replace(' ', '') if student.phone else ''
+    whatsapp_url = f"https://wa.me/{phone}?text={quote(message)}"
+    
+    return render_template('whatsapp_report.html', 
+                         student=student, 
+                         message=message, 
+                         whatsapp_url=whatsapp_url,
+                         phone=phone)
+
+@app.route('/download_students_template')
+@login_required
+def download_students_template():
+    """Download Excel template for bulk student import"""
+    try:
+        from openpyxl import Workbook
+        from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+        from openpyxl.utils import get_column_letter
+        from io import BytesIO
+        
+        # Create workbook and worksheet
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "قالب بيانات الطلاب"
+        
+        # Define headers
+        headers = [
+            'اسم الطالب',
+            'رقم الهاتف',
+            'العمر',
+            'المنطقة',
+            'المرحلة الدراسية',
+            'المجموعات (أرقام مفصولة بفاصلة)',
+            'الخصم',
+            'ملاحظات'
+        ]
+        
+        # Create styles
+        header_font = Font(bold=True, color="FFFFFF")
+        header_fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
+        header_alignment = Alignment(horizontal="center", vertical="center")
+        border = Border(
+            left=Side(style='thin'),
+            right=Side(style='thin'),
+            top=Side(style='thin'),
+            bottom=Side(style='thin')
+        )
+        
+        # Add headers
+        for col, header in enumerate(headers, 1):
+            cell = ws.cell(row=1, column=col, value=header)
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.alignment = header_alignment
+            cell.border = border
+        
+        # Add sample data
+        sample_data = [
+            ['أحمد محمد علي', '01234567890', 16, 'القاهرة', 'الثانوية الأولى', '1,2', 0, 'طالب متفوق'],
+            ['فاطمة سامي', '01987654321', 15, 'الجيزة', 'الإعدادية الثالثة', '3', 50, 'تحتاج متابعة'],
+            ['محمد أحمد', '01122334455', 12, 'الإسكندرية', 'الابتدائية السادسة', '1', 0, ''],
+        ]
+        
+        for row, data in enumerate(sample_data, 2):
+            for col, value in enumerate(data, 1):
+                cell = ws.cell(row=row, column=col, value=value)
+                cell.border = border
+                cell.alignment = Alignment(horizontal="center")
+        
+        # Set column widths
+        column_widths = [20, 15, 8, 15, 20, 30, 10, 25]
+        for col, width in enumerate(column_widths, 1):
+            ws.column_dimensions[get_column_letter(col)].width = width
+        
+        # Add instructions sheet
+        ws_instructions = wb.create_sheet("تعليمات الاستخدام")
+        
+        instructions = [
+            "تعليمات استخدام قالب إضافة الطلاب:",
+            "",
+            "1. اسم الطالب: أدخل الاسم كاملاً",
+            "2. رقم الهاتف: أدخل رقم الهاتف (اختياري)",
+            "3. العمر: أدخل العمر بالسنوات",
+            "4. المنطقة: أدخل منطقة السكن (اختياري)",
+            "5. المرحلة الدراسية: اختر من القائمة التالية:",
+            "   - KG1, KG2",
+            "   - الابتدائية الأولى, الابتدائية الثانية, ... الابتدائية السادسة",
+            "   - الإعدادية الأولى, الإعدادية الثانية, الإعدادية الثالثة",
+            "   - الثانوية الأولى, الثانوية الثانية, الثانوية الثالثة",
+            "   - الجامعة, أخرى",
+            "6. المجموعات: أدخل أرقام المجموعات مفصولة بفاصلة (مثال: 1,2,3)",
+            "7. الخصم: أدخل قيمة الخصم بالجنيه (افتراضي: 0)",
+            "8. ملاحظات: أدخل أي ملاحظات إضافية (اختياري)",
+            "",
+            "ملاحظات مهمة:",
+            "- احذف الصفوف النموذجية قبل رفع الملف",
+            "- تأكد من صحة أرقام المجموعات",
+            "- اسم الطالب مطلوب، باقي الحقول اختيارية",
+            "- يمكن ترك الخانات فارغة للحقول الاختيارية",
+            "",
+            f"تاريخ إنشاء القالب: {datetime.now().strftime('%Y-%m-%d %H:%M')}"
+        ]
+        
+        for row, instruction in enumerate(instructions, 1):
+            cell = ws_instructions.cell(row=row, column=1, value=instruction)
+            if row == 1:
+                cell.font = Font(bold=True, size=14)
+            elif instruction.startswith(('1.', '2.', '3.', '4.', '5.', '6.', '7.', '8.')):
+                cell.font = Font(bold=True)
+        
+        ws_instructions.column_dimensions['A'].width = 60
+        
+        # Get available groups for reference
+        groups = Group.query.all()
+        if groups:
+            ws_groups = wb.create_sheet("المجموعات المتاحة")
+            ws_groups.cell(row=1, column=1, value="رقم المجموعة").font = Font(bold=True)
+            ws_groups.cell(row=1, column=2, value="اسم المجموعة").font = Font(bold=True)
+            ws_groups.cell(row=1, column=3, value="المدرس").font = Font(bold=True)
+            ws_groups.cell(row=1, column=4, value="السعر").font = Font(bold=True)
+            
+            for row, group in enumerate(groups, 2):
+                ws_groups.cell(row=row, column=1, value=group.id)
+                ws_groups.cell(row=row, column=2, value=group.name)
+                ws_groups.cell(row=row, column=3, value=group.instructor_ref.name if group.instructor_ref else 'غير محدد')
+                ws_groups.cell(row=row, column=4, value=f"{group.price} ج.م")
+            
+            for col in range(1, 5):
+                ws_groups.column_dimensions[get_column_letter(col)].width = 20
+        
+        # Save to BytesIO
+        output = BytesIO()
+        wb.save(output)
+        output.seek(0)
+        
+        # Create response
+        response = make_response(output.getvalue())
+        response.headers['Content-Type'] = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        response.headers['Content-Disposition'] = 'attachment; filename="students_template.xlsx"'
+        
+        return response
+        
+    except Exception as e:
+        flash(f'خطأ في إنشاء القالب: {str(e)}', 'error')
+        return redirect(url_for('students'))
+
+@app.route('/import_students', methods=['GET', 'POST'])
+@login_required
+def import_students():
+    """Import students from Excel file"""
+    if request.method == 'GET':
+        return render_template('import_students.html', groups=Group.query.all())
+    
+    if 'file' not in request.files:
+        flash('لم يتم اختيار ملف', 'error')
+        return redirect(url_for('students'))
+    
+    file = request.files['file']
+    if file.filename == '':
+        flash('لم يتم اختيار ملف', 'error')
+        return redirect(url_for('students'))
+    
+    if not file.filename.endswith(('.xlsx', '.xls')):
+        flash('يجب أن يكون الملف من نوع Excel (.xlsx أو .xls)', 'error')
+        return redirect(url_for('students'))
+    
+    try:
+        from openpyxl import load_workbook
+        import tempfile
+        import os
+        
+        # Save uploaded file temporarily
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx') as tmp_file:
+            file.save(tmp_file.name)
+            
+            # Load workbook
+            wb = load_workbook(tmp_file.name)
+            ws = wb.active
+            
+            # Process data
+            students_data = []
+            errors = []
+            success_count = 0
+            
+            # Skip header row
+            for row_num in range(2, ws.max_row + 1):
+                try:
+                    row_data = []
+                    for col in range(1, 9):  # 8 columns
+                        cell_value = ws.cell(row=row_num, column=col).value
+                        row_data.append(cell_value if cell_value is not None else '')
+                    
+                    name, phone, age, location, grade_level, group_ids_str, discount, notes = row_data
+                    
+                    # Skip empty rows
+                    if not name or str(name).strip() == '':
+                        continue
+                    
+                    # Validate required fields
+                    if not name:
+                        errors.append(f'الصف {row_num}: اسم الطالب مطلوب')
+                        continue
+                    
+                    # Parse age
+                    try:
+                        age = int(age) if age else 18
+                    except (ValueError, TypeError):
+                        age = 18
+                    
+                    # Parse discount
+                    try:
+                        discount = float(discount) if discount else 0
+                    except (ValueError, TypeError):
+                        discount = 0
+                    
+                    # Parse group IDs
+                    group_ids = []
+                    if group_ids_str:
+                        try:
+                            group_ids = [int(gid.strip()) for gid in str(group_ids_str).split(',') if gid.strip()]
+                        except ValueError:
+                            errors.append(f'الصف {row_num}: أرقام المجموعات غير صحيحة')
+                            continue
+                    
+                    # Validate groups exist
+                    valid_groups = []
+                    for group_id in group_ids:
+                        group = Group.query.get(group_id)
+                        if group:
+                            valid_groups.append(group)
+                        else:
+                            errors.append(f'الصف {row_num}: المجموعة رقم {group_id} غير موجودة')
+                    
+                    # Create student
+                    student = Student(
+                        name=str(name).strip(),
+                        phone=str(phone).strip() if phone else None,
+                        age=age,
+                        location=str(location).strip() if location else None,
+                        grade_level=str(grade_level).strip() if grade_level else None,
+                        discount=discount,
+                        registration_date=datetime.now().date()
+                    )
+                    
+                    # Add to database
+                    db.session.add(student)
+                    db.session.flush()  # Get student ID
+                    
+                    # Add to groups
+                    for group in valid_groups:
+                        student.groups.append(group)
+                    
+                    success_count += 1
+                    students_data.append({
+                        'name': student.name,
+                        'phone': student.phone,
+                        'groups': [g.name for g in valid_groups]
+                    })
+                    
+                except Exception as e:
+                    errors.append(f'الصف {row_num}: خطأ في معالجة البيانات - {str(e)}')
+                    continue
+            
+            # Commit if successful
+            if success_count > 0:
+                db.session.commit()
+                flash(f'تم إضافة {success_count} طالب بنجاح!', 'success')
+            else:
+                db.session.rollback()
+                flash('لم يتم إضافة أي طالب', 'warning')
+            
+            # Show errors if any
+            if errors:
+                for error in errors[:10]:  # Show only first 10 errors
+                    flash(error, 'error')
+                if len(errors) > 10:
+                    flash(f'وجد {len(errors) - 10} أخطاء إضافية...', 'warning')
+            
+            # Clean up temp file
+            os.unlink(tmp_file.name)
+            
+            return render_template('import_students_result.html', 
+                                 success_count=success_count,
+                                 errors=errors,
+                                 students_data=students_data)
+            
+    except Exception as e:
+        flash(f'خطأ في معالجة الملف: {str(e)}', 'error')
+        return redirect(url_for('students'))
 
 @app.route('/export_full_backup')
 @admin_required

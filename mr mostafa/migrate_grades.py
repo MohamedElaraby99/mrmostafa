@@ -62,18 +62,18 @@ def migrate_grades():
             else:
                 print("✅ Subjects already exist")
             
-            # Try to link some subjects to existing groups
+            # Try to link some subjects to existing groups using new many-to-many relationship
             subjects = Subject.query.all()
             groups = Group.query.all()
             
             if subjects and groups:
                 linked_count = 0
                 for subject in subjects:
-                    if not subject.group_id:
+                    if not subject.groups:
                         # Try to find a matching group based on subject name
                         for group in groups:
                             if any(keyword in group.name.lower() for keyword in subject.name.lower().split()):
-                                subject.group_id = group.id
+                                group.subjects.append(subject)
                                 linked_count += 1
                                 break
                 

@@ -297,7 +297,7 @@
                         <tr>
                             <th class="text-center">#</th>
                             <th><i class="fas fa-tag me-2"></i>اسم المجموعة</th>
-                            <th><i class="fas fa-layer-group me-2"></i>المستوى</th>
+                            <th><i class="fas fa-book me-2"></i>المواد</th>
                             <th><i class="fas fa-chalkboard-teacher me-2"></i>المدرس</th>
                             <th><i class="fas fa-money-bill me-2"></i>السعر</th>
                             <th><i class="fas fa-users me-2"></i>عدد الطلاب</th>
@@ -324,10 +324,17 @@
                                 </div>
                             </td>
                             <td>
-                                {% if group.level %}
-                                <span class="badge bg-info rounded-pill">{{ group.level }}</span>
+                                {% if group.subjects %}
+                                <div class="subjects-list">
+                                    {% for subject in group.subjects[:3] %}
+                                    <span class="badge bg-info rounded-pill me-1 mb-1">{{ subject.name }}</span>
+                                    {% endfor %}
+                                    {% if group.subjects|length > 3 %}
+                                    <span class="badge bg-secondary rounded-pill">+{{ group.subjects|length - 3 }}</span>
+                                    {% endif %}
+                                </div>
                                 {% else %}
-                                <span class="text-muted">-</span>
+                                <span class="text-muted">لا توجد مواد</span>
                                 {% endif %}
                             </td>
                             <td>
@@ -416,8 +423,13 @@
                             </td>
                             <td class="text-center">
                                 <div class="btn-group" role="group">
+                                    <button class="btn btn-primary btn-sm action-btn"
+                                        onclick="window.location.href='{{ url_for('assign_subjects_to_group', group_id=group.id) }}'"
+                                        title="ربط المواد">
+                                        <i class="fas fa-book"></i>
+                                    </button>
                                     <button class="btn btn-warning btn-sm action-btn"
-                                        onclick="editGroup({{ group.id }}, '{{ group.name }}', '{{ group.level }}', {{ group.instructor_id }}, {{ group.price }}, {{ group.max_students }})"
+                                        onclick="editGroup({{ group.id }}, '{{ group.name }}', {{ group.instructor_id }}, {{ group.price }}, {{ group.max_students }})"
                                         title="تعديل المجموعة">
                                         <i class="fas fa-edit"></i>
                                     </button>
@@ -515,17 +527,14 @@
                         </div>
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <label class="form-label fw-bold">المستوى</label>
-                                <select class="form-select" name="level">
-                                    <option value="">اختر المستوى</option>
-                                    <option value="A1">A1</option>
-                                    <option value="A2">A2</option>
-                                    <option value="A3">A3</option>
-                                    <option value="UC Math">UC Math</option>
-                                    <option value="Communication">تخاطب</option>
-                                    <option value="سكراتش">سكراتش</option>
-                                    <option value="برمجة">برمجة</option>
-                                </select>
+                                <label class="form-label fw-bold">إدارة المواد</label>
+                                <div class="d-flex align-items-center">
+                                    <span class="text-muted me-2">ستتمكن من ربط المواد بالمجموعة بعد إنشائها</span>
+                                    <a href="{{ url_for('manage_subjects') }}" class="btn btn-outline-info btn-sm" target="_blank">
+                                        <i class="fas fa-book me-1"></i>
+                                        إدارة المواد
+                                    </a>
+                                </div>
                             </div>
                         </div>
                         <div class="col-md-6">
@@ -1014,17 +1023,16 @@
                         </div>
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <label class="form-label fw-bold">المستوى</label>
-                                <select class="form-select" name="level" id="editLevel">
-                                    <option value="">اختر المستوى</option>
-                                    <option value="A1">A1</option>
-                                    <option value="A2">A2</option>
-                                    <option value="A3">A3</option>
-                                    <option value="UC Math">UC Math</option>
-                                    <option value="Communication">تخاطب</option>
-                                    <option value="سكراتش">سكراتش</option>
-                                    <option value="برمجة">برمجة</option>
-                                </select>
+                                <label class="form-label fw-bold">إدارة المواد</label>
+                                <div class="d-flex align-items-center">
+                                    <div class="current-subjects me-2" id="editCurrentSubjects">
+                                        <span class="text-muted">جاري التحميل...</span>
+                                    </div>
+                                    <a href="#" class="btn btn-outline-info btn-sm" id="editSubjectsLink">
+                                        <i class="fas fa-link me-1"></i>
+                                        ربط المواد
+                                    </a>
+                                </div>
                             </div>
                         </div>
                         <div class="col-md-6">
@@ -1566,13 +1574,15 @@
         });
     }
 
-    function editGroup(id, name, level, instructorId, price, maxStudents) {
+    function editGroup(id, name, instructorId, price, maxStudents) {
         document.getElementById('editGroupForm').action = `/edit_group/${id}`;
         document.getElementById('editName').value = name;
-        document.getElementById('editLevel').value = level;
         document.getElementById('editInstructor').value = instructorId || '';
         document.getElementById('editPrice').value = price;
         document.getElementById('editMaxStudents').value = maxStudents;
+        
+        // Update subjects management link
+        document.getElementById('editSubjectsLink').href = `/assign_subjects_to_group/${id}`;
 
         // Clear all schedule fields first
         clearScheduleFields();

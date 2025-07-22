@@ -1,0 +1,408 @@
+{% extends "base.html" %}
+
+{% block title %}ربط المواد بالمجموعة - {{ group.name }}{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2>
+                <i class="fas fa-link me-2"></i>
+                ربط المواد بالمجموعة
+            </h2>
+            <p class="text-muted">تحديد المواد الدراسية للمجموعة: <strong>{{ group.name }}</strong></p>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{{ url_for('groups') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i>
+                العودة للمجموعات
+            </a>
+        </div>
+    </div>
+
+    <!-- Group Information -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card group-info-card">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h5 class="mb-2">
+                                <i class="fas fa-users me-2 text-primary"></i>
+                                {{ group.name }}
+                            </h5>
+                            <div class="group-details">
+                                <span class="badge bg-info me-2">
+                                    <i class="fas fa-chalkboard-teacher me-1"></i>
+                                    {{ group.instructor_ref.name if group.instructor_ref else 'بدون مدرس' }}
+                                </span>
+                                <span class="badge bg-success me-2">
+                                    <i class="fas fa-user-friends me-1"></i>
+                                    {{ group.students.count() }} طالب
+                                </span>
+                                <span class="badge bg-warning">
+                                    <i class="fas fa-money-bill me-1"></i>
+                                    {{ group.price }} ج.م
+                                </span>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="current-subjects">
+                                <h6 class="text-muted mb-2">المواد الحالية:</h6>
+                                {% if group.subjects %}
+                                <div class="subjects-list">
+                                    {% for subject in group.subjects %}
+                                    <span class="badge bg-primary me-1 mb-1">{{ subject.name }}</span>
+                                    {% endfor %}
+                                </div>
+                                {% else %}
+                                <span class="text-muted">لا توجد مواد مرتبطة</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Assignment Form -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <i class="fas fa-book me-2"></i>
+                اختيار المواد للمجموعة
+            </h5>
+        </div>
+        <div class="card-body">
+            <form action="{{ url_for('assign_subjects_to_group', group_id=group.id) }}" method="post">
+                <!-- Search and Filter -->
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="input-group">
+                            <span class="input-group-text">
+                                <i class="fas fa-search"></i>
+                            </span>
+                            <input type="text" class="form-control" id="searchSubjects" placeholder="البحث في المواد...">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <select class="form-select" id="filterType">
+                            <option value="">جميع الأنواع</option>
+                            <option value="مادة">مادة</option>
+                            <option value="اختبار">اختبار</option>
+                            <option value="واجب">واجب</option>
+                            <option value="مشروع">مشروع</option>
+                            <option value="نشاط">نشاط</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <button type="button" class="btn btn-outline-primary w-100" onclick="selectAll()">
+                            <i class="fas fa-check-square me-2"></i>
+                            تحديد الكل
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Subjects Grid -->
+                <div class="subjects-grid" id="subjectsGrid">
+                    {% for subject in subjects %}
+                    <div class="subject-card" data-name="{{ subject.name.lower() }}" data-type="{{ subject.subject_type }}">
+                        <div class="form-check">
+                            <input class="form-check-input subject-checkbox" 
+                                   type="checkbox" 
+                                   name="subject_ids" 
+                                   value="{{ subject.id }}" 
+                                   id="subject_{{ subject.id }}"
+                                   {% if subject in group.subjects %}checked{% endif %}>
+                            <label class="form-check-label subject-label" for="subject_{{ subject.id }}">
+                                <div class="subject-info">
+                                    <div class="subject-header">
+                                        <h6 class="subject-name">{{ subject.name }}</h6>
+                                        <span class="badge bg-{{ 'primary' if subject.subject_type == 'مادة' else 'info' if subject.subject_type == 'اختبار' else 'warning' if subject.subject_type == 'واجب' else 'success' }}">
+                                            {{ subject.subject_type }}
+                                        </span>
+                                    </div>
+                                    
+                                    {% if subject.code %}
+                                    <div class="subject-code">
+                                        <small class="text-muted">
+                                            <i class="fas fa-code me-1"></i>
+                                            {{ subject.code }}
+                                        </small>
+                                    </div>
+                                    {% endif %}
+                                    
+                                    {% if subject.description %}
+                                    <div class="subject-description">
+                                        <small class="text-muted">{{ subject.description[:80] }}{% if subject.description|length > 80 %}...{% endif %}</small>
+                                    </div>
+                                    {% endif %}
+                                    
+                                    <div class="subject-meta">
+                                        <small class="text-muted">
+                                            <i class="fas fa-star me-1"></i>
+                                            الدرجة القصوى: {{ subject.max_grade }}
+                                        </small>
+                                        {% if subject.instructor %}
+                                        <br><small class="text-success">
+                                            <i class="fas fa-user me-1"></i>
+                                            {{ subject.instructor.name }}
+                                        </small>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    {% if subject.groups %}
+                                    <div class="subject-groups">
+                                        <small class="text-info">
+                                            <i class="fas fa-users me-1"></i>
+                                            مرتبطة بـ {{ subject.groups|list|length }} مجموعة
+                                        </small>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="col-12">
+                        <div class="text-center text-muted py-5">
+                            <i class="fas fa-book fa-3x mb-3"></i>
+                            <h5>لا توجد مواد متاحة</h5>
+                            <p>يجب إضافة مواد أولاً من صفحة إدارة المواد</p>
+                            <a href="{{ url_for('manage_subjects') }}" class="btn btn-primary">
+                                <i class="fas fa-plus me-2"></i>
+                                إضافة مواد
+                            </a>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <!-- Action Buttons -->
+                {% if subjects %}
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <div class="d-flex justify-content-between">
+                            <div class="selected-count">
+                                <span class="badge bg-primary fs-6" id="selectedCount">0 مادة محددة</span>
+                            </div>
+                            <div class="action-buttons">
+                                <button type="button" class="btn btn-outline-secondary me-2" onclick="clearAll()">
+                                    <i class="fas fa-times me-2"></i>
+                                    إلغاء التحديد
+                                </button>
+                                <button type="submit" class="btn btn-success">
+                                    <i class="fas fa-save me-2"></i>
+                                    حفظ التغييرات
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+.group-info-card {
+    border-left: 4px solid #667eea;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.subjects-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.subject-card {
+    border: 2px solid #e9ecef;
+    border-radius: 10px;
+    padding: 20px;
+    transition: all 0.3s ease;
+    background: #f8f9fa;
+}
+
+.subject-card:hover {
+    border-color: #667eea;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.15);
+}
+
+.subject-card.selected {
+    border-color: #28a745;
+    background: #f0fff4;
+}
+
+.subject-label {
+    cursor: pointer;
+    width: 100%;
+    margin-bottom: 0;
+}
+
+.subject-info {
+    width: 100%;
+}
+
+.subject-header {
+    display: flex;
+    justify-content: between;
+    align-items: flex-start;
+    margin-bottom: 10px;
+}
+
+.subject-name {
+    color: #333;
+    margin: 0;
+    flex: 1;
+    margin-left: 10px;
+}
+
+.subject-code, .subject-description, .subject-meta, .subject-groups {
+    margin-bottom: 8px;
+}
+
+.subject-checkbox {
+    margin-top: 0.25rem;
+    transform: scale(1.2);
+}
+
+.subject-checkbox:checked ~ .subject-label .subject-card {
+    border-color: #28a745;
+    background: #f0fff4;
+}
+
+.form-check {
+    min-height: auto;
+}
+
+.selected-count {
+    display: flex;
+    align-items: center;
+}
+
+@media (max-width: 768px) {
+    .subjects-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .subject-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .subject-name {
+        margin-left: 0;
+        margin-bottom: 5px;
+    }
+}
+
+.fade-in {
+    animation: fadeInUp 0.6s ease-out;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('searchSubjects');
+    const typeFilter = document.getElementById('filterType');
+    const subjectCards = document.querySelectorAll('.subject-card');
+    const checkboxes = document.querySelectorAll('.subject-checkbox');
+    const selectedCountElement = document.getElementById('selectedCount');
+    
+    // Update selected count
+    function updateSelectedCount() {
+        const checkedBoxes = document.querySelectorAll('.subject-checkbox:checked');
+        selectedCountElement.textContent = `${checkedBoxes.length} مادة محددة`;
+        
+        // Update card visual state
+        subjectCards.forEach(card => {
+            const checkbox = card.querySelector('.subject-checkbox');
+            if (checkbox.checked) {
+                card.classList.add('selected');
+            } else {
+                card.classList.remove('selected');
+            }
+        });
+    }
+    
+    // Filter subjects
+    function filterSubjects() {
+        const searchTerm = searchInput.value.toLowerCase();
+        const selectedType = typeFilter.value;
+        
+        subjectCards.forEach(card => {
+            const name = card.getAttribute('data-name');
+            const type = card.getAttribute('data-type');
+            
+            const matchesSearch = name.includes(searchTerm);
+            const matchesType = !selectedType || type === selectedType;
+            
+            if (matchesSearch && matchesType) {
+                card.style.display = 'block';
+            } else {
+                card.style.display = 'none';
+            }
+        });
+    }
+    
+    // Event listeners
+    searchInput.addEventListener('input', filterSubjects);
+    typeFilter.addEventListener('change', filterSubjects);
+    
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', updateSelectedCount);
+    });
+    
+    // Initial count
+    updateSelectedCount();
+});
+
+function selectAll() {
+    const visibleCheckboxes = document.querySelectorAll('.subject-card[style="display: block"] .subject-checkbox, .subject-card:not([style*="display: none"]) .subject-checkbox');
+    visibleCheckboxes.forEach(checkbox => {
+        checkbox.checked = true;
+    });
+    updateSelectedCount();
+}
+
+function clearAll() {
+    const checkboxes = document.querySelectorAll('.subject-checkbox');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = false;
+    });
+    updateSelectedCount();
+}
+
+function updateSelectedCount() {
+    const checkedBoxes = document.querySelectorAll('.subject-checkbox:checked');
+    document.getElementById('selectedCount').textContent = `${checkedBoxes.length} مادة محددة`;
+    
+    // Update card visual state
+    document.querySelectorAll('.subject-card').forEach(card => {
+        const checkbox = card.querySelector('.subject-checkbox');
+        if (checkbox.checked) {
+            card.classList.add('selected');
+        } else {
+            card.classList.remove('selected');
+        }
+    });
+}
+</script>
+{% endblock %} 
