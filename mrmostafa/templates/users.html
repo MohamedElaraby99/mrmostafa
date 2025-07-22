@@ -198,7 +198,57 @@
             opacity: 0;
             transform: translateY(20px);
         }
+    }
 
+    /* Password field with eye icon styling */
+    .password-field-container {
+        position: relative;
+    }
+
+    .password-toggle-btn {
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        color: #6c757d;
+        cursor: pointer;
+        padding: 0;
+        width: 20px;
+        height: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: color 0.3s ease;
+        z-index: 10;
+    }
+
+    .password-toggle-btn:hover {
+        color: #007bff;
+    }
+
+    .password-toggle-btn:focus {
+        outline: none;
+        color: #007bff;
+    }
+
+    .password-field-container input[type="password"],
+    .password-field-container input[type="text"] {
+        padding-right: 45px;
+    }
+
+    /* Username styling - lowercase */
+    .username-display {
+        text-transform: none !important;
+        font-family: 'Courier New', monospace;
+    }
+
+    code {
+        text-transform: none !important;
+    }
+
+    @keyframes fadeInUp {
         to {
             opacity: 1;
             transform: translateY(0);
@@ -403,11 +453,17 @@
                                             مرتبط بـ: {{ user.linked_instructor.name }}
                                         </small>
                                         {% endif %}
+                                        {% if user.role != 'admin' %}
+                                        <small class="user-info-secondary d-block">
+                                            <i class="fas fa-key me-1"></i>
+                                            الصلاحيات: {{ user.get_permissions_list()|length }} صلاحية
+                                        </small>
+                                        {% endif %}
                                     </div>
                                 </div>
                             </td>
                             <td>
-                                <code class="bg-light p-2 rounded">{{ user.username }}</code>
+                                <code class="bg-light p-2 rounded username-display">{{ user.username|lower }}</code>
                             </td>
                             <td>
                                 {% if user.last_login %}
@@ -487,13 +543,18 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-bold">اسم المستخدم *</label>
-                        <input type="text" class="form-control" name="username" required
-                            placeholder="أدخل اسم المستخدم">
+                        <input type="text" class="form-control username-display" name="username" required
+                            placeholder="أدخل اسم المستخدم" style="text-transform: lowercase;">
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-bold">كلمة المرور *</label>
-                        <input type="password" class="form-control" name="password" required
-                            placeholder="أدخل كلمة المرور">
+                        <div class="password-field-container">
+                            <input type="password" class="form-control" name="password" id="addPassword" required
+                                placeholder="أدخل كلمة المرور">
+                            <button type="button" class="password-toggle-btn" onclick="togglePassword('addPassword', this)">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-bold">الصلاحية *</label>
@@ -503,6 +564,18 @@
                             <option value="admin">مدير</option>
                             <option value="instructor">مدرس</option>
                         </select>
+                    </div>
+                    <div class="mb-3" id="roleTypeField">
+                        <label class="form-label fw-bold">نوع الصلاحيات *</label>
+                        <select class="form-select" name="role_type" id="addRoleType" required>
+                            <option value="full_instructor">مدرس كامل (جميع الصلاحيات)</option>
+                            <option value="payment_manager">مدير المدفوعات</option>
+                            <option value="attendance_manager">مسؤول الحضور</option>
+                            <option value="student_manager">مدير الطلاب</option>
+                            <option value="instructor_manager">مدير المدرسين</option>
+                            <option value="reports_manager">مدير التقارير</option>
+                        </select>
+                        <small class="form-text text-muted">حدد نوع الصلاحيات التي سيحصل عليها المستخدم</small>
                     </div>
                     <div class="mb-3" id="instructorField" style="display: none;">
                         <label class="form-label fw-bold">ربط بالمدرس *</label>
@@ -549,12 +622,17 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-bold">اسم المستخدم *</label>
-                        <input type="text" class="form-control" name="username" id="editUsername" required>
+                        <input type="text" class="form-control username-display" name="username" id="editUsername" required style="text-transform: lowercase;">
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-bold">كلمة المرور الجديدة</label>
-                        <input type="password" class="form-control" name="password"
-                            placeholder="اتركه فارغاً إذا كنت لا تريد تغييرها">
+                        <div class="password-field-container">
+                            <input type="password" class="form-control" name="password" id="editPassword"
+                                placeholder="اتركه فارغاً إذا كنت لا تريد تغييرها">
+                            <button type="button" class="password-toggle-btn" onclick="togglePassword('editPassword', this)">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
                         <small class="form-text text-muted">اتركه فارغاً إذا كنت لا تريد تغيير كلمة المرور</small>
                     </div>
                     <div class="mb-3">
@@ -693,6 +771,22 @@
             instructorField.style.display = 'block';
         } else {
             instructorField.style.display = 'none';
+        }
+    }
+
+    // Password toggle function
+    function togglePassword(inputId, button) {
+        const input = document.getElementById(inputId);
+        const icon = button.querySelector('i');
+        
+        if (input.type === 'password') {
+            input.type = 'text';
+            icon.classList.remove('fa-eye');
+            icon.classList.add('fa-eye-slash');
+        } else {
+            input.type = 'password';
+            icon.classList.remove('fa-eye-slash');
+            icon.classList.add('fa-eye');
         }
     }
 

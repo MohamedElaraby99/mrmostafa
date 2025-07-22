@@ -58,6 +58,20 @@ class User(db.Model):
     last_activity = db.Column(db.DateTime, default=datetime.utcnow)
     is_online = db.Column(db.Boolean, default=False)
     
+    # Permission fields for granular access control
+    can_manage_payments = db.Column(db.Boolean, default=False)  # Add/edit/view payments
+    can_take_attendance = db.Column(db.Boolean, default=False)  # Take attendance
+    can_view_reports = db.Column(db.Boolean, default=False)     # View reports and analytics
+    can_manage_students = db.Column(db.Boolean, default=False)  # Add/edit students
+    can_manage_groups = db.Column(db.Boolean, default=False)    # Add/edit groups  
+    can_manage_instructors = db.Column(db.Boolean, default=False) # Add/edit instructors
+    can_manage_users = db.Column(db.Boolean, default=False)     # User management (admin only)
+    can_manage_subjects = db.Column(db.Boolean, default=False)  # Manage subjects
+    can_export_data = db.Column(db.Boolean, default=False)     # Export to Excel
+    can_import_data = db.Column(db.Boolean, default=False)     # Import from Excel
+    can_manage_expenses = db.Column(db.Boolean, default=False)  # Manage expenses
+    can_manage_tasks = db.Column(db.Boolean, default=False)     # Manage tasks
+    
     # Relationship
     linked_instructor = db.relationship('Instructor', backref='user_account', uselist=False)
     
@@ -78,6 +92,76 @@ class User(db.Model):
         if not self.last_activity:
             return False
         return (datetime.utcnow() - self.last_activity).total_seconds() < 300  # 5 minutes
+    
+    def has_permission(self, permission):
+        """Check if user has a specific permission"""
+        if self.role == 'admin':
+            return True  # Admin has all permissions
+        return getattr(self, f'can_{permission}', False)
+    
+    def get_permissions_list(self):
+        """Get list of all permissions this user has"""
+        if self.role == 'admin':
+            return ['manage_payments', 'take_attendance', 'view_reports', 'manage_students', 
+                   'manage_groups', 'manage_instructors', 'manage_users', 'manage_subjects',
+                   'export_data', 'import_data', 'manage_expenses', 'manage_tasks']
+        
+        permissions = []
+        permission_fields = ['manage_payments', 'take_attendance', 'view_reports', 'manage_students',
+                           'manage_groups', 'manage_instructors', 'manage_subjects', 'export_data', 
+                           'import_data', 'manage_expenses', 'manage_tasks']
+        
+        for perm in permission_fields:
+            if getattr(self, f'can_{perm}', False):
+                permissions.append(perm)
+        
+        return permissions
+    
+    def set_role_permissions(self, role_type):
+        """Set default permissions based on role type"""
+        # Reset all permissions first
+        self.can_manage_payments = False
+        self.can_take_attendance = False
+        self.can_view_reports = False
+        self.can_manage_students = False
+        self.can_manage_groups = False
+        self.can_manage_instructors = False
+        self.can_manage_users = False
+        self.can_manage_subjects = False
+        self.can_export_data = False
+        self.can_import_data = False
+        self.can_manage_expenses = False
+        self.can_manage_tasks = False
+        
+        if role_type == 'payment_manager':
+            self.can_manage_payments = True
+            self.can_view_reports = True
+            self.can_export_data = True
+        elif role_type == 'attendance_manager':
+            self.can_take_attendance = True
+            self.can_view_reports = True
+        elif role_type == 'student_manager':
+            self.can_manage_students = True
+            self.can_export_data = True
+            self.can_import_data = True
+        elif role_type == 'instructor_manager':
+            self.can_manage_instructors = True
+            self.can_manage_groups = True
+            self.can_manage_subjects = True
+        elif role_type == 'reports_manager':
+            self.can_view_reports = True
+            self.can_export_data = True
+        elif role_type == 'full_instructor':
+            # Full instructor permissions
+            self.can_take_attendance = True
+            self.can_view_reports = True
+            self.can_manage_students = True
+            self.can_manage_groups = True
+            self.can_manage_subjects = True
+            self.can_manage_tasks = True
+        elif role_type == 'admin':
+            # Admin gets all permissions automatically via has_permission method
+            self.role = 'admin'
 
 class Instructor(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -540,10 +624,83 @@ def instructor_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
+# Permission-based decorators
+def permission_required(permission):
+    """Decorator factory for permission-based access control"""
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            if 'user_id' not in session:
+                flash('يجب تسجيل الدخول أولاً', 'error')
+                return redirect(url_for('login'))
+            
+            user = User.query.get(session['user_id'])
+            if not user or not user.has_permission(permission):
+                flash('ليس لديك صلاحية للوصول لهذه الصفحة', 'error')
+                return redirect(url_for('index'))
+            
+            return f(*args, **kwargs)
+        return decorated_function
+    return decorator
+
+# Specific permission decorators
+def payments_required(f):
+    """Require permission to manage payments"""
+    return permission_required('manage_payments')(f)
+
+def attendance_required(f):
+    """Require permission to take attendance"""
+    return permission_required('take_attendance')(f)
+
+def reports_required(f):
+    """Require permission to view reports"""
+    return permission_required('view_reports')(f)
+
+def students_required(f):
+    """Require permission to manage students"""
+    return permission_required('manage_students')(f)
+
+def groups_required(f):
+    """Require permission to manage groups"""
+    return permission_required('manage_groups')(f)
+
+def instructors_required(f):
+    """Require permission to manage instructors"""
+    return permission_required('manage_instructors')(f)
+
+def users_required(f):
+    """Require permission to manage users"""
+    return permission_required('manage_users')(f)
+
+def subjects_required(f):
+    """Require permission to manage subjects"""
+    return permission_required('manage_subjects')(f)
+
+def export_required(f):
+    """Require permission to export data"""
+    return permission_required('export_data')(f)
+
+def import_required(f):
+    """Require permission to import data"""
+    return permission_required('import_data')(f)
+
+def expenses_required(f):
+    """Require permission to manage expenses"""
+    return permission_required('manage_expenses')(f)
+
+def tasks_required(f):
+    """Require permission to manage tasks"""
+    return permission_required('manage_tasks')(f)
+
 def get_current_user():
     if 'user_id' in session:
         return User.query.get(session['user_id'])
     return None
+
+# Make current user available in all templates
+@app.context_processor
+def inject_current_user():
+    return dict(current_user=get_current_user())
 
 def create_default_admin():
     """Create default hidden admin user if it doesn't exist"""
@@ -758,7 +915,7 @@ def logout():
     return redirect(url_for('login'))
 
 @app.route('/users')
-@admin_required
+@users_required
 def users():
     users = User.query.filter_by(is_hidden=False).all()
     instructors = Instructor.query.all()
@@ -766,12 +923,13 @@ def users():
     return render_template('users.html', users=users, instructors=instructors, current_user=current_user)
 
 @app.route('/add_user', methods=['POST'])
-@admin_required
+@users_required
 def add_user():
     username = request.form['username']
     password = request.form['password']
     full_name = request.form['full_name']
     role = request.form['role']
+    role_type = request.form.get('role_type', 'full_instructor')  # Default role type
     instructor_id = request.form.get('instructor_id') if role == 'instructor' else None
     
     # Check if username already exists
@@ -793,6 +951,9 @@ def add_user():
         instructor_id=int(instructor_id) if instructor_id else None
     )
     new_user.set_password(password)
+    
+    # Set permissions based on role type
+    new_user.set_role_permissions(role_type)
     
     try:
         db.session.add(new_user)
@@ -1258,7 +1419,7 @@ def add_group():
     return redirect(url_for('groups'))
 
 @app.route('/attendance')
-@login_required
+@attendance_required
 def attendance():
     groups = Group.query.all()
     students = Student.query.all()
@@ -1266,6 +1427,7 @@ def attendance():
     return render_template('attendance.html', groups=groups, students=students, today=today)
 
 @app.route('/mark_attendance', methods=['POST'])
+@attendance_required
 def mark_attendance():
     data = request.get_json()
     date = datetime.strptime(data['date'], '%Y-%m-%d').date()
@@ -1297,7 +1459,7 @@ def mark_attendance():
     return jsonify({'success': True, 'message': 'تم حفظ الحضور بنجاح'})
 
 @app.route('/payments')
-@login_required
+@payments_required
 def payments():
     # Get pagination parameters
     payments_page = request.args.get('payments_page', 1, type=int)
@@ -1513,6 +1675,7 @@ def payments():
                          search_expense_date_to=search_expense_date_to)
 
 @app.route('/add_payment', methods=['POST'])
+@payments_required
 def add_payment():
     student_id = int(request.form['student_id'])
     amount = float(request.form['amount'])
@@ -1536,7 +1699,7 @@ def add_payment():
     return redirect(url_for('payments'))
 
 @app.route('/edit_payment/<int:payment_id>', methods=['POST'])
-@login_required
+@payments_required
 def edit_payment(payment_id):
     payment = Payment.query.get_or_404(payment_id)
     old_amount = payment.amount
@@ -1572,7 +1735,7 @@ def edit_payment(payment_id):
     return redirect(url_for('payments'))
 
 @app.route('/delete_payment/<int:payment_id>', methods=['POST'])
-@login_required
+@payments_required
 def delete_payment(payment_id):
     payment = Payment.query.get_or_404(payment_id)
     
@@ -3787,8 +3950,6 @@ def grades():
                          selected_group=group_filter,
                          selected_subject=subject_filter,
                          selected_student=student_filter)
-
-# Removed old add_subject route - replaced with new subjects management system
 
 @app.route('/download_grades_template')
 @login_required
