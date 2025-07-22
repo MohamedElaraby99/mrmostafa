@@ -439,9 +439,12 @@
                                             {% endif %}
                                         </div>
                                         <small class="user-info-secondary">
-                                            <i
-                                                class="fas fa-{{ 'shield-alt' if user.role == 'admin' else 'chalkboard-teacher' }} me-1"></i>
-                                            {{ 'مدير النظام' if user.role == 'admin' else 'مدرس' }}
+                                            <i class="fas fa-{{ 'shield-alt' if user.role == 'admin' else 'briefcase' }} me-1"></i>
+                                            {{ user.get_role_info()['name'] }}
+                                        </small>
+                                        <small class="user-info-secondary d-block">
+                                            <i class="fas fa-clipboard-list me-1"></i>
+                                            {{ user.get_role_info()['description'] }}
                                         </small>
                                         {% if user.is_hidden %}
                                         <small class="user-info-secondary d-block"><i
@@ -453,12 +456,10 @@
                                             مرتبط بـ: {{ user.linked_instructor.name }}
                                         </small>
                                         {% endif %}
-                                        {% if user.role != 'admin' %}
                                         <small class="user-info-secondary d-block">
                                             <i class="fas fa-key me-1"></i>
                                             الصلاحيات: {{ user.get_permissions_list()|length }} صلاحية
                                         </small>
-                                        {% endif %}
                                     </div>
                                 </div>
                             </td>
@@ -486,7 +487,7 @@
                             <td class="text-center">
                                 {% if not user.is_hidden or current_user.username == 'araby' %}
                                 <button class="btn btn-warning btn-sm action-btn"
-                                    onclick="editUser({{ user.id }}, '{{ user.username }}', '{{ user.full_name }}', '{{ user.role }}')"
+                                    onclick="editUser({{ user.id }}, '{{ user.username }}', '{{ user.full_name }}', '{{ user.role }}', '{{ user.get_role_info()['key'] }}')"
                                     title="تعديل المستخدم">
                                     <i class="fas fa-edit"></i>
                                 </button>
@@ -557,25 +558,23 @@
                         </div>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label fw-bold">الصلاحية *</label>
-                        <select class="form-select" name="role" id="addRole" required
-                            onchange="toggleInstructorField()">
-                            <option value="">اختر الصلاحية</option>
-                            <option value="admin">مدير</option>
-                            <option value="instructor">مدرس</option>
+                        <label class="form-label fw-bold">نوع المستخدم *</label>
+                        <select class="form-select" name="role_type" id="addRoleType" required onchange="updateRoleDescription()">
+                            <option value="">اختر نوع المستخدم</option>
+                            <option value="admin">مدير النظام - System Administrator</option>
+                            <option value="financial_administrator">مدير مالي - Financial Administrator</option>
+                            <option value="attendance_coordinator">منسق الحضور - Attendance Coordinator</option>
+                            <option value="student_affairs_manager">مدير شؤون الطلاب - Student Affairs Manager</option>
+                            <option value="academic_coordinator">منسق أكاديمي - Academic Coordinator</option>
+                            <option value="data_analyst">محلل بيانات - Data Analyst</option>
+                            <option value="senior_instructor">مدرس أول - Senior Instructor</option>
+                            <option value="assistant_instructor">مدرس مساعد - Assistant Instructor</option>
+                            <option value="data_entry_specialist">أخصائي إدخال بيانات - Data Entry Specialist</option>
                         </select>
-                    </div>
-                    <div class="mb-3" id="roleTypeField">
-                        <label class="form-label fw-bold">نوع الصلاحيات *</label>
-                        <select class="form-select" name="role_type" id="addRoleType" required>
-                            <option value="full_instructor">مدرس كامل (جميع الصلاحيات)</option>
-                            <option value="payment_manager">مدير المدفوعات</option>
-                            <option value="attendance_manager">مسؤول الحضور</option>
-                            <option value="student_manager">مدير الطلاب</option>
-                            <option value="instructor_manager">مدير المدرسين</option>
-                            <option value="reports_manager">مدير التقارير</option>
-                        </select>
-                        <small class="form-text text-muted">حدد نوع الصلاحيات التي سيحصل عليها المستخدم</small>
+                        <small class="form-text text-muted">اختر نوع المستخدم الذي يناسب مسؤولياته في النظام</small>
+                        <div id="roleDescription" class="mt-2" style="display: none;">
+                            <div class="alert alert-info" id="roleDescriptionText"></div>
+                        </div>
                     </div>
                     <div class="mb-3" id="instructorField" style="display: none;">
                         <label class="form-label fw-bold">ربط بالمدرس *</label>
@@ -636,11 +635,23 @@
                         <small class="form-text text-muted">اتركه فارغاً إذا كنت لا تريد تغيير كلمة المرور</small>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label fw-bold">الصلاحية *</label>
-                        <select class="form-select" name="role" id="editRole" required>
-                            <option value="admin">مدير</option>
-                            <option value="instructor">مدرس</option>
+                        <label class="form-label fw-bold">نوع المستخدم *</label>
+                        <select class="form-select" name="role_type" id="editRoleType" required onchange="updateEditRoleDescription()">
+                            <option value="">اختر نوع المستخدم</option>
+                            <option value="admin">مدير النظام - System Administrator</option>
+                            <option value="financial_administrator">مدير مالي - Financial Administrator</option>
+                            <option value="attendance_coordinator">منسق الحضور - Attendance Coordinator</option>
+                            <option value="student_affairs_manager">مدير شؤون الطلاب - Student Affairs Manager</option>
+                            <option value="academic_coordinator">منسق أكاديمي - Academic Coordinator</option>
+                            <option value="data_analyst">محلل بيانات - Data Analyst</option>
+                            <option value="senior_instructor">مدرس أول - Senior Instructor</option>
+                            <option value="assistant_instructor">مدرس مساعد - Assistant Instructor</option>
+                            <option value="data_entry_specialist">أخصائي إدخال بيانات - Data Entry Specialist</option>
                         </select>
+                        <small class="form-text text-muted">اختر نوع المستخدم الذي يناسب مسؤولياته في النظام</small>
+                        <div id="editRoleDescription" class="mt-2" style="display: none;">
+                            <div class="alert alert-info" id="editRoleDescriptionText"></div>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -753,11 +764,22 @@
         }
     });
 
-    function editUser(id, username, fullName, role) {
+    function editUser(id, username, fullName, role, roleType) {
         document.getElementById('editUserForm').action = `/edit_user/${id}`;
         document.getElementById('editUsername').value = username;
         document.getElementById('editFullName').value = fullName;
-        document.getElementById('editRole').value = role;
+        
+        // Set role type - use admin if the role is admin, otherwise use the provided roleType
+        if (role === 'admin') {
+            document.getElementById('editRoleType').value = 'admin';
+        } else if (roleType) {
+            document.getElementById('editRoleType').value = roleType;
+        } else {
+            document.getElementById('editRoleType').value = '';
+        }
+        
+        // Update role description
+        updateEditRoleDescription();
 
         new bootstrap.Modal(document.getElementById('editUserModal')).show();
     }
@@ -787,6 +809,47 @@
             input.type = 'password';
             icon.classList.remove('fa-eye-slash');
             icon.classList.add('fa-eye');
+        }
+    }
+
+    // Role descriptions
+    const roleDescriptions = {
+        'admin': 'صلاحيات كاملة لإدارة النظام - يرى كل شيء',
+        'financial_administrator': 'المدفوعات والمصروفات فقط',
+        'attendance_coordinator': 'تسجيل الحضور فقط',
+        'student_affairs_manager': 'إدارة الطلاب ودرجاتهم فقط',
+        'academic_coordinator': 'إدارة المدرسين والمجموعات والمواد والمهام',
+        'data_analyst': 'عرض التقارير فقط',
+        'senior_instructor': 'الحضور والمجموعات والمهام',
+        'assistant_instructor': 'تسجيل الحضور فقط',
+        'data_entry_specialist': 'إدخال بيانات الطلاب فقط'
+    };
+
+    // Update role description when role type changes
+    function updateRoleDescription() {
+        const roleSelect = document.getElementById('addRoleType');
+        const descriptionDiv = document.getElementById('roleDescription');
+        const descriptionText = document.getElementById('roleDescriptionText');
+        
+        if (roleSelect.value && roleDescriptions[roleSelect.value]) {
+            descriptionText.innerHTML = `<strong>المسؤوليات:</strong> ${roleDescriptions[roleSelect.value]}`;
+            descriptionDiv.style.display = 'block';
+        } else {
+            descriptionDiv.style.display = 'none';
+        }
+    }
+
+    // Update role description for edit modal
+    function updateEditRoleDescription() {
+        const roleSelect = document.getElementById('editRoleType');
+        const descriptionDiv = document.getElementById('editRoleDescription');
+        const descriptionText = document.getElementById('editRoleDescriptionText');
+        
+        if (roleSelect.value && roleDescriptions[roleSelect.value]) {
+            descriptionText.innerHTML = `<strong>المسؤوليات:</strong> ${roleDescriptions[roleSelect.value]}`;
+            descriptionDiv.style.display = 'block';
+        } else {
+            descriptionDiv.style.display = 'none';
         }
     }
 

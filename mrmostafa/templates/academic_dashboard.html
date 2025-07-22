@@ -1,0 +1,331 @@
+{% extends "base.html" %}
+
+{% block title %}لوحة التنسيق الأكاديمي - {{ current_user.get_role_info()['name'] }}{% endblock %}
+
+{% block content %}
+<style>
+    .dashboard-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 20px;
+        color: white;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        border: none;
+        overflow: hidden;
+    }
+
+    .dashboard-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+    }
+
+    .dashboard-card.instructors {
+        background: linear-gradient(135deg, #007bff 0%, #6610f2 100%);
+    }
+
+    .dashboard-card.groups {
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    }
+
+    .dashboard-card.subjects {
+        background: linear-gradient(135deg, #fd7e14 0%, #e83e8c 100%);
+    }
+
+    .dashboard-card.tasks {
+        background: linear-gradient(135deg, #17a2b8 0%, #6f42c1 100%);
+    }
+
+    .role-header {
+        background: linear-gradient(135deg, #6f42c1 0%, #007bff 100%);
+        color: white;
+        padding: 2rem;
+        border-radius: 20px;
+        margin-bottom: 2rem;
+        text-align: center;
+    }
+
+    .academic-section {
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .schedule-item {
+        border-left: 4px solid #007bff;
+        padding-left: 1rem;
+        margin-bottom: 1rem;
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 1rem;
+    }
+
+    .task-item {
+        border-bottom: 1px solid #eee;
+        padding: 0.75rem 0;
+    }
+
+    .task-item:last-child {
+        border-bottom: none;
+    }
+
+    .stat-icon {
+        font-size: 2.5rem;
+        opacity: 0.8;
+    }
+
+    .priority-high {
+        border-left: 4px solid #dc3545;
+    }
+
+    .priority-medium {
+        border-left: 4px solid #ffc107;
+    }
+
+    .priority-low {
+        border-left: 4px solid #28a745;
+    }
+</style>
+
+<div class="container-fluid">
+    <!-- Role Header -->
+    <div class="role-header">
+        <div class="row align-items-center">
+            <div class="col-md-2">
+                <i class="fas fa-chalkboard-teacher stat-icon"></i>
+            </div>
+            <div class="col-md-8">
+                <h2 class="mb-1">مرحباً {{ current_user.full_name }}</h2>
+                <h4 class="mb-2">{{ current_user.get_role_info()['name'] }}</h4>
+                <p class="mb-0">{{ current_user.get_role_info()['description'] }}</p>
+            </div>
+            <div class="col-md-2 text-end">
+                <h5 class="mb-0">{{ today_date.strftime('%Y-%m-%d') }}</h5>
+                <small>{{ today_arabic }}</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Academic Statistics -->
+    <div class="row">
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="dashboard-card instructors">
+                <div class="card-body text-center">
+                    <i class="fas fa-chalkboard-teacher stat-icon mb-3"></i>
+                    <h3 class="card-title">{{ total_instructors }}</h3>
+                    <p class="card-text">المدرسون</p>
+                    <small>هيئة التدريس</small>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="dashboard-card groups">
+                <div class="card-body text-center">
+                    <i class="fas fa-users stat-icon mb-3"></i>
+                    <h3 class="card-title">{{ total_groups }}</h3>
+                    <p class="card-text">المجموعات</p>
+                    <small>مجموعات الدراسة</small>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="dashboard-card subjects">
+                <div class="card-body text-center">
+                    <i class="fas fa-book stat-icon mb-3"></i>
+                    <h3 class="card-title">{{ total_subjects }}</h3>
+                    <p class="card-text">المواد</p>
+                    <small>المواد الدراسية</small>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="dashboard-card tasks">
+                <div class="card-body text-center">
+                    <i class="fas fa-tasks stat-icon mb-3"></i>
+                    <h3 class="card-title">{{ recent_tasks|length }}</h3>
+                    <p class="card-text">المهام</p>
+                    <small>مهام حديثة</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="academic-section">
+                <h5 class="mb-3">
+                    <i class="fas fa-bolt text-primary me-2"></i>
+                    الإجراءات السريعة
+                </h5>
+                <div class="row">
+                    <div class="col-md-3 mb-2">
+                        <a href="{{ url_for('instructors') }}" class="btn btn-outline-primary w-100">
+                            <i class="fas fa-chalkboard-teacher me-2"></i>
+                            إدارة المدرسين
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <a href="{{ url_for('groups') }}" class="btn btn-outline-success w-100">
+                            <i class="fas fa-users me-2"></i>
+                            إدارة المجموعات
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <a href="{{ url_for('manage_subjects') }}" class="btn btn-outline-info w-100">
+                            <i class="fas fa-book me-2"></i>
+                            إدارة المواد
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <a href="{{ url_for('tasks') }}" class="btn btn-outline-warning w-100">
+                            <i class="fas fa-tasks me-2"></i>
+                            إدارة المهام
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Today's Schedule & Tasks -->
+    <div class="row">
+        <div class="col-lg-8 mb-4">
+            <div class="academic-section">
+                <h5 class="mb-3">
+                    <i class="fas fa-calendar-day text-primary me-2"></i>
+                    جدول اليوم - {{ today_arabic }}
+                </h5>
+                {% if today_schedule %}
+                    {% for item in today_schedule %}
+                    <div class="schedule-item">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-1">{{ item.group_name }}</h6>
+                                <small class="text-muted">
+                                    <i class="fas fa-user me-1"></i>{{ item.instructor_name }}
+                                    <i class="fas fa-users me-1 ms-2"></i>{{ item.student_count }} طالب
+                                </small>
+                            </div>
+                            <div class="text-end">
+                                <span class="badge bg-primary">{{ item.start_time }} - {{ item.end_time }}</span>
+                                {% if item.level %}
+                                <br>
+                                <small class="text-muted">{{ item.level }}</small>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-calendar-times text-muted" style="font-size: 3rem;"></i>
+                        <p class="text-muted mt-2">لا توجد محاضرات مجدولة اليوم</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="col-lg-4 mb-4">
+            <div class="academic-section">
+                <h5 class="mb-3">
+                    <i class="fas fa-clipboard-list text-warning me-2"></i>
+                    المهام الحديثة
+                </h5>
+                {% if recent_tasks %}
+                    {% for task in recent_tasks %}
+                    <div class="task-item priority-{{ 'high' if task.priority == 'عالي' else 'medium' if task.priority == 'متوسط' else 'low' }}">
+                        <div>
+                            <strong>{{ task.title }}</strong>
+                            <div class="d-flex justify-content-between align-items-center mt-1">
+                                <small class="text-muted">
+                                    {% if task.assignee %}
+                                    <i class="fas fa-user me-1"></i>{{ task.assignee.full_name }}
+                                    {% endif %}
+                                </small>
+                                <div>
+                                    {% if task.priority == 'عالي' %}
+                                    <span class="badge bg-danger">{{ task.priority }}</span>
+                                    {% elif task.priority == 'متوسط' %}
+                                    <span class="badge bg-warning">{{ task.priority }}</span>
+                                    {% else %}
+                                    <span class="badge bg-success">{{ task.priority }}</span>
+                                    {% endif %}
+                                    <span class="badge bg-secondary ms-1">{{ task.status }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center py-3">
+                        <i class="fas fa-tasks text-muted" style="font-size: 2rem;"></i>
+                        <p class="text-muted mt-2">لا توجد مهام حديثة</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Weekly Schedule Overview -->
+    <div class="row">
+        <div class="col-12">
+            <div class="academic-section">
+                <h5 class="mb-3">
+                    <i class="fas fa-calendar-week text-success me-2"></i>
+                    نظرة عامة على الجدول الأسبوعي
+                </h5>
+                {% if weekly_schedule %}
+                <div class="table-responsive">
+                    <table class="table table-bordered">
+                        <thead class="table-primary">
+                            <tr>
+                                <th>اليوم</th>
+                                <th>عدد المحاضرات</th>
+                                <th>المجموعات</th>
+                                <th>المدرسون</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for day, schedules in weekly_schedule.items() %}
+                            <tr>
+                                <td><strong>{{ day }}</strong></td>
+                                <td>{{ schedules|length }}</td>
+                                <td>
+                                    {% for schedule in schedules[:3] %}
+                                    <span class="badge bg-info me-1">{{ schedule.group_name }}</span>
+                                    {% endfor %}
+                                    {% if schedules|length > 3 %}
+                                    <small class="text-muted">+{{ schedules|length - 3 }} أخرى</small>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% set instructors = schedules|map(attribute='instructor_name')|unique|list %}
+                                    {% for instructor in instructors[:2] %}
+                                    <small class="text-muted">{{ instructor }}</small>{% if not loop.last %}, {% endif %}
+                                    {% endfor %}
+                                    {% if instructors|length > 2 %}
+                                    <small class="text-muted">+{{ instructors|length - 2 }}</small>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                    <p class="text-muted text-center py-3">لا توجد جداول أسبوعية</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Add any JavaScript functionality here
+    console.log('Academic Dashboard loaded successfully');
+</script>
+{% endblock %} 

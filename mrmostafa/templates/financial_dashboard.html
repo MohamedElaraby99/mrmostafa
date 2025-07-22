@@ -1,0 +1,242 @@
+{% extends "base.html" %}
+
+{% block title %}لوحة التحكم المالية - {{ current_user.get_role_info()['name'] }}{% endblock %}
+
+{% block content %}
+<style>
+    .dashboard-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 20px;
+        color: white;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        border: none;
+        overflow: hidden;
+    }
+
+    .dashboard-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+    }
+
+    .dashboard-card.financial {
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    }
+
+    .dashboard-card.expenses {
+        background: linear-gradient(135deg, #dc3545 0%, #fd7e14 100%);
+    }
+
+    .dashboard-card.revenue {
+        background: linear-gradient(135deg, #007bff 0%, #6610f2 100%);
+    }
+
+    .dashboard-card.payments {
+        background: linear-gradient(135deg, #17a2b8 0%, #6f42c1 100%);
+    }
+
+    .role-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 2rem;
+        border-radius: 20px;
+        margin-bottom: 2rem;
+        text-align: center;
+    }
+
+    .recent-activity {
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .activity-item {
+        border-bottom: 1px solid #eee;
+        padding: 0.75rem 0;
+    }
+
+    .activity-item:last-child {
+        border-bottom: none;
+    }
+
+    .stat-icon {
+        font-size: 2.5rem;
+        opacity: 0.8;
+    }
+</style>
+
+<div class="container-fluid">
+    <!-- Role Header -->
+    <div class="role-header">
+        <div class="row align-items-center">
+            <div class="col-md-2">
+                <i class="fas fa-money-bill-wave stat-icon"></i>
+            </div>
+            <div class="col-md-8">
+                <h2 class="mb-1">مرحباً {{ current_user.full_name }}</h2>
+                <h4 class="mb-2">{{ current_user.get_role_info()['name'] }}</h4>
+                <p class="mb-0">{{ current_user.get_role_info()['description'] }}</p>
+            </div>
+            <div class="col-md-2 text-end">
+                <h5 class="mb-0">{{ today_date.strftime('%Y-%m-%d') }}</h5>
+                <small>{{ today_date.strftime('%A') }}</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Financial Statistics -->
+    <div class="row">
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="dashboard-card financial">
+                <div class="card-body text-center">
+                    <i class="fas fa-hand-holding-usd stat-icon mb-3"></i>
+                    <h3 class="card-title">{{ "{:,.0f}".format(total_revenue) }} ج.م</h3>
+                    <p class="card-text">إجمالي الإيرادات</p>
+                    <small>{{ total_payments }} دفعة</small>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="dashboard-card expenses">
+                <div class="card-body text-center">
+                    <i class="fas fa-receipt stat-icon mb-3"></i>
+                    <h3 class="card-title">{{ "{:,.0f}".format(total_expense_amount) }} ج.م</h3>
+                    <p class="card-text">إجمالي المصروفات</p>
+                    <small>{{ total_expenses }} مصروف</small>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="dashboard-card revenue">
+                <div class="card-body text-center">
+                    <i class="fas fa-chart-line stat-icon mb-3"></i>
+                    <h3 class="card-title">{{ "{:,.0f}".format(total_revenue - total_expense_amount) }} ج.م</h3>
+                    <p class="card-text">صافي الربح</p>
+                    <small>الإيرادات - المصروفات</small>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="dashboard-card payments">
+                <div class="card-body text-center">
+                    <i class="fas fa-credit-card stat-icon mb-3"></i>
+                    <h3 class="card-title">{{ total_payments }}</h3>
+                    <p class="card-text">إجمالي المدفوعات</p>
+                    <small>جميع الدفعات المسجلة</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="recent-activity">
+                <h5 class="mb-3">
+                    <i class="fas fa-bolt text-primary me-2"></i>
+                    الإجراءات السريعة
+                </h5>
+                <div class="row">
+                    <div class="col-md-3 mb-2">
+                        <a href="{{ url_for('payments') }}" class="btn btn-outline-primary w-100">
+                            <i class="fas fa-money-bill-wave me-2"></i>
+                            إدارة المدفوعات
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <a href="{{ url_for('reports') }}" class="btn btn-outline-success w-100">
+                            <i class="fas fa-chart-bar me-2"></i>
+                            التقارير المالية
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <button class="btn btn-outline-info w-100" onclick="exportFinancialData()">
+                            <i class="fas fa-download me-2"></i>
+                            تصدير البيانات
+                        </button>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <button class="btn btn-outline-warning w-100" onclick="generateFinancialReport()">
+                            <i class="fas fa-file-pdf me-2"></i>
+                            تقرير شهري
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="row">
+        <div class="col-lg-6 mb-4">
+            <div class="recent-activity">
+                <h5 class="mb-3">
+                    <i class="fas fa-clock text-success me-2"></i>
+                    آخر المدفوعات
+                </h5>
+                {% if recent_payments %}
+                    {% for payment in recent_payments %}
+                    <div class="activity-item">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>{{ payment.student.name }}</strong>
+                                <br>
+                                <small class="text-muted">{{ payment.month }} - {{ payment.date.strftime('%Y-%m-%d') }}</small>
+                            </div>
+                            <div class="text-end">
+                                <span class="badge bg-success">{{ "{:,.0f}".format(payment.amount) }} ج.م</span>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-muted text-center py-3">لا توجد مدفوعات حديثة</p>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="col-lg-6 mb-4">
+            <div class="recent-activity">
+                <h5 class="mb-3">
+                    <i class="fas fa-receipt text-danger me-2"></i>
+                    آخر المصروفات
+                </h5>
+                {% if recent_expenses %}
+                    {% for expense in recent_expenses %}
+                    <div class="activity-item">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>{{ expense.description }}</strong>
+                                <br>
+                                <small class="text-muted">{{ expense.category }} - {{ expense.date.strftime('%Y-%m-%d') }}</small>
+                            </div>
+                            <div class="text-end">
+                                <span class="badge bg-danger">{{ "{:,.0f}".format(expense.amount) }} ج.م</span>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-muted text-center py-3">لا توجد مصروفات حديثة</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function exportFinancialData() {
+        // Implement export functionality
+        window.location.href = "{{ url_for('payments') }}?export=excel";
+    }
+    
+    function generateFinancialReport() {
+        // Implement monthly report generation
+        window.location.href = "{{ url_for('reports') }}#financial";
+    }
+</script>
+{% endblock %} 

@@ -1,0 +1,294 @@
+{% extends "base.html" %}
+
+{% block title %}لوحة متابعة الحضور - {{ current_user.get_role_info()['name'] }}{% endblock %}
+
+{% block content %}
+<style>
+    .dashboard-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 20px;
+        color: white;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        border: none;
+        overflow: hidden;
+    }
+
+    .dashboard-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+    }
+
+    .dashboard-card.present {
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    }
+
+    .dashboard-card.absent {
+        background: linear-gradient(135deg, #dc3545 0%, #fd7e14 100%);
+    }
+
+    .dashboard-card.total {
+        background: linear-gradient(135deg, #007bff 0%, #6610f2 100%);
+    }
+
+    .dashboard-card.groups {
+        background: linear-gradient(135deg, #17a2b8 0%, #6f42c1 100%);
+    }
+
+    .role-header {
+        background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+        color: white;
+        padding: 2rem;
+        border-radius: 20px;
+        margin-bottom: 2rem;
+        text-align: center;
+    }
+
+    .today-schedule {
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .schedule-item {
+        border-left: 4px solid #007bff;
+        padding-left: 1rem;
+        margin-bottom: 1rem;
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 1rem;
+    }
+
+    .stat-icon {
+        font-size: 2.5rem;
+        opacity: 0.8;
+    }
+
+    .group-card {
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+        padding: 1rem;
+        margin-bottom: 1rem;
+        transition: transform 0.2s ease;
+    }
+
+    .group-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+    }
+</style>
+
+<div class="container-fluid">
+    <!-- Role Header -->
+    <div class="role-header">
+        <div class="row align-items-center">
+            <div class="col-md-2">
+                <i class="fas fa-user-check stat-icon"></i>
+            </div>
+            <div class="col-md-8">
+                <h2 class="mb-1">مرحباً {{ current_user.full_name }}</h2>
+                <h4 class="mb-2">{{ current_user.get_role_info()['name'] }}</h4>
+                <p class="mb-0">{{ current_user.get_role_info()['description'] }}</p>
+            </div>
+            <div class="col-md-2 text-end">
+                <h5 class="mb-0">{{ today_date.strftime('%Y-%m-%d') }}</h5>
+                <small>{{ today_date.strftime('%A') }}</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Attendance Statistics -->
+    <div class="row">
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="dashboard-card total">
+                <div class="card-body text-center">
+                    <i class="fas fa-users stat-icon mb-3"></i>
+                    <h3 class="card-title">{{ total_students }}</h3>
+                    <p class="card-text">إجمالي الطلاب</p>
+                    <small>المسجلين في النظام</small>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="dashboard-card present">
+                <div class="card-body text-center">
+                    <i class="fas fa-user-check stat-icon mb-3"></i>
+                    <h3 class="card-title">{{ today_attendance }}</h3>
+                    <p class="card-text">حضور اليوم</p>
+                    <small>الطلاب الحاضرون</small>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="dashboard-card absent">
+                <div class="card-body text-center">
+                    <i class="fas fa-user-times stat-icon mb-3"></i>
+                    <h3 class="card-title">{{ total_students - today_attendance }}</h3>
+                    <p class="card-text">غياب اليوم</p>
+                    <small>الطلاب الغائبون</small>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="dashboard-card groups">
+                <div class="card-body text-center">
+                    <i class="fas fa-layer-group stat-icon mb-3"></i>
+                    <h3 class="card-title">{{ groups|length }}</h3>
+                    <p class="card-text">المجموعات النشطة</p>
+                    <small>مجموعات الدراسة</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="today-schedule">
+                <h5 class="mb-3">
+                    <i class="fas fa-bolt text-primary me-2"></i>
+                    الإجراءات السريعة
+                </h5>
+                <div class="row">
+                    <div class="col-md-3 mb-2">
+                        <a href="{{ url_for('attendance') }}" class="btn btn-outline-primary w-100">
+                            <i class="fas fa-check-square me-2"></i>
+                            تسجيل الحضور
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <a href="{{ url_for('reports') }}" class="btn btn-outline-success w-100">
+                            <i class="fas fa-chart-bar me-2"></i>
+                            تقارير الحضور
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <button class="btn btn-outline-info w-100" onclick="exportAttendanceData()">
+                            <i class="fas fa-download me-2"></i>
+                            تصدير البيانات
+                        </button>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <button class="btn btn-outline-warning w-100" onclick="generateAttendanceReport()">
+                            <i class="fas fa-file-pdf me-2"></i>
+                            تقرير يومي
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Today's Schedule & Recent Activity -->
+    <div class="row">
+        <div class="col-lg-6 mb-4">
+            <div class="today-schedule">
+                <h5 class="mb-3">
+                    <i class="fas fa-calendar-day text-primary me-2"></i>
+                    جدول اليوم
+                </h5>
+                {% if today_schedule %}
+                    {% for item in today_schedule %}
+                    <div class="schedule-item">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-1">{{ item.group_name }}</h6>
+                                <small class="text-muted">{{ item.instructor_name }}</small>
+                            </div>
+                            <div class="text-end">
+                                <span class="badge bg-primary">{{ item.start_time }} - {{ item.end_time }}</span>
+                                <br>
+                                <small class="text-muted">{{ item.student_count }} طالب</small>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-muted text-center py-3">لا توجد محاضرات مجدولة اليوم</p>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="col-lg-6 mb-4">
+            <div class="today-schedule">
+                <h5 class="mb-3">
+                    <i class="fas fa-history text-info me-2"></i>
+                    آخر تسجيلات الحضور
+                </h5>
+                {% if recent_attendance %}
+                    {% for attendance in recent_attendance %}
+                    <div class="d-flex justify-content-between align-items-center mb-3 p-2 border-bottom">
+                        <div>
+                            <strong>{{ attendance.student.name }}</strong>
+                            <br>
+                            <small class="text-muted">{{ attendance.date.strftime('%Y-%m-%d') }}</small>
+                        </div>
+                        <div class="text-end">
+                            {% if attendance.status == 'حاضر' %}
+                            <span class="badge bg-success">حاضر</span>
+                            {% elif attendance.status == 'غائب' %}
+                            <span class="badge bg-danger">غائب</span>
+                            {% else %}
+                            <span class="badge bg-warning">متأخر</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-muted text-center py-3">لا توجد تسجيلات حضور حديثة</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Groups Overview -->
+    <div class="row">
+        <div class="col-12">
+            <div class="today-schedule">
+                <h5 class="mb-3">
+                    <i class="fas fa-layer-group text-success me-2"></i>
+                    نظرة عامة على المجموعات
+                </h5>
+                <div class="row">
+                    {% for group in groups %}
+                    <div class="col-lg-4 col-md-6 mb-3">
+                        <div class="group-card">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-1">{{ group.name }}</h6>
+                                    <small class="text-muted">
+                                        {% if group.instructor_ref %}{{ group.instructor_ref.name }}{% else %}غير محدد{% endif %}
+                                    </small>
+                                </div>
+                                <div class="text-end">
+                                    <span class="badge bg-info">{{ group.students.count() }} طالب</span>
+                                    <br>
+                                    <small class="text-muted">{{ group.price }} ج.م</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function exportAttendanceData() {
+        // Implement export functionality
+        window.location.href = "{{ url_for('attendance') }}?export=excel";
+    }
+    
+    function generateAttendanceReport() {
+        // Implement daily attendance report generation
+        window.location.href = "{{ url_for('reports') }}#attendance";
+    }
+</script>
+{% endblock %} 

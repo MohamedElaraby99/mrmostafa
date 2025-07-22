@@ -1,0 +1,291 @@
+{% extends "base.html" %}
+
+{% block title %}لوحة شؤون الطلاب - {{ current_user.get_role_info()['name'] }}{% endblock %}
+
+{% block content %}
+<style>
+    .dashboard-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 20px;
+        color: white;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        border: none;
+        overflow: hidden;
+    }
+
+    .dashboard-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+    }
+
+    .dashboard-card.total {
+        background: linear-gradient(135deg, #007bff 0%, #6610f2 100%);
+    }
+
+    .dashboard-card.new {
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    }
+
+    .dashboard-card.grades {
+        background: linear-gradient(135deg, #fd7e14 0%, #e83e8c 100%);
+    }
+
+    .dashboard-card.active {
+        background: linear-gradient(135deg, #17a2b8 0%, #6f42c1 100%);
+    }
+
+    .role-header {
+        background: linear-gradient(135deg, #fd7e14 0%, #e83e8c 100%);
+        color: white;
+        padding: 2rem;
+        border-radius: 20px;
+        margin-bottom: 2rem;
+        text-align: center;
+    }
+
+    .student-section {
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .student-item {
+        border-bottom: 1px solid #eee;
+        padding: 0.75rem 0;
+    }
+
+    .student-item:last-child {
+        border-bottom: none;
+    }
+
+    .stat-icon {
+        font-size: 2.5rem;
+        opacity: 0.8;
+    }
+
+    .grade-badge {
+        padding: 0.3rem 0.6rem;
+        border-radius: 15px;
+        font-size: 0.8rem;
+        font-weight: 500;
+    }
+</style>
+
+<div class="container-fluid">
+    <!-- Role Header -->
+    <div class="role-header">
+        <div class="row align-items-center">
+            <div class="col-md-2">
+                <i class="fas fa-user-graduate stat-icon"></i>
+            </div>
+            <div class="col-md-8">
+                <h2 class="mb-1">مرحباً {{ current_user.full_name }}</h2>
+                <h4 class="mb-2">{{ current_user.get_role_info()['name'] }}</h4>
+                <p class="mb-0">{{ current_user.get_role_info()['description'] }}</p>
+            </div>
+            <div class="col-md-2 text-end">
+                <h5 class="mb-0">{{ today_date.strftime('%Y-%m-%d') }}</h5>
+                <small>{{ today_date.strftime('%A') }}</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Student Statistics -->
+    <div class="row">
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="dashboard-card total">
+                <div class="card-body text-center">
+                    <i class="fas fa-users stat-icon mb-3"></i>
+                    <h3 class="card-title">{{ total_students }}</h3>
+                    <p class="card-text">إجمالي الطلاب</p>
+                    <small>المسجلين في النظام</small>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="dashboard-card new">
+                <div class="card-body text-center">
+                    <i class="fas fa-user-plus stat-icon mb-3"></i>
+                    <h3 class="card-title">{{ new_students_this_month }}</h3>
+                    <p class="card-text">طلاب جدد</p>
+                    <small>هذا الشهر</small>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="dashboard-card grades">
+                <div class="card-body text-center">
+                    <i class="fas fa-graduation-cap stat-icon mb-3"></i>
+                    <h3 class="card-title">{{ grade_levels|length }}</h3>
+                    <p class="card-text">المراحل الدراسية</p>
+                    <small>مستويات مختلفة</small>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="dashboard-card active">
+                <div class="card-body text-center">
+                    <i class="fas fa-user-check stat-icon mb-3"></i>
+                    <h3 class="card-title">{{ total_students }}</h3>
+                    <p class="card-text">طلاب نشطون</p>
+                    <small>مسجلين حالياً</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="student-section">
+                <h5 class="mb-3">
+                    <i class="fas fa-bolt text-primary me-2"></i>
+                    الإجراءات السريعة
+                </h5>
+                <div class="row">
+                    <div class="col-md-3 mb-2">
+                        <a href="{{ url_for('students') }}" class="btn btn-outline-primary w-100">
+                            <i class="fas fa-user-graduate me-2"></i>
+                            إدارة الطلاب
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <a href="{{ url_for('import_students') }}" class="btn btn-outline-success w-100">
+                            <i class="fas fa-upload me-2"></i>
+                            استيراد طلاب
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <button class="btn btn-outline-info w-100" onclick="exportStudentData()">
+                            <i class="fas fa-download me-2"></i>
+                            تصدير البيانات
+                        </button>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <a href="{{ url_for('reports') }}" class="btn btn-outline-warning w-100">
+                            <i class="fas fa-chart-line me-2"></i>
+                            تقارير الطلاب
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Students by Grade Level & Recent Registrations -->
+    <div class="row">
+        <div class="col-lg-6 mb-4">
+            <div class="student-section">
+                <h5 class="mb-3">
+                    <i class="fas fa-layer-group text-primary me-2"></i>
+                    توزيع الطلاب حسب المرحلة الدراسية
+                </h5>
+                {% if grade_levels %}
+                    {% for grade, count in grade_levels %}
+                    <div class="d-flex justify-content-between align-items-center mb-3 p-2 border-bottom">
+                        <div>
+                            <span class="grade-badge bg-primary text-white">{{ grade or 'غير محدد' }}</span>
+                        </div>
+                        <div class="text-end">
+                            <span class="badge bg-info">{{ count }} طالب</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-muted text-center py-3">لا توجد بيانات للمراحل الدراسية</p>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="col-lg-6 mb-4">
+            <div class="student-section">
+                <h5 class="mb-3">
+                    <i class="fas fa-clock text-success me-2"></i>
+                    آخر التسجيلات
+                </h5>
+                {% if recent_students %}
+                    {% for student in recent_students %}
+                    <div class="student-item">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>{{ student.name }}</strong>
+                                <br>
+                                <small class="text-muted">
+                                    {% if student.phone %}{{ student.phone }}{% endif %}
+                                    {% if student.grade_level %} - {{ student.grade_level }}{% endif %}
+                                </small>
+                            </div>
+                            <div class="text-end">
+                                <small class="text-muted">{{ student.registration_date.strftime('%Y-%m-%d') }}</small>
+                                <br>
+                                <span class="badge bg-success">جديد</span>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-muted text-center py-3">لا توجد تسجيلات حديثة</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Student Management Tools -->
+    <div class="row">
+        <div class="col-12">
+            <div class="student-section">
+                <h5 class="mb-3">
+                    <i class="fas fa-tools text-info me-2"></i>
+                    أدوات إدارة الطلاب
+                </h5>
+                <div class="row">
+                    <div class="col-lg-4 col-md-6 mb-3">
+                        <div class="card border-primary">
+                            <div class="card-body text-center">
+                                <i class="fas fa-file-excel text-primary mb-2" style="font-size: 2rem;"></i>
+                                <h6>قوالب Excel</h6>
+                                <p class="small text-muted">تحميل قوالب لاستيراد بيانات الطلاب</p>
+                                <a href="{{ url_for('download_students_template') }}" class="btn btn-sm btn-outline-primary">تحميل القالب</a>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-lg-4 col-md-6 mb-3">
+                        <div class="card border-success">
+                            <div class="card-body text-center">
+                                <i class="fas fa-search text-success mb-2" style="font-size: 2rem;"></i>
+                                <h6>البحث المتقدم</h6>
+                                <p class="small text-muted">بحث في بيانات الطلاب بمعايير متقدمة</p>
+                                <a href="{{ url_for('students') }}#advanced-search" class="btn btn-sm btn-outline-success">بحث متقدم</a>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-lg-4 col-md-6 mb-3">
+                        <div class="card border-warning">
+                            <div class="card-body text-center">
+                                <i class="fas fa-chart-pie text-warning mb-2" style="font-size: 2rem;"></i>
+                                <h6>إحصائيات تفصيلية</h6>
+                                <p class="small text-muted">تقارير وإحصائيات شاملة عن الطلاب</p>
+                                <a href="{{ url_for('reports') }}#student-stats" class="btn btn-sm btn-outline-warning">عرض الإحصائيات</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function exportStudentData() {
+        // Implement export functionality
+        window.location.href = "{{ url_for('students') }}?export=excel";
+    }
+</script>
+{% endblock %} 

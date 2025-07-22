@@ -1,0 +1,428 @@
+{% extends "base.html" %}
+
+{% block title %}الإنجازات{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2 class="mb-3">
+                <i class="fas fa-trophy me-2 text-warning"></i>
+                الإنجازات والترتيب العام
+            </h2>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="card-title">{{ stats.total_students }}</h4>
+                            <p class="card-text">إجمالي الطلاب</p>
+                        </div>
+                        <div>
+                            <i class="fas fa-users fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="card-title">{{ stats.avg_total_points }}</h4>
+                            <p class="card-text">متوسط النقاط</p>
+                        </div>
+                        <div>
+                            <i class="fas fa-star fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="card-title">{{ stats.avg_attendance_points }}</h4>
+                            <p class="card-text">متوسط نقاط الحضور</p>
+                        </div>
+                        <div>
+                            <i class="fas fa-calendar-check fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="card-title">{{ stats.avg_grade_points }}</h4>
+                            <p class="card-text">متوسط نقاط الدرجات</p>
+                        </div>
+                        <div>
+                            <i class="fas fa-chart-line fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Achievement Level Distribution -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-pie me-2"></i>
+                        توزيع مستويات الإنجاز
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for level, count in stats.level_distribution.items() %}
+                        <div class="col-md-3 mb-3">
+                            <div class="text-center">
+                                {% if level == 'نجم' %}
+                                    <i class="fas fa-star fa-3x text-warning mb-2"></i>
+                                {% elif level == 'متفوق' %}
+                                    <i class="fas fa-medal fa-3x text-success mb-2"></i>
+                                {% elif level == 'متقدم' %}
+                                    <i class="fas fa-trophy fa-3x text-info mb-2"></i>
+                                {% else %}
+                                    <i class="fas fa-user fa-3x text-secondary mb-2"></i>
+                                {% endif %}
+                                <h3 class="text-primary">{{ count }}</h3>
+                                <p class="text-muted">{{ level }}</p>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <form method="GET" class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">فلترة حسب المرحلة الدراسية</label>
+                            <select class="form-select" name="grade_level">
+                                <option value="">جميع المراحل</option>
+                                {% for grade_level in grade_levels %}
+                                <option value="{{ grade_level }}" {{ 'selected' if grade_level == selected_grade_level }}>
+                                    {{ grade_level }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <label class="form-label">فلترة حسب المجموعة</label>
+                            <select class="form-select" name="group_id">
+                                <option value="">جميع المجموعات</option>
+                                {% for group in groups %}
+                                <option value="{{ group.id }}" {{ 'selected' if group.id == selected_group }}>
+                                    {{ group.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-4 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary me-2">
+                                <i class="fas fa-filter me-1"></i>فلترة
+                            </button>
+                            <a href="{{ url_for('achievements') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-undo me-1"></i>إعادة تعيين
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Actions for Admin -->
+    {% if current_user.role == 'admin' %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">إجراءات إدارية</h5>
+                    <button class="btn btn-warning" onclick="updateAllPoints()">
+                        <i class="fas fa-sync me-1"></i>تحديث نقاط جميع الطلاب
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Achievements Leaderboard -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-list-ol me-2"></i>
+                        ترتيب الطلاب حسب الإنجازات
+                    </h5>
+                    <span class="badge bg-primary">{{ students|length }} طالب</span>
+                </div>
+                <div class="card-body p-0">
+                    {% if students %}
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>الترتيب</th>
+                                    <th>الطالب</th>
+                                    <th>المرحلة الدراسية</th>
+                                    <th>مستوى الإنجاز</th>
+                                    <th>إجمالي النقاط</th>
+                                    <th>نقاط الحضور</th>
+                                    <th>نقاط الدرجات</th>
+                                    <th>نقاط إضافية</th>
+                                    <th>آخر تحديث</th>
+                                    <th>إجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for student in students %}
+                                <tr>
+                                    <td>
+                                        {% if loop.index <= 3 %}
+                                            {% if loop.index == 1 %}
+                                                <i class="fas fa-trophy text-warning fa-lg"></i>
+                                            {% elif loop.index == 2 %}
+                                                <i class="fas fa-medal text-secondary fa-lg"></i>
+                                            {% else %}
+                                                <i class="fas fa-award text-warning fa-lg"></i>
+                                            {% endif %}
+                                        {% endif %}
+                                        <span class="fw-bold">{{ loop.index }}</span>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div>
+                                                <div class="fw-bold">{{ student.name }}</div>
+                                                <small class="text-muted">{{ student.phone }}</small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-light text-dark">{{ student.grade_level or 'غير محدد' }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge" style="background-color: {{ student.achievement_badge_color }}; color: white;">
+                                            {% if student.achievement_level == 'نجم' %}
+                                                <i class="fas fa-star me-1"></i>
+                                            {% elif student.achievement_level == 'متفوق' %}
+                                                <i class="fas fa-medal me-1"></i>
+                                            {% elif student.achievement_level == 'متقدم' %}
+                                                <i class="fas fa-trophy me-1"></i>
+                                            {% else %}
+                                                <i class="fas fa-user me-1"></i>
+                                            {% endif %}
+                                            {{ student.achievement_level }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="fw-bold text-primary">{{ "%.1f"|format(student.total_achievement_points) }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="text-info">{{ "%.1f"|format(student.attendance_points) }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="text-success">{{ "%.1f"|format(student.grade_points) }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="text-warning">{{ "%.1f"|format(student.bonus_points) }}</span>
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">
+                                            {% if student.last_points_update %}
+                                                {{ student.last_points_update.strftime('%d/%m/%Y') }}
+                                            {% else %}
+                                                غير محدد
+                                            {% endif %}
+                                        </small>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <button class="btn btn-sm btn-outline-primary" onclick="updateStudentPoints({{ student.id }})">
+                                                <i class="fas fa-sync"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-success" onclick="addBonusPoints({{ student.id }}, '{{ student.name }}')">
+                                                <i class="fas fa-plus"></i>
+                                            </button>
+                                            <a href="{{ url_for('student_profile', student_id=student.id) }}" class="btn btn-sm btn-outline-info">
+                                                <i class="fas fa-user"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">لا توجد بيانات طلاب</h5>
+                        <p class="text-muted">لا يوجد طلاب مطابقون للفلاتر المحددة</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Bonus Points Modal -->
+<div class="modal fade" id="bonusPointsModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">إضافة نقاط إضافية</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="bonusPointsForm" method="POST">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">الطالب</label>
+                        <input type="text" class="form-control" id="studentName" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">عدد النقاط الإضافية *</label>
+                        <input type="number" class="form-control" name="bonus_points" step="0.1" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">السبب (اختياري)</label>
+                        <textarea class="form-control" name="reason" rows="3" placeholder="سبب إضافة النقاط الإضافية"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-success">إضافة النقاط</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function updateStudentPoints(studentId) {
+    if (confirm('هل أنت متأكد من تحديث نقاط الإنجاز لهذا الطالب؟')) {
+        fetch(`/update_achievement_points/${studentId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('حدث خطأ: ' + data.error);
+            }
+        })
+        .catch(error => {
+            alert('حدث خطأ في الشبكة');
+        });
+    }
+}
+
+function updateAllPoints() {
+    if (confirm('هل أنت متأكد من تحديث نقاط الإنجاز لجميع الطلاب؟ قد يستغرق هذا بعض الوقت.')) {
+        const button = event.target;
+        button.disabled = true;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>جاري التحديث...';
+        
+        fetch('/update_all_achievement_points', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('حدث خطأ: ' + data.error);
+                button.disabled = false;
+                button.innerHTML = '<i class="fas fa-sync me-1"></i>تحديث نقاط جميع الطلاب';
+            }
+        })
+        .catch(error => {
+            alert('حدث خطأ في الشبكة');
+            button.disabled = false;
+            button.innerHTML = '<i class="fas fa-sync me-1"></i>تحديث نقاط جميع الطلاب';
+        });
+    }
+}
+
+function addBonusPoints(studentId, studentName) {
+    document.getElementById('studentName').value = studentName;
+    document.getElementById('bonusPointsForm').action = `/add_bonus_points/${studentId}`;
+    new bootstrap.Modal(document.getElementById('bonusPointsModal')).show();
+}
+</script>
+
+<style>
+.table th {
+    border-top: none;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.badge {
+    font-size: 0.8rem;
+}
+
+.btn-group .btn {
+    border-radius: 0.25rem;
+    margin-right: 2px;
+}
+
+.card {
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    border: 1px solid rgba(0, 0, 0, 0.125);
+}
+
+.table-responsive {
+    border-radius: 0.5rem;
+}
+
+.trophy-icon {
+    color: #ffc107;
+}
+
+.medal-icon {
+    color: #6c757d;
+}
+
+.award-icon {
+    color: #cd7f32;
+}
+</style>
+{% endblock %} 

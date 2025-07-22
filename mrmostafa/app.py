@@ -133,35 +133,137 @@ class User(db.Model):
         self.can_manage_expenses = False
         self.can_manage_tasks = False
         
-        if role_type == 'payment_manager':
+        if role_type == 'financial_administrator':
+            # مدير مالي - Financial Administrator - ONLY PAYMENTS
             self.can_manage_payments = True
-            self.can_view_reports = True
-            self.can_export_data = True
-        elif role_type == 'attendance_manager':
+            self.can_manage_expenses = True
+        elif role_type == 'attendance_coordinator':
+            # منسق الحضور - Attendance Coordinator - ONLY ATTENDANCE
             self.can_take_attendance = True
-            self.can_view_reports = True
-        elif role_type == 'student_manager':
+        elif role_type == 'student_affairs_manager':
+            # مدير شؤون الطلاب - Student Affairs Manager - ONLY STUDENTS
             self.can_manage_students = True
-            self.can_export_data = True
-            self.can_import_data = True
-        elif role_type == 'instructor_manager':
+        elif role_type == 'academic_coordinator':
+            # منسق أكاديمي - Academic Coordinator - ONLY INSTRUCTORS, GROUPS, SUBJECTS
             self.can_manage_instructors = True
             self.can_manage_groups = True
             self.can_manage_subjects = True
-        elif role_type == 'reports_manager':
+            self.can_manage_tasks = True
+        elif role_type == 'data_analyst':
+            # محلل بيانات - Data Analyst - ONLY REPORTS
             self.can_view_reports = True
-            self.can_export_data = True
-        elif role_type == 'full_instructor':
-            # Full instructor permissions
+        elif role_type == 'senior_instructor':
+            # مدرس أول - Senior Instructor - ATTENDANCE + GROUPS + TASKS
+            self.can_take_attendance = True
+            self.can_manage_groups = True
+            self.can_manage_tasks = True
+        elif role_type == 'assistant_instructor':
+            # مدرس مساعد - Assistant Instructor - ONLY ATTENDANCE
+            self.can_take_attendance = True
+        elif role_type == 'data_entry_specialist':
+            # أخصائي إدخال بيانات - Data Entry Specialist - ONLY STUDENTS (for data entry)
+            self.can_manage_students = True
+        elif role_type == 'admin':
+            # Admin gets all permissions automatically via has_permission method
+            self.role = 'admin'
+            # Set all permissions to True for admin
+            self.can_manage_payments = True
             self.can_take_attendance = True
             self.can_view_reports = True
             self.can_manage_students = True
             self.can_manage_groups = True
+            self.can_manage_instructors = True
+            self.can_manage_users = True
             self.can_manage_subjects = True
+            self.can_export_data = True
+            self.can_import_data = True
+            self.can_manage_expenses = True
             self.can_manage_tasks = True
-        elif role_type == 'admin':
-            # Admin gets all permissions automatically via has_permission method
-            self.role = 'admin'
+    
+    @staticmethod
+    def get_available_role_types():
+        """Get list of available professional role types"""
+        return {
+            'financial_administrator': {
+                'name': 'مدير مالي',
+                'name_en': 'Financial Administrator',
+                'description': 'المدفوعات والمصروفات فقط',
+                'permissions': ['manage_payments', 'manage_expenses']
+            },
+            'attendance_coordinator': {
+                'name': 'منسق الحضور', 
+                'name_en': 'Attendance Coordinator',
+                'description': 'تسجيل الحضور فقط',
+                'permissions': ['take_attendance']
+            },
+            'student_affairs_manager': {
+                'name': 'مدير شؤون الطلاب',
+                'name_en': 'Student Affairs Manager', 
+                'description': 'إدارة الطلاب ودرجاتهم فقط',
+                'permissions': ['manage_students']
+            },
+            'academic_coordinator': {
+                'name': 'منسق أكاديمي',
+                'name_en': 'Academic Coordinator',
+                'description': 'إدارة المدرسين والمجموعات والمواد والمهام',
+                'permissions': ['manage_instructors', 'manage_groups', 'manage_subjects', 'manage_tasks']
+            },
+            'data_analyst': {
+                'name': 'محلل بيانات',
+                'name_en': 'Data Analyst',
+                'description': 'عرض التقارير فقط',
+                'permissions': ['view_reports']
+            },
+            'senior_instructor': {
+                'name': 'مدرس أول',
+                'name_en': 'Senior Instructor',
+                'description': 'الحضور والمجموعات والمهام',
+                'permissions': ['take_attendance', 'manage_groups', 'manage_tasks']
+            },
+            'assistant_instructor': {
+                'name': 'مدرس مساعد',
+                'name_en': 'Assistant Instructor', 
+                'description': 'تسجيل الحضور فقط',
+                'permissions': ['take_attendance']
+            },
+            'data_entry_specialist': {
+                'name': 'أخصائي إدخال بيانات',
+                'name_en': 'Data Entry Specialist',
+                'description': 'إدخال بيانات الطلاب فقط',
+                'permissions': ['manage_students']
+            }
+        }
+    
+    def get_role_info(self):
+        """Get professional role information for this user"""
+        role_types = self.get_available_role_types()
+        permissions = self.get_permissions_list()
+        
+        # Find matching role type based on permissions
+        for role_key, role_info in role_types.items():
+            if set(role_info['permissions']) == set(permissions):
+                return {
+                    'key': role_key,
+                    'name': role_info['name'],
+                    'name_en': role_info['name_en'],
+                    'description': role_info['description']
+                }
+        
+        # If no exact match found, return custom role
+        if self.role == 'admin':
+            return {
+                'key': 'admin',
+                'name': 'مدير النظام',
+                'name_en': 'System Administrator',
+                'description': 'صلاحيات كاملة لإدارة النظام'
+            }
+        
+        return {
+            'key': 'custom',
+            'name': 'صلاحيات مخصصة',
+            'name_en': 'Custom Role',
+            'description': f'صلاحيات مخصصة ({len(permissions)} صلاحية)'
+        }
 
 class Instructor(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -184,6 +286,15 @@ class Student(db.Model):
     discount = db.Column(db.Float, default=0.0)  # Discount amount in currency
     # Removed course_price - now price is per group
     registration_date = db.Column(db.DateTime, nullable=False)
+    
+    # Achievement Points System
+    total_achievement_points = db.Column(db.Float, default=0.0)  # إجمالي نقاط الإنجاز
+    attendance_points = db.Column(db.Float, default=0.0)  # نقاط الحضور
+    grade_points = db.Column(db.Float, default=0.0)  # نقاط الدرجات
+    bonus_points = db.Column(db.Float, default=0.0)  # نقاط إضافية (للمكافآت)
+    achievement_level = db.Column(db.String(20), default='مبتدئ')  # مستوى الإنجاز
+    last_points_update = db.Column(db.DateTime, default=datetime.utcnow)  # آخر تحديث للنقاط
+    
     # Many-to-many relationship with groups
     groups = db.relationship('Group', secondary=student_groups, backref=db.backref('students', lazy='dynamic'))
     
@@ -204,6 +315,233 @@ class Student(db.Model):
         """Calculate remaining balance for the student after discount"""
         balance = self.total_course_price_after_discount - self.total_paid
         return max(0, balance)  # Ensure we don't return negative balance as pending payment
+    
+    # Achievement Points Methods
+    def get_achievement_rules(self):
+        """Get achievement calculation rules based on grade level"""
+        rules = {
+            'رياض الأطفال': {
+                'attendance_weight': 0.7,  # 70% weight for attendance
+                'grade_weight': 0.3,       # 30% weight for grades
+                'max_attendance_points': 50,
+                'max_grade_points': 30,
+                'levels': {
+                    'مبتدئ': 0,
+                    'متقدم': 30,
+                    'متفوق': 60,
+                    'نجم': 80
+                }
+            },
+            'ابتدائي': {
+                'attendance_weight': 0.6,  # 60% weight for attendance
+                'grade_weight': 0.4,       # 40% weight for grades
+                'max_attendance_points': 60,
+                'max_grade_points': 40,
+                'levels': {
+                    'مبتدئ': 0,
+                    'متقدم': 40,
+                    'متفوق': 75,
+                    'نجم': 100
+                }
+            },
+            'إعدادي': {
+                'attendance_weight': 0.5,  # 50% weight for attendance
+                'grade_weight': 0.5,       # 50% weight for grades
+                'max_attendance_points': 70,
+                'max_grade_points': 70,
+                'levels': {
+                    'مبتدئ': 0,
+                    'متقدم': 50,
+                    'متفوق': 100,
+                    'نجم': 140
+                }
+            },
+            'ثانوي': {
+                'attendance_weight': 0.4,  # 40% weight for attendance
+                'grade_weight': 0.6,       # 60% weight for grades
+                'max_attendance_points': 80,
+                'max_grade_points': 120,
+                'levels': {
+                    'مبتدئ': 0,
+                    'متقدم': 60,
+                    'متفوق': 120,
+                    'نجم': 180
+                }
+            }
+        }
+        return rules.get(self.grade_level, rules['ابتدائي'])  # Default to primary if grade level not found
+    
+    def calculate_attendance_points(self):
+        """Calculate achievement points based on attendance"""
+        from datetime import datetime, timedelta
+        
+        # Get last 30 days attendance records
+        thirty_days_ago = datetime.now() - timedelta(days=30)
+        attendance_records = Attendance.query.filter(
+            Attendance.student_id == self.id,
+            Attendance.date >= thirty_days_ago.date()
+        ).all()
+        
+        if not attendance_records:
+            return 0
+        
+        # Calculate attendance statistics
+        total_sessions = len(attendance_records)
+        present_count = len([a for a in attendance_records if a.status == 'حاضر'])
+        late_count = len([a for a in attendance_records if a.status == 'متأخر'])
+        absent_count = len([a for a in attendance_records if a.status == 'غائب'])
+        
+        # Calculate attendance score (present = 1.0, late = 0.5, absent = 0)
+        attendance_score = (present_count * 1.0 + late_count * 0.5) / total_sessions
+        
+        # Get achievement rules for this grade level
+        rules = self.get_achievement_rules()
+        max_points = rules['max_attendance_points']
+        
+        # Calculate points based on attendance percentage
+        if attendance_score >= 0.95:  # 95%+ attendance
+            points = max_points
+        elif attendance_score >= 0.90:  # 90-94% attendance
+            points = max_points * 0.9
+        elif attendance_score >= 0.80:  # 80-89% attendance
+            points = max_points * 0.7
+        elif attendance_score >= 0.70:  # 70-79% attendance
+            points = max_points * 0.5
+        elif attendance_score >= 0.60:  # 60-69% attendance
+            points = max_points * 0.3
+        else:  # Below 60% attendance
+            points = max_points * 0.1
+        
+        return round(points, 2)
+    
+    def calculate_grade_points(self):
+        """Calculate achievement points based on grades"""
+        from datetime import datetime, timedelta
+        
+        # Get last 30 days grades
+        thirty_days_ago = datetime.now() - timedelta(days=30)
+        recent_grades = Grade.query.filter(
+            Grade.student_id == self.id,
+            Grade.created_at >= thirty_days_ago
+        ).all()
+        
+        if not recent_grades:
+            return 0
+        
+        # Calculate average percentage from recent grades
+        valid_grades = [g for g in recent_grades if g.percentage is not None]
+        if not valid_grades:
+            return 0
+        
+        avg_percentage = sum(g.percentage for g in valid_grades) / len(valid_grades)
+        
+        # Get achievement rules for this grade level
+        rules = self.get_achievement_rules()
+        max_points = rules['max_grade_points']
+        
+        # Calculate points based on grade percentage
+        if avg_percentage >= 95:  # A+ (95%+)
+            points = max_points
+        elif avg_percentage >= 90:  # A (90-94%)
+            points = max_points * 0.95
+        elif avg_percentage >= 85:  # B+ (85-89%)
+            points = max_points * 0.85
+        elif avg_percentage >= 80:  # B (80-84%)
+            points = max_points * 0.75
+        elif avg_percentage >= 75:  # C+ (75-79%)
+            points = max_points * 0.65
+        elif avg_percentage >= 70:  # C (70-74%)
+            points = max_points * 0.55
+        elif avg_percentage >= 65:  # D+ (65-69%)
+            points = max_points * 0.4
+        elif avg_percentage >= 60:  # D (60-64%)
+            points = max_points * 0.25
+        else:  # F (Below 60%)
+            points = max_points * 0.1
+        
+        return round(points, 2)
+    
+    def update_achievement_points(self):
+        """Update all achievement points and determine level"""
+        # Calculate new points
+        new_attendance_points = self.calculate_attendance_points()
+        new_grade_points = self.calculate_grade_points()
+        
+        # Update points
+        self.attendance_points = new_attendance_points
+        self.grade_points = new_grade_points
+        self.total_achievement_points = self.attendance_points + self.grade_points + self.bonus_points
+        
+        # Determine achievement level
+        rules = self.get_achievement_rules()
+        levels = rules['levels']
+        
+        current_points = self.total_achievement_points
+        if current_points >= levels['نجم']:
+            self.achievement_level = 'نجم'
+        elif current_points >= levels['متفوق']:
+            self.achievement_level = 'متفوق'
+        elif current_points >= levels['متقدم']:
+            self.achievement_level = 'متقدم'
+        else:
+            self.achievement_level = 'مبتدئ'
+        
+        # Update timestamp
+        self.last_points_update = datetime.utcnow()
+        
+        # Save to database
+        db.session.add(self)
+        db.session.commit()
+        
+        return {
+            'total_points': self.total_achievement_points,
+            'attendance_points': self.attendance_points,
+            'grade_points': self.grade_points,
+            'bonus_points': self.bonus_points,
+            'level': self.achievement_level
+        }
+    
+    def get_achievement_level_info(self):
+        """Get information about current and next achievement level"""
+        rules = self.get_achievement_rules()
+        levels = rules['levels']
+        current_points = self.total_achievement_points
+        
+        # Find current level info
+        current_level = self.achievement_level
+        current_level_points = levels[current_level]
+        
+        # Find next level
+        level_order = ['مبتدئ', 'متقدم', 'متفوق', 'نجم']
+        current_index = level_order.index(current_level)
+        
+        if current_index < len(level_order) - 1:
+            next_level = level_order[current_index + 1]
+            next_level_points = levels[next_level]
+            points_needed = next_level_points - current_points
+        else:
+            next_level = None
+            next_level_points = None
+            points_needed = 0
+        
+        return {
+            'current_level': current_level,
+            'current_points': current_points,
+            'next_level': next_level,
+            'points_needed': max(0, points_needed) if points_needed else 0,
+            'progress_percentage': min(100, (current_points / next_level_points * 100) if next_level_points else 100)
+        }
+    
+    @property
+    def achievement_badge_color(self):
+        """Get badge color for achievement level"""
+        colors = {
+            'مبتدئ': '#6c757d',     # Gray
+            'متقدم': '#17a2b8',     # Info blue
+            'متفوق': '#28a745',     # Success green  
+            'نجم': '#ffc107'        # Warning gold
+        }
+        return colors.get(self.achievement_level, '#6c757d')
 
 class Group(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -464,6 +802,14 @@ class Grade(db.Model):
         self.updated_at = datetime.utcnow()
         db.session.add(self)
         db.session.commit()
+        
+        # Auto-update achievement points for the student
+        try:
+            if self.student:
+                self.student.update_achievement_points()
+        except Exception as e:
+            # Log error but don't fail the grade save
+            print(f"Error updating achievement points for student {self.student_id}: {e}")
 
 class Note(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -925,30 +1271,27 @@ def users():
 @app.route('/add_user', methods=['POST'])
 @users_required
 def add_user():
-    username = request.form['username']
+    username = request.form['username'].lower()  # Ensure lowercase
     password = request.form['password']
     full_name = request.form['full_name']
-    role = request.form['role']
-    role_type = request.form.get('role_type', 'full_instructor')  # Default role type
-    instructor_id = request.form.get('instructor_id') if role == 'instructor' else None
+    role_type = request.form.get('role_type')  # Get role type from form
+    
+    # Determine role based on role_type
+    if role_type == 'admin':
+        role = 'admin'
+    else:
+        role = 'user'  # All other roles are 'user' with specific permissions
     
     # Check if username already exists
     if User.query.filter_by(username=username).first():
         flash('اسم المستخدم موجود بالفعل', 'error')
         return redirect(url_for('users'))
     
-    # If instructor role, check if instructor is already linked to another user
-    if role == 'instructor' and instructor_id:
-        existing_user = User.query.filter_by(instructor_id=instructor_id).first()
-        if existing_user:
-            flash('هذا المدرس مرتبط بمستخدم آخر بالفعل', 'error')
-            return redirect(url_for('users'))
-    
     new_user = User(
         username=username,
         full_name=full_name,
         role=role,
-        instructor_id=int(instructor_id) if instructor_id else None
+        instructor_id=None
     )
     new_user.set_password(password)
     
@@ -966,7 +1309,7 @@ def add_user():
     return redirect(url_for('users'))
 
 @app.route('/edit_user/<int:user_id>', methods=['POST'])
-@admin_required
+@users_required
 def edit_user(user_id):
     user = User.query.get_or_404(user_id)
     current_user = get_current_user()
@@ -976,15 +1319,30 @@ def edit_user(user_id):
         flash('لا يمكن تعديل هذا المستخدم', 'error')
         return redirect(url_for('users'))
     
-    user.username = request.form['username']
+    user.username = request.form['username'].lower()  # Ensure lowercase
     user.full_name = request.form['full_name']
-    user.role = request.form['role']
+    
+    # Handle role type and set permissions
+    role_type = request.form.get('role_type')
+    if role_type:
+        # Determine role based on role_type
+        if role_type == 'admin':
+            user.role = 'admin'
+        else:
+            user.role = 'user'  # All other roles are 'user' with specific permissions
+        
+        user.set_role_permissions(role_type)
     
     if request.form['password']:
         user.set_password(request.form['password'])
     
-    db.session.commit()
-    flash('تم تحديث بيانات المستخدم بنجاح', 'success')
+    try:
+        db.session.commit()
+        flash('تم تحديث بيانات المستخدم بنجاح', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash('حدث خطأ أثناء تحديث المستخدم', 'error')
+    
     return redirect(url_for('users'))
 
 @app.route('/delete_user/<int:user_id>', methods=['POST'])
@@ -1013,10 +1371,45 @@ def delete_user(user_id):
 def index():
     current_user = get_current_user()
     
-    if current_user.role == 'instructor':
+    # Redirect to role-specific dashboard
+    if current_user.role == 'admin':
+        return redirect(url_for('admin_dashboard'))
+    elif current_user.role == 'instructor':
         return redirect(url_for('instructor_dashboard'))
-    
-    # Original admin/user dashboard code
+    else:
+        # For users with specific role types, redirect to their specialized dashboard
+        role_info = current_user.get_role_info()
+        role_key = role_info['key']
+        
+        if role_key == 'financial_administrator':
+            # Direct to payments page - their only function
+            return redirect(url_for('payments'))
+        elif role_key == 'attendance_coordinator':
+            # Direct to attendance page - their only function
+            return redirect(url_for('attendance'))
+        elif role_key == 'student_affairs_manager':
+            # Direct to students page - their only function
+            return redirect(url_for('students'))
+        elif role_key == 'academic_coordinator':
+            # Direct to instructors page - their main function
+            return redirect(url_for('instructors'))
+        elif role_key == 'data_analyst':
+            # Direct to reports page - their only function
+            return redirect(url_for('reports'))
+        elif role_key in ['senior_instructor', 'assistant_instructor']:
+            # Direct to attendance page - their main function
+            return redirect(url_for('attendance'))
+        elif role_key == 'data_entry_specialist':
+            # Direct to students page - their only function
+            return redirect(url_for('students'))
+        else:
+            # Default dashboard for custom roles
+            return redirect(url_for('default_dashboard'))
+
+@app.route('/admin_dashboard')
+@admin_required
+def admin_dashboard():
+    """Admin dashboard with full system overview"""
     students = Student.query.all()
     instructors = Instructor.query.all() 
     groups = Group.query.all()
@@ -1042,6 +1435,149 @@ def index():
                          weekly_schedule=weekly_schedule,
                          today_date=datetime.now(),
                          today_arabic=today_arabic)
+
+@app.route('/financial_dashboard')
+@payments_required
+def financial_dashboard():
+    """Financial Administrator dashboard - focused on payments and expenses"""
+    current_user = get_current_user()
+    
+    # Get financial data
+    total_payments = Payment.query.count()
+    total_revenue = db.session.query(db.func.sum(Payment.amount)).scalar() or 0
+    total_expenses = Expense.query.count()
+    total_expense_amount = db.session.query(db.func.sum(Expense.amount)).scalar() or 0
+    
+    # Recent payments
+    recent_payments = Payment.query.order_by(Payment.date.desc()).limit(10).all()
+    
+    # Recent expenses  
+    recent_expenses = Expense.query.order_by(Expense.date.desc()).limit(10).all()
+    
+    return render_template('financial_dashboard.html',
+                         current_user=current_user,
+                         total_payments=total_payments,
+                         total_revenue=total_revenue,
+                         total_expenses=total_expenses, 
+                         total_expense_amount=total_expense_amount,
+                         recent_payments=recent_payments,
+                         recent_expenses=recent_expenses,
+                         today_date=datetime.now())
+
+@app.route('/attendance_dashboard')
+@attendance_required  
+def attendance_dashboard():
+    """Attendance Coordinator dashboard - focused on attendance tracking"""
+    current_user = get_current_user()
+    
+    # Get attendance data
+    today = datetime.now().date()
+    total_students = Student.query.count()
+    today_attendance = Attendance.query.filter_by(date=today).count()
+    
+    # Get groups for attendance
+    groups = Group.query.all()
+    
+    # Recent attendance records
+    recent_attendance = Attendance.query.order_by(Attendance.date.desc()).limit(20).all()
+    
+    return render_template('attendance_dashboard.html',
+                         current_user=current_user,
+                         total_students=total_students,
+                         today_attendance=today_attendance,
+                         groups=groups,
+                         recent_attendance=recent_attendance,
+                         today_date=today,
+                         today_schedule=get_today_schedule())
+
+@app.route('/student_affairs_dashboard')
+@students_required
+def student_affairs_dashboard():
+    """Student Affairs Manager dashboard - focused on student management"""
+    current_user = get_current_user()
+    
+    # Get student data
+    total_students = Student.query.count()
+    new_students_this_month = Student.query.filter(
+        Student.registration_date >= datetime.now().replace(day=1)
+    ).count()
+    
+    # Students by grade level
+    grade_levels = db.session.query(
+        Student.grade_level, 
+        db.func.count(Student.id)
+    ).group_by(Student.grade_level).all()
+    
+    # Recent registrations
+    recent_students = Student.query.order_by(Student.registration_date.desc()).limit(10).all()
+    
+    return render_template('student_affairs_dashboard.html',
+                         current_user=current_user,
+                         total_students=total_students,
+                         new_students_this_month=new_students_this_month,
+                         grade_levels=grade_levels,
+                         recent_students=recent_students,
+                         today_date=datetime.now())
+
+@app.route('/academic_dashboard')
+@groups_required
+def academic_dashboard():
+    """Academic Coordinator dashboard - focused on academic management"""
+    current_user = get_current_user()
+    
+    # Get academic data
+    total_instructors = Instructor.query.count()
+    total_groups = Group.query.count() 
+    total_subjects = Subject.query.count()
+    
+    # Get schedule data
+    today_schedule = get_today_schedule()
+    weekly_schedule = get_weekly_schedule()
+    
+    # Recent tasks
+    recent_tasks = Task.query.order_by(Task.created_at.desc()).limit(10).all()
+    
+    return render_template('academic_dashboard.html',
+                         current_user=current_user,
+                         total_instructors=total_instructors,
+                         total_groups=total_groups,
+                         total_subjects=total_subjects,
+                         today_schedule=today_schedule,
+                         weekly_schedule=weekly_schedule,
+                         recent_tasks=recent_tasks,
+                         today_date=datetime.now(),
+                         today_arabic=get_arabic_day_name(datetime.now()))
+
+@app.route('/reports_dashboard')
+@reports_required
+def reports_dashboard():
+    """Data Analyst dashboard - focused on reports and analytics"""
+    current_user = get_current_user()
+    
+    # Redirect to existing reports page which has all the analytics
+    return redirect(url_for('reports'))
+
+@app.route('/data_entry_dashboard')
+@students_required
+def data_entry_dashboard():
+    """Data Entry Specialist dashboard - focused on data management"""
+    current_user = get_current_user()
+    
+    # Similar to student affairs but more focused on data entry tasks
+    return redirect(url_for('students'))
+
+@app.route('/default_dashboard')
+@login_required
+def default_dashboard():
+    """Default dashboard for users with custom roles"""
+    current_user = get_current_user()
+    role_info = current_user.get_role_info()
+    
+    return render_template('default_dashboard.html',
+                         current_user=current_user,
+                         role_info=role_info,
+                         permissions=current_user.get_permissions_list(),
+                         today_date=datetime.now())
 
 @app.route('/instructor_dashboard')
 @instructor_required
@@ -1099,7 +1635,7 @@ def instructor_dashboard():
                          instructor_ages=instructor_ages)
 
 @app.route('/students')
-@login_required
+@students_required
 def students():
     # Get filter parameters
     group_filter = request.args.get('group_id', '')
@@ -1210,7 +1746,7 @@ def add_student():
         return redirect(url_for('students'))
 
 @app.route('/instructors')
-@login_required
+@instructors_required
 def instructors():
     instructors = Instructor.query.all()
     return render_template('instructors.html', instructors=instructors)
@@ -1233,7 +1769,7 @@ def add_instructor():
     return redirect(url_for('instructors'))
 
 @app.route('/groups')
-@login_required
+@groups_required
 def groups():
     # Get filter parameters
     instructor_filter = request.args.get('instructor_id', type=int)
@@ -1433,6 +1969,8 @@ def mark_attendance():
     date = datetime.strptime(data['date'], '%Y-%m-%d').date()
     group_id = data['group_id']
     
+    updated_students = set()  # Track students whose attendance was updated
+    
     for student_data in data['students']:
         student_id = student_data['student_id']
         status = student_data['status']
@@ -1454,8 +1992,21 @@ def mark_attendance():
                 group_id=group_id
             )
             db.session.add(attendance)
+        
+        updated_students.add(student_id)
     
     db.session.commit()
+    
+    # Auto-update achievement points for affected students
+    for student_id in updated_students:
+        try:
+            student = Student.query.get(student_id)
+            if student:
+                student.update_achievement_points()
+        except Exception as e:
+            # Log error but don't fail the attendance update
+            print(f"Error updating achievement points for student {student_id}: {e}")
+    
     return jsonify({'success': True, 'message': 'تم حفظ الحضور بنجاح'})
 
 @app.route('/payments')
@@ -1751,7 +2302,7 @@ def delete_payment(payment_id):
     return redirect(url_for('payments'))
 
 @app.route('/reports')
-@login_required
+@reports_required
 def reports():
     # Attendance statistics
     total_students = Student.query.count()
@@ -2780,7 +3331,7 @@ def debug_prices():
     return render_template('debug.html')
 
 @app.route('/tasks')
-@login_required
+@tasks_required
 def tasks():
     """Display tasks and notes management page"""
     filter_status = request.args.get('status', 'all')
@@ -3902,7 +4453,7 @@ def monthly_payments(group_id):
                          arabic_months=arabic_months)
 
 @app.route('/grades')
-@login_required
+@permission_required('manage_students')  # Or view_reports - grades are primarily for student management
 def grades():
     """Main grades management page"""
     # Get filter parameters
@@ -3950,6 +4501,132 @@ def grades():
                          selected_group=group_filter,
                          selected_subject=subject_filter,
                          selected_student=student_filter)
+
+@app.route('/achievements')
+@login_required
+def achievements():
+    """Student achievements and leaderboard page"""
+    # Get filter parameters
+    grade_level_filter = request.args.get('grade_level', '')
+    group_filter = request.args.get('group_id', type=int)
+    
+    # Build base query
+    students_query = Student.query
+    
+    # Apply filters
+    if grade_level_filter:
+        students_query = students_query.filter(Student.grade_level == grade_level_filter)
+    
+    if group_filter:
+        group = Group.query.get(group_filter)
+        if group:
+            students_query = students_query.filter(Student.groups.contains(group))
+    
+    # Get students and sort by achievement points
+    students = students_query.order_by(Student.total_achievement_points.desc()).all()
+    
+    # Get filter options
+    grade_levels = db.session.query(Student.grade_level.distinct()).filter(Student.grade_level.isnot(None)).all()
+    grade_levels = [g[0] for g in grade_levels if g[0]]
+    
+    groups = Group.query.order_by(Group.name).all()
+    
+    # Calculate achievement statistics
+    total_students = len(students)
+    
+    if students:
+        # Achievement level distribution
+        level_counts = {}
+        level_order = ['نجم', 'متفوق', 'متقدم', 'مبتدئ']
+        for level in level_order:
+            level_counts[level] = len([s for s in students if s.achievement_level == level])
+        
+        # Average points
+        avg_total_points = sum(s.total_achievement_points for s in students) / total_students
+        avg_attendance_points = sum(s.attendance_points for s in students) / total_students
+        avg_grade_points = sum(s.grade_points for s in students) / total_students
+        
+        # Top performers
+        top_students = students[:10]  # Top 10 students
+        
+        stats = {
+            'total_students': total_students,
+            'level_distribution': level_counts,
+            'avg_total_points': round(avg_total_points, 1),
+            'avg_attendance_points': round(avg_attendance_points, 1),
+            'avg_grade_points': round(avg_grade_points, 1),
+            'top_students': top_students
+        }
+    else:
+        stats = {
+            'total_students': 0,
+            'level_distribution': {},
+            'avg_total_points': 0,
+            'avg_attendance_points': 0,
+            'avg_grade_points': 0,
+            'top_students': []
+        }
+    
+    return render_template('achievements.html',
+                           students=students,
+                           grade_levels=grade_levels,
+                           groups=groups,
+                           stats=stats,
+                           selected_grade_level=grade_level_filter,
+                           selected_group=group_filter)
+
+@app.route('/update_achievement_points/<int:student_id>', methods=['POST'])
+@login_required
+def update_achievement_points_route(student_id):
+    """Manually update achievement points for a student"""
+    student = Student.query.get_or_404(student_id)
+    
+    try:
+        result = student.update_achievement_points()
+        flash(f'تم تحديث نقاط الإنجاز للطالب {student.name} بنجاح', 'success')
+        return jsonify({'success': True, 'result': result})
+    except Exception as e:
+        flash('حدث خطأ أثناء تحديث نقاط الإنجاز', 'error')
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/update_all_achievement_points', methods=['POST'])
+@admin_required
+def update_all_achievement_points():
+    """Update achievement points for all students"""
+    try:
+        students = Student.query.all()
+        updated_count = 0
+        
+        for student in students:
+            student.update_achievement_points()
+            updated_count += 1
+        
+        flash(f'تم تحديث نقاط الإنجاز لـ {updated_count} طالب بنجاح', 'success')
+        return jsonify({'success': True, 'updated_count': updated_count})
+    except Exception as e:
+        flash('حدث خطأ أثناء تحديث نقاط الإنجاز', 'error')
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/add_bonus_points/<int:student_id>', methods=['POST'])
+@login_required
+def add_bonus_points(student_id):
+    """Add bonus points to a student"""
+    student = Student.query.get_or_404(student_id)
+    points = float(request.form.get('bonus_points', 0))
+    reason = request.form.get('reason', '')
+    
+    try:
+        student.bonus_points += points
+        student.total_achievement_points = student.attendance_points + student.grade_points + student.bonus_points
+        
+        # Update achievement level
+        student.update_achievement_points()
+        
+        flash(f'تم إضافة {points} نقطة إضافية للطالب {student.name}', 'success')
+        return redirect(request.referrer or url_for('achievements'))
+    except Exception as e:
+        flash('حدث خطأ أثناء إضافة النقاط الإضافية', 'error')
+        return redirect(request.referrer or url_for('achievements'))
 
 @app.route('/download_grades_template')
 @login_required
@@ -4266,7 +4943,7 @@ def import_grades():
         return redirect(url_for('import_grades'))
 
 @app.route('/manage_subjects')
-@login_required
+@subjects_required
 def manage_subjects():
     """Manage subjects page"""
     subjects = Subject.query.all()

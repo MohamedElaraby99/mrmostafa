@@ -306,6 +306,8 @@
                                 <th class="col-age">العمر</th>
                                 <th class="col-location">المنطقة</th>
                                 <th class="col-grade-level">المرحلة الدراسية</th>
+                                <th class="col-achievement-level">مستوى الإنجاز</th>
+                                <th class="col-achievement-points">نقاط الإنجاز</th>
                                 <th class="always-visible">المجموعة</th>
                                 <th class="col-price">سعر الكورس</th>
                                 <th class="col-discount">الخصم</th>
@@ -354,6 +356,32 @@
                                     {% else %}
                                     <span class="text-muted">-</span>
                                     {% endif %}
+                                </td>
+                                <td class="col-achievement-level">
+                                    <span class="badge" style="background-color: {{ student.achievement_badge_color }}; color: white;" title="المستوى الحالي">
+                                        {% if student.achievement_level == 'نجم' %}
+                                            <i class="fas fa-star me-1"></i>
+                                        {% elif student.achievement_level == 'متفوق' %}
+                                            <i class="fas fa-medal me-1"></i>
+                                        {% elif student.achievement_level == 'متقدم' %}
+                                            <i class="fas fa-trophy me-1"></i>
+                                        {% else %}
+                                            <i class="fas fa-user me-1"></i>
+                                        {% endif %}
+                                        {{ student.achievement_level }}
+                                    </span>
+                                </td>
+                                <td class="col-achievement-points">
+                                    <div class="text-center">
+                                        <div class="fw-bold text-primary">{{ "%.1f"|format(student.total_achievement_points) }}</div>
+                                        <small class="text-muted">
+                                            <i class="fas fa-calendar-check text-info me-1" title="نقاط الحضور"></i>{{ "%.1f"|format(student.attendance_points) }}
+                                            <i class="fas fa-chart-line text-success ms-2 me-1" title="نقاط الدرجات"></i>{{ "%.1f"|format(student.grade_points) }}
+                                            {% if student.bonus_points > 0 %}
+                                            <i class="fas fa-plus text-warning ms-2 me-1" title="نقاط إضافية"></i>{{ "%.1f"|format(student.bonus_points) }}
+                                            {% endif %}
+                                        </small>
+                                    </div>
                                 </td>
                                 <td class="always-visible">
                                     {% if student.groups %}

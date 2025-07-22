@@ -648,25 +648,38 @@
                         </a>
                     </li>
                     {% else %}
+                    <!-- Students Link - Only for users who can manage students -->
+                    {% if current_user and (current_user.role == 'admin' or current_user.has_permission('manage_students')) %}
                     <li class="nav-item">
                         <a class="nav-link {{ 'active' if request.endpoint == 'students' else '' }}"
                             href="{{ url_for('students') }}">
                             <i class="fas fa-user-graduate me-1"></i>الطلاب
                         </a>
                     </li>
+                    {% endif %}
+                    
+                    <!-- Instructors Link - Only for users who can manage instructors -->
+                    {% if current_user and (current_user.role == 'admin' or current_user.has_permission('manage_instructors')) %}
                     <li class="nav-item">
                         <a class="nav-link {{ 'active' if request.endpoint == 'instructors' else '' }}"
                             href="{{ url_for('instructors') }}">
                             <i class="fas fa-chalkboard-teacher me-1"></i>المدرسون
                         </a>
                     </li>
+                    {% endif %}
+                    
+                    <!-- Groups Link - Only for users who can manage groups -->
+                    {% if current_user and (current_user.role == 'admin' or current_user.has_permission('manage_groups')) %}
                     <li class="nav-item">
                         <a class="nav-link {{ 'active' if request.endpoint == 'groups' else '' }}"
                             href="{{ url_for('groups') }}">
                             <i class="fas fa-users me-1"></i>المجموعات
                         </a>
                     </li>
-                    {% if session.user_role == 'admin' or (current_user and current_user.has_permission('take_attendance')) %}
+                    {% endif %}
+                    
+                    <!-- Attendance Link - Only for users who can take attendance -->
+                    {% if current_user and (current_user.role == 'admin' or current_user.has_permission('take_attendance')) %}
                     <li class="nav-item">
                         <a class="nav-link {{ 'active' if request.endpoint == 'attendance' else '' }}"
                             href="{{ url_for('attendance') }}">
@@ -675,7 +688,9 @@
                         </a>
                     </li>
                     {% endif %}
-                    {% if session.user_role == 'admin' or (current_user and current_user.has_permission('manage_payments')) %}
+                    
+                    <!-- Payments Link - Only for users who can manage payments -->
+                    {% if current_user and (current_user.role == 'admin' or current_user.has_permission('manage_payments')) %}
                     <li class="nav-item">
                         <a class="nav-link {{ 'active' if request.endpoint == 'payments' else '' }}"
                             href="{{ url_for('payments') }}">
@@ -684,34 +699,62 @@
                         </a>
                     </li>
                     {% endif %}
+                    
+                    <!-- Grades Link - Only for users who can manage students (Student Affairs Manager) -->
+                    {% if current_user and (current_user.role == 'admin' or current_user.has_permission('manage_students')) %}
                     <li class="nav-item">
                         <a class="nav-link {{ 'active' if request.endpoint == 'grades' else '' }}"
                             href="{{ url_for('grades') }}">
                             <i class="fas fa-chart-bar me-1"></i>رصد الدرجات
                         </a>
                     </li>
+                    {% endif %}
+                    
+                    <!-- Achievements Link - For students management or viewing -->
+                    {% if current_user and (current_user.role == 'admin' or current_user.has_permission('manage_students') or current_user.has_permission('view_reports')) %}
+                    <li class="nav-item">
+                        <a class="nav-link {{ 'active' if request.endpoint == 'achievements' else '' }}"
+                            href="{{ url_for('achievements') }}">
+                            <i class="fas fa-trophy me-1"></i>الإنجازات
+                        </a>
+                    </li>
+                    {% endif %}
+                    
+                    <!-- Subjects Link - Only for users who can manage subjects -->
+                    {% if current_user and (current_user.role == 'admin' or current_user.has_permission('manage_subjects')) %}
                     <li class="nav-item">
                         <a class="nav-link {{ 'active' if request.endpoint == 'manage_subjects' else '' }}"
                             href="{{ url_for('manage_subjects') }}">
                             <i class="fas fa-book me-1"></i>إدارة المواد
                         </a>
                     </li>
+                    {% endif %}
+                    
+                    <!-- Reports Link - Only for users who can view reports -->
+                    {% if current_user and (current_user.role == 'admin' or current_user.has_permission('view_reports')) %}
                     <li class="nav-item">
                         <a class="nav-link {{ 'active' if request.endpoint == 'reports' else '' }}"
                             href="{{ url_for('reports') }}">
                             <i class="fas fa-chart-line me-1"></i>التقارير
                         </a>
                     </li>
+                    {% endif %}
+                    
+                    <!-- Tasks Link - Only for users who can manage tasks -->
+                    {% if current_user and (current_user.role == 'admin' or current_user.has_permission('manage_tasks')) %}
                     <li class="nav-item">
                         <a class="nav-link {{ 'active' if request.endpoint == 'tasks' else '' }}"
                             href="{{ url_for('tasks') }}">
                             <i class="fas fa-tasks me-1"></i>المهام والملاحظات
-                            {% if session.user_role == 'admin' and get_new_instructor_notes_count() > 0 %}
+                            {% if current_user.role == 'admin' and get_new_instructor_notes_count() > 0 %}
                             <span class="badge bg-danger ms-1">{{ get_new_instructor_notes_count() }}</span>
                             {% endif %}
                         </a>
                     </li>
-                    {% if session.user_role == 'admin' %}
+                    {% endif %}
+                    
+                    <!-- Users Link - Only for users who can manage users (admins and user managers) -->
+                    {% if current_user and (current_user.role == 'admin' or current_user.has_permission('manage_users')) %}
                     <li class="nav-item">
                         <a class="nav-link {{ 'active' if request.endpoint == 'users' else '' }}"
                             href="{{ url_for('users') }}">
@@ -739,11 +782,22 @@
                             </li>
                             <li>
                                 <span class="dropdown-item-text">
-                                    <i class="fas fa-shield-alt me-2"></i>
-                                    الصلاحية: {{ 'مدير' if session.user_role == 'admin' else 'مدرس' if session.user_role
-                                    == 'instructor' else 'غير محدد' }}
+                                    <i class="fas fa-{{ 'shield-alt' if session.user_role == 'admin' else 'briefcase' }} me-2"></i>
+                                    {% if current_user %}
+                                    {{ current_user.get_role_info()['name'] }}
+                                    {% else %}
+                                    {{ 'مدير النظام' if session.user_role == 'admin' else 'مدرس' if session.user_role == 'instructor' else 'غير محدد' }}
+                                    {% endif %}
                                 </span>
                             </li>
+                            {% if current_user and current_user.role != 'admin' %}
+                            <li>
+                                <span class="dropdown-item-text small text-muted">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    {{ current_user.get_role_info()['description'] }}
+                                </span>
+                            </li>
+                            {% endif %}
                             <li>
                                 <hr class="dropdown-divider">
                             </li>
