@@ -175,7 +175,7 @@
                 </div>
                 <div class="col-md-4 text-end">
                     <span class="badge bg-light text-dark p-2">
-                        المستوى: {{ selected_group.level or 'غير محدد' }}
+                        المواد: {{ selected_group.subjects|map(attribute='name')|join(', ') or 'غير محدد' }}
                     </span>
                 </div>
             </div>

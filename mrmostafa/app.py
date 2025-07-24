@@ -1163,7 +1163,7 @@ def get_today_schedule():
                 'instructor_name': group.instructor_ref.name,
                 'start_time': schedule.start_time,
                 'end_time': schedule.end_time,
-                'level': group.level,
+                'subjects': [s.name for s in group.subjects] if group.subjects else ['عام'],
                 'student_count': group.students.count(),  # Use count() for dynamic relationship
                 'max_students': group.max_students  # Add max_students field
             })
@@ -2537,7 +2537,7 @@ def export_reports():
             group_data = [
                 idx,
                 group.name,
-                group.level or 'غير محدد',
+                ', '.join([s.name for s in group.subjects]) if group.subjects else 'غير محدد',
                 instructor_name,
                 group.students.count(),
                 group.max_students,
@@ -4301,7 +4301,6 @@ def import_groups():
                     
                     if existing_group:
                         # Update existing group
-                        existing_group.level = level
                         existing_group.instructor_id = instructor.id if instructor else None
                         existing_group.price = price
                         existing_group.monthly_price = monthly_price
@@ -4315,7 +4314,6 @@ def import_groups():
                         # Create new group
                         group = Group(
                             name=name,
-                            level=level,
                             instructor_id=instructor.id if instructor else None,
                             price=price,
                             monthly_price=monthly_price,
@@ -5798,7 +5796,7 @@ def export_full_backup():
             group_data = [
                 idx,
                 group.name,
-                group.level or 'غير محدد',
+                ', '.join([s.name for s in group.subjects]) if group.subjects else 'غير محدد',
                 instructor_name,
                 group.students.count(),
                 group.max_students,
@@ -6350,7 +6348,6 @@ def import_system_data():
                         
                         group = Group(
                             name=name,
-                            level=level,
                             instructor_id=instructor.id if instructor else None,
                             price=price,
                             max_students=max_students
@@ -6993,14 +6990,15 @@ def fix_import_data():
             # Set default prices for zero-price groups based on level and name
             price = 300.0  # Default price
             
-            # Check level first
-            if group.level:
-                level_lower = group.level.lower()
-                if 'متقدم' in level_lower or 'advanced' in level_lower:
+            # Check subjects for pricing hints
+            if group.subjects:
+                subject_names = [s.name.lower() for s in group.subjects]
+                subject_text = ' '.join(subject_names)
+                if 'متقدم' in subject_text or 'advanced' in subject_text:
                     price = 500.0
-                elif 'متوسط' in level_lower or 'intermediate' in level_lower:
+                elif 'متوسط' in subject_text or 'intermediate' in subject_text:
                     price = 350.0
-                elif 'مبتدئ' in level_lower or 'beginner' in level_lower:
+                elif 'مبتدئ' in subject_text or 'beginner' in subject_text:
                     price = 250.0
             
             # Check group name for more specific pricing

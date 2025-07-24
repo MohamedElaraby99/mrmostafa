@@ -72,7 +72,7 @@
                             <option value="">جميع المجموعات</option>
                             {% for group in groups %}
                             <option value="{{ group.id }}" {{ 'selected' if selected_group==group.id|string else '' }}>
-                                {{ group.name }} {% if group.level %}({{ group.level }}){% endif %}
+                                {{ group.name }} {% if group.subjects %}({{ group.subjects|map(attribute='name')|join(', ') }}){% endif %}
                             </option>
                             {% endfor %}
                         </select>
@@ -571,7 +571,7 @@
                                                 <br>
                                                 <small class="text-muted">
                                                     <i class="fas fa-layer-group me-1"></i>
-                                                    {{ group.level or 'بدون مستوى' }}
+                                                    {{ group.subjects|map(attribute='name')|join(', ') or 'بدون مواد' }}
                                                 </small>
                                             </div>
                                             <div class="text-end">
@@ -757,7 +757,7 @@
                                                 <br>
                                                 <small class="text-muted">
                                                     <i class="fas fa-layer-group me-1"></i>
-                                                    {{ group.level or 'بدون مستوى' }}
+                                                    {{ group.subjects|map(attribute='name')|join(', ') or 'بدون مواد' }}
                                                 </small>
                                             </div>
                                             <div class="text-end">
@@ -909,7 +909,7 @@
                             <option value="">اختر المجموعة</option>
                             {% for group in groups %}
                             <option value="{{ group.id }}">
-                                {{ group.name }} {% if group.level %}({{ group.level }}){% endif %}
+                                {{ group.name }} {% if group.subjects %}({{ group.subjects|map(attribute='name')|join(', ') }}){% endif %}
                                 - {{ group.instructor_ref.name if group.instructor_ref else 'بدون معلم' }}
                             </option>
                             {% endfor %}

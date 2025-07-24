@@ -166,7 +166,7 @@
             <div class="stats-card gradient-bg-1 text-white p-4">
                 <h5><i class="fas fa-info-circle me-2"></i>معلومات المجموعة</h5>
                 <hr class="border-light">
-                <p class="mb-2"><strong>المستوى:</strong> {{ group.level or 'غير محدد' }}</p>
+                <p class="mb-2"><strong>المواد:</strong> {{ group.subjects|map(attribute='name')|join(', ') or 'غير محدد' }}</p>
                 <p class="mb-2"><strong>المدرس:</strong> {{ group.instructor_ref.name if group.instructor_ref else 'غير
                     محدد' }}</p>
                 <p class="mb-2"><strong>الحد الأقصى للطلاب:</strong> {{ group.max_students }}</p>
