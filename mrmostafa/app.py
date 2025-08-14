@@ -2883,6 +2883,7 @@ def edit_group(group_id):
     return redirect(url_for('groups'))
 
 @app.route('/delete_group/<int:group_id>', methods=['POST'])
+@login_required
 def delete_group(group_id):
     group = Group.query.get_or_404(group_id)
     
@@ -2892,6 +2893,11 @@ def delete_group(group_id):
         flash('لا يمكن حذف المجموعة لأنها تحتوي على طلاب', 'error')
         return redirect(url_for('groups'))
     
+    # Delete related monthly payments first
+    MonthlyPayment.query.filter_by(group_id=group_id).delete()
+    # Delete related instructor notes and todos
+    InstructorNote.query.filter_by(group_id=group_id).delete()
+    InstructorTodo.query.filter_by(group_id=group_id).delete()
     # Delete related schedules
     Schedule.query.filter_by(group_id=group_id).delete()
     # Delete related attendance records
