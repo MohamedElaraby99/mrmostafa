@@ -283,6 +283,7 @@
                                 <th class="text-center"><i class="fas fa-check-circle me-2"></i>حاضر</th>
                                 <th class="text-center"><i class="fas fa-times-circle me-2"></i>غائب</th>
                                 <th class="text-center"><i class="fas fa-clock me-2"></i>متأخر</th>
+                                <th class="text-center"><i class="fas fa-money-bill-wave me-2"></i>الاشتراك/الدفعات</th>
                                 {% for date in session_dates[:10] %}
                                 <th class="text-center" style="min-width: 80px;">
                                     <small>{{ date[5:] }}</small>
@@ -334,6 +335,31 @@
                                 </td>
                                 <td class="text-center">
                                     <span class="badge bg-warning">{{ attendance_data.total_late }}</span>
+                                </td>
+                                <td class="text-center">
+                                    {% set fs = per_student_finance.get(student.id) %}
+                                    {% if fs %}
+                                        <div class="small text-muted">
+                                            <div>
+                                                <strong>المدفوع:</strong> ${{ "%.2f"|format(fs.total_paid) }}
+                                            </div>
+                                            <div>
+                                                <strong>المتبقي:</strong> ${{ "%.2f"|format(fs.overall_remaining) }}
+                                            </div>
+                                            <div>
+                                                <strong>آخر دفعة:</strong>
+                                                {% if fs.last_payment_amount %}
+                                                    ${{ "%.2f"|format(fs.last_payment_amount) }}
+                                                    {% if fs.last_payment_month %}
+                                                        <span class="text-nowrap">({{ fs.last_payment_month }})</span>
+                                                    {% endif %}
+                                                    {% if fs.last_payment_date %}
+                                                        <span class="text-nowrap">{{ fs.last_payment_date }}</span>
+                                                    {% endif %}
+                                                {% else %}-{% endif %}
+                                            </div>
+                                        </div>
+                                    {% else %}-{% endif %}
                                 </td>
                                 {% for date in session_dates[:10] %}
                                 <td class="text-center">

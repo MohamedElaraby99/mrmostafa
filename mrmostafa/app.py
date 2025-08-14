@@ -3190,6 +3190,19 @@ def group_details(group_id):
             'attendance_by_date': attendance_by_date
         }
     
+    # Build per-student financial summary (overall totals and latest payment)
+    per_student_finance = {}
+    for student in students:
+        last_payment = Payment.query.filter_by(student_id=student.id).order_by(Payment.date.desc()).first()
+        per_student_finance[student.id] = {
+            'total_paid': round((student.total_paid or 0.0), 2),
+            'overall_remaining': round((student.remaining_balance or 0.0), 2),
+            'group_price': round((group.effective_monthly_price if group.monthly_payment_enabled else group.price) or 0.0, 2),
+            'last_payment_amount': round(last_payment.amount, 2) if last_payment and last_payment.amount is not None else None,
+            'last_payment_date': last_payment.date.strftime('%Y-%m-%d') if last_payment and last_payment.date else None,
+            'last_payment_month': last_payment.month if last_payment and last_payment.month else None
+        }
+
     # Get recent payments for this group's students
     student_ids = [s.id for s in students]
     recent_payments = Payment.query.filter(
@@ -3206,6 +3219,7 @@ def group_details(group_id):
                          students=students,
                          session_dates=[date.strftime('%Y-%m-%d') for date in session_dates],
                          student_attendance=student_attendance,
+                         per_student_finance=per_student_finance,
                          total_sessions=total_sessions,
                          total_attendances=total_attendances,
                          total_absences=total_absences,
